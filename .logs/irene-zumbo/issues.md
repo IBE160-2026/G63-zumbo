@@ -7,3 +7,6 @@
 - [ ] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — bekrefte antakelser i PRD-en: «Sara», fornying av mellomlager, NFR-11 mobil og PC
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — vurder å presisere i product brief at smale aldersgrupper gir varsel tidlig i sesongen som pågår (R1); R2 og R3 slår ikke inn i ekte data (løst 2026-11-20: raden «Varsel om tynt datagrunnlag» i briefen er presisert)
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — bekreft tidsgrensen på 10 sekunder for FHI-API-et (FR-8) (løst 2026-11-20: godkjent, begrunnelse skrevet i FR-8)
+- [ ] 2026-11-20 [arkitektur](998-2026-11-20-16-06-30-arkitektur.md) — bekrefte arkitektens valg: fornying torsdag kl. 12:00 (AD-5), KI-forklaring lastet med JS (AD-9), rått FHI-svar i cachen (AD-4)
+- [ ] 2026-11-20 [arkitektur](998-2026-11-20-16-06-30-arkitektur.md) — fjerne SQLAlchemy fra backend/pyproject.toml og legge .cache/ i .gitignore
+- [ ] 2026-11-20 [arkitektur](998-2026-11-20-16-06-30-arkitektur.md) — ved publisering på Vercel: sjekke [tool.vercel]-oppsett og støtte for Python 3.13

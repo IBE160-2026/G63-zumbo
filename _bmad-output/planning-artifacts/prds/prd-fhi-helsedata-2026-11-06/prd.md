@@ -209,7 +209,8 @@ Appen henter positive prøver, tester og andel positive per uke for utvalget.
 Appen lagrer hentede tall sammen med tidspunktet for hentingen.
 
 - Et utvalg som er hentet tidligere, kan vises uten nytt kall til FHI.
-- Mellomlagrede data som ble hentet før FHIs siste publisering (hver torsdag), regnes som utdaterte og hentes på nytt neste gang utvalget vises. `[ANTAKELSE]` Nøyaktig regel for fornying bestemmes i arkitekturen.
+- Mellomlagrede data som ble hentet for 24 timer siden eller mer, regnes som utdaterte og hentes på nytt neste gang utvalget vises.
+- Begrunnelse: Fast levetid virker uansett når på torsdagen FHI publiserer. En regel knyttet til et klokkeslett torsdag ville regnet gamle tall som ferske i en hel uke hvis tallene ble hentet etter klokkeslettet, men før FHI faktisk hadde publisert. Ett døgns forsinkelse er greit for ukentlige tall, og FR-25 lar brukeren hente nye tall med en gang.
 
 #### FR-8: Håndtere at FHI-API-et ikke svarer
 
@@ -518,5 +519,4 @@ FR-25 («Hente nyeste tall nå») ble lagt til 20. november 2026, etter at PRD-e
 ## 13. Antakelser
 
 - §2.3 — Personen «Sara» er laget ut fra hovedbrukeren i briefen.
-- FR-7 — Mellomlagrede data fornyes etter FHIs ukentlige publisering. Nøyaktig regel avgjøres i arkitekturen.
 - NFR-11 — Mobil og PC, fra `docs/sjekkliste.md`.

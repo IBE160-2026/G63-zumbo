@@ -100,8 +100,8 @@ Pilen betyr «kan importere». Kjernemodulene (`domene`, `sesong`, fhi-tolking, 
 
 - **Binds (gjelder):** `sesong`, `tjeneste`; FR-7, FR-25
 - **Prevents (hindrer):** at web, tjeneste og tester bruker ulike regler for når tall skal hentes på nytt.
-- **Rule (regel):** Den rene funksjonen `sesong.er_utdatert(hentet, nå)` gir `True` når `hentet` er tidligere enn siste torsdag kl. 12:00 norsk tid (`Europe/Oslo`) som ikke er senere enn `nå`. `tjeneste` henter på nytt når dataene er utdaterte, og alltid ved FR-25. All tid lagres i UTC og vises i norsk tid som «20.11.2026 kl. 14:05».
-- **Begrunnelse:** FHI publiserer hver torsdag, men vi vet ikke klokkeslettet. Henter vi på nytt før FHI har publisert, får vi bare de samme tallene, så kl. 12:00 er trygt. `[ANTAKELSE]` Klokkeslettet justeres hvis vi finner FHIs faktiske publiseringstid.
+- **Rule (regel):** Den rene funksjonen `sesong.er_utdatert(hentet, nå)` gir `True` når `nå − hentet` er 24 timer eller mer. Begge tidspunktene har tidssone (UTC). `tjeneste` henter på nytt når dataene er utdaterte, og alltid ved FR-25. All tid lagres i UTC og vises i norsk tid som «20.11.2026 kl. 14:05».
+- **Begrunnelse:** Følger FR-7. Fast levetid virker uansett når FHI publiserer. En regel om «torsdag kl. 12:00» ville regnet gamle tall som ferske i en hel uke hvis tallene ble hentet torsdag etter kl. 12, men før FHI hadde publisert. Ett døgns forsinkelse er greit for ukentlige tall, og FR-25 dekker behovet for å hente nye tall med en gang.
 
 ### AD-6 — KI-forklaring med Claude og fast reserve `[ADOPTED]`
 

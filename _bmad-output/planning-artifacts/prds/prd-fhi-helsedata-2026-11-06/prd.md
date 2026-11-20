@@ -42,7 +42,7 @@ Beredskapsrådgivere, journalister og kommunikasjonsrådgivere kan ha nytte av a
   Sara studerer samfunnssikkerhet og skriver om beredskap for luftveisinfeksjoner. Hun åpner appen i nettleseren, uten innlogging. Hun velger mal 1, influensa, sesongen 2025/2026 og «alle aldersgrupper». Appen viser en graf over andel positive tester uke for uke, en tabell med tallene, korte forklaringer av begrepene og en KI-skrevet forklaring med kilde. Ingen varsel vises. Sara kopierer kildehenvisningen og forklarer utviklingen med egne ord i oppgaven sin.
 
 - **UJ-2. Sara får beskjed om at tallene er for usikre.**
-  Sara velger RSV, aldersgruppen 80+ år og sesongen 2024/2025. Appen viser graf og tabell, men øverst står et varsel om for tynt datagrunnlag. Varselet sier hvilke regler som slo inn, for eksempel at perioden går over 1. mars 2025 og at mange uker har færre enn 30 tester. KI-forklaringen nevner usikkerheten. Sara skriver i oppgaven at tallene må tolkes med forsiktighet.
+  Sara velger RSV, aldersgruppen 80+ år og sesongen 2026/2027, som nettopp har startet. Appen viser graf og tabell, men øverst står et varsel om for tynt datagrunnlag: det er bare 6 positive prøver så langt i sesongen, og grensen er 20. KI-forklaringen nevner usikkerheten. Sara bytter til sesongen 2024/2025 og får et nytt varsel: perioden går over 1. mars 2025, så tallene før og etter kan ikke sammenlignes direkte. Sara skriver i oppgaven at tallene må tolkes med forsiktighet. (Tallene er fra FHI per 20.11.2026.)
 
 - **UJ-3. FHI-API-et svarer ikke.**
   Sara åpner appen mens FHI-API-et er nede. Appen viser en feilmelding på norsk om at tallene ikke kunne hentes nå. Hvis appen har lagret tall for det samme utvalget tidligere, vises de med dato for når de ble hentet.
@@ -71,7 +71,7 @@ Disse begrepene brukes likt i hele PRD-en og i stories og kode.
 - **Kontrollregel** — En av de fem faste reglene R1–R5 i kapittel 6.5.
 - **Varsel om tynt datagrunnlag** — Melding som vises når minst én kontrollregel slår inn.
 - **KI-forklaring** — Kort tekst skrevet av en språkmodell ut fra de hentede tallene.
-- **Kildehenvisning** — Henvisning til FHI-tabellen tallene kommer fra, med tabellnummer og hentedato.
+- **Kildehenvisning** — Henvisning til FHI-tabellen tallene kommer fra: MSIS-labdatabasen, FHI, tabellnummer, tabellnavn og dato for hentingen.
 - **Mellomlagrede data** — Tall appen har hentet fra FHI tidligere og lagret, med tidspunkt for hentingen.
 
 ## 4. Datasett
@@ -120,12 +120,12 @@ Hovedskjermen er én side. På mobil ligger delene under hverandre i samme rekke
 │ 1  VELG SPØRSMÅL                                                   │
 │    Mal:          [ Andel positive tester uke for uke         ▾ ]   │
 │    Virus:        ( ) Influensa  ( ) RSV  ( ) SARS-CoV-2            │
-│    Sesong:       [ 2025/2026 ▾ ]                                   │
+│    Sesong:       [ 2026/2027 ▾ ]                                   │
 │    Aldersgruppe: [ Alle aldersgrupper ▾ ]        [ Vis tallene ]   │
 ├────────────────────────────────────────────────────────────────────┤
 │ ⚠ 2  VARSEL: For tynt datagrunnlag                                 │
 │    Tallene bør tolkes med forsiktighet fordi:                      │
-│    • 6 av 20 uker har færre enn 30 tester (grensen er 20 %)        │
+│    • Bare 6 positive prøver så langt i sesongen (grensen er 20)    │
 │    [ Hva betyr dette? ]                                            │
 ├──────────────────────────────────────────┬─────────────────────────┤
 │ 3  GRAF                                  │ 4  TABELL               │
@@ -136,6 +136,9 @@ Hovedskjermen er én side. På mobil ligger delene under hverandre i samme rekke
 │     40  44  48  52  4   8                │ 7       24    5 20,8 %* │
 │  ● = sikker uke  ○ = usikker uke         │ * færre enn 30 tester   │
 ├──────────────────────────────────────────┴─────────────────────────┤
+│ Kilde: MSIS-labdatabasen, FHI. Tabell 724 «RESPIaggr Influensa     │
+│ antall og andel». Hentet 20.11.2026.                               │
+├────────────────────────────────────────────────────────────────────┤
 │ 5  HVA BETYR ORDENE?                                               │
 │    ▸ Andel positive  ▸ Test og positiv prøve  ▸ Sesong             │
 │    ▸ Aldersgruppe  ▸ Overvåkingstype  ▸ MSIS                       │
@@ -148,7 +151,7 @@ Hovedskjermen er én side. På mobil ligger delene under hverandre i samme rekke
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-Varselet (2) ligger over grafen, slik at brukeren ser det før tallene. Uten varsel vises ikke boks 2. Uten KI-nøkkel står det i boks 6 at forklaringen krever en nøkkel, mens resten virker.
+Tallene i skissen er bare illustrasjon. Varselet (2) ligger over grafen, slik at brukeren ser det før tallene. Uten varsel vises ikke boks 2. Uten KI-nøkkel står det i boks 6 at forklaringen krever en nøkkel, mens resten virker.
 
 ### 6.1 Velge mal og utvalg
 
@@ -205,11 +208,11 @@ Appen henter positive prøver, tester og andel positive per uke for utvalget.
 Appen lagrer hentede tall sammen med tidspunktet for hentingen.
 
 - Et utvalg som er hentet tidligere, kan vises uten nytt kall til FHI.
-- Mellomlagrede data fornyes når de er eldre enn neste publisering fra FHI (torsdag). `[ANTAKELSE]` Nøyaktig regel for fornying bestemmes i arkitekturen.
+- Mellomlagrede data som ble hentet før FHIs siste publisering (hver torsdag), regnes som utdaterte og hentes på nytt neste gang utvalget vises. `[ANTAKELSE]` Nøyaktig regel for fornying bestemmes i arkitekturen.
 
 #### FR-8: Håndtere at FHI-API-et ikke svarer
 
-Når FHI-API-et ikke svarer, gir feil eller bruker for lang tid, sier appen tydelig fra. Realiserer UJ-3.
+Når FHI-API-et ikke svarer, gir feil eller ikke har svart innen 10 sekunder, sier appen tydelig fra. Realiserer UJ-3. `[ANTAKELSE]` Grensen på 10 sekunder er vårt forslag.
 
 - Appen viser en feilmelding på norsk, uten tekniske feilkoder, som sier at tallene ikke kunne hentes fra FHI akkurat nå.
 - Hvis det finnes mellomlagrede data for utvalget, vises de med teksten «Sist lagrede tall, hentet [dato og klokkeslett]».
@@ -267,6 +270,8 @@ Appen sjekker hvert utvalg mot fem faste kontrollregler. Hvis minst én slår in
 
 Alle reglene beregnes over **ukene i utvalget**: ukene i valgt sesong (uke 40 til uke 20, eller til siste publiserte uke) for valgt virus og aldersgruppe.
 
+**Hvilke regler slår inn i ekte data?** Vi sjekket tallene 20.11.2026 for SARS-CoV-2 (alle aldersgrupper) og RSV (0–4 og 80+ år) med vanlig klinisk praksis. Alle uker hadde minst 129 tester, og ingen verdier var skjult. R2 og R3 slo derfor ikke inn for noen av disse utvalgene. Varsler i ekte data kommer fra R1 (smale aldersgrupper tidlig i sesongen som pågår, for eksempel RSV 80+ år i 2026/2027 med 6 positive prøver), R4 (de første ukene av en ny sesong) og R5 (sesongen 2024/2025). R2 og R3 beholdes som sikring, for eksempel hvis FHI endrer dataene eller fyrtårnsystemet tas med senere, og testes med konstruerte testdata.
+
 #### FR-14: R1 – få positive prøver
 
 Appen viser varsel når summen av positive prøver i utvalget er mindre enn 20.
@@ -298,6 +303,7 @@ Appen viser varsel når mer enn 20 % av ukene i utvalget er manglende uker.
 Appen viser varsel når utvalget har færre enn 3 uker med data.
 
 - 2 uker → varsel. 3 uker → ikke varsel etter R4.
+- Det betyr at varselet alltid vises i de to første ukene av en ny sesong (uke 40 og 41).
 - En uke har data når den ikke er en manglende uke.
 - Begrunnelse: To datapunkter viser bare én endring. Tre er minimum for å se en retning (opp, ned eller flat).
 
@@ -366,7 +372,8 @@ Brukeren kan velge mal 2, virus og eventuelt aldersgruppe, og se denne sesongen 
 
 Kontrollreglene R1–R5 beregnes for hver sesong for seg. Varselet vises hvis minst én regel slår inn for én av sesongene, og sier hvilken sesong det gjelder.
 
-- Sammenligning av 2025/2026 med 2024/2025 gir alltid varsel etter R5, fordi 2024/2025 går over 1. mars 2025.
+- Per 20.11.2026 sammenligner mal 2 sesongen 2026/2027 med 2025/2026. Ingen av dem går over 1. mars 2025, så R5 slår ikke inn. R5 slår bare inn hvis forrige sesong er 2024/2025.
+- Tidlig i sesongen som pågår kan R1 og R4 slå inn for «denne sesongen».
 - En uke 53 som bare finnes i den ene sesongen, telles ikke som manglende uke i R3 for den andre sesongen.
 
 ## 7. Ikke-funksjonelle krav
@@ -390,6 +397,7 @@ Hele grensesnittet er på norsk bokmål med enkle ord.
 
 - Ingen engelske FHI-koder (for eksempel «Non-Sentinel», «pos_rate») vises for brukeren.
 - Feilmeldinger, varsler og tomme tilstander sier hva som skjedde og hva brukeren kan gjøre.
+- Om språket er enkelt nok, prøves i brukertestingen (SM-5): ord testbrukerne ikke forstår, skrives om.
 
 #### NFR-4: Kontrast
 
@@ -463,14 +471,14 @@ Alle automatiske tester kjører uten nett og uten KI-nøkkel. De bruker lagrede 
 
 - **SM-1: Korrekte tall.** Et fast testsett med 10 malspørsmål fordelt på influensa, RSV og SARS-CoV-2, med fasit hentet manuelt fra FHI. Mål: 10 av 10 gir samme tall som fasiten. Automatiske tester mot lagrede API-svar. Validerer FR-2, FR-3, FR-4, FR-6.
 - **SM-2: Kildehenvisning.** Mål: 100 % av svarene i testsettet har korrekt kildehenvisning. Automatiske tester. Validerer FR-12.
-- **SM-3: Riktig varsel.** Testsettet har utvalg som kan velges i appen, både der varselet skal vises og der det ikke skal vises. Eksempler på utvalg som kan gi varsel er smale aldersgrupper (for eksempel 0–4 år eller 80+ år) og sesongen 2024/2025, som alltid gir varsel etter R5. De konkrete tilfellene bekreftes når testsettet lages fra ekte tall. Grensetilfellene for hver regel (19/20 positive, 20 %/25 % uker med færre enn 30 tester, 20 %/30 % manglende uker, 2/3 uker) testes med konstruerte testdata i `tests/fixtures/`. Mål: riktig varsel med riktig begrunnelse i alle tilfeller. Automatiske tester. Validerer FR-14–FR-19.
+- **SM-3: Riktig varsel.** Testsettet har utvalg som kan velges i appen, både der varselet skal vises og der det ikke skal vises. Eksempler på utvalg som kan gi varsel er smale aldersgrupper tidlig i sesongen som pågår (R1, for eksempel RSV 80+ år i 2026/2027) og sesongen 2024/2025, som alltid gir varsel etter R5. De konkrete tilfellene bekreftes når testsettet lages fra ekte tall. R2 og R3 slår ikke inn i ekte data per 20.11.2026 (se kapittel 6.5), så de testes bare med konstruerte data. Grensetilfellene for hver regel (19/20 positive, 20 %/25 % uker med færre enn 30 tester, 20 %/30 % manglende uker, 2/3 uker) testes med konstruerte testdata i `tests/fixtures/`. Mål: riktig varsel med riktig begrunnelse i alle tilfeller. Automatiske tester. Validerer FR-14–FR-19.
 - **SM-4: Forklaringens kvalitet.** KI-forklaringene i testsettet vurderes mot sjekklisten i FR-21. Mål: alle består. Manuell gjennomgang av lagrede forklaringer. Validerer FR-20, FR-21.
 
 **Brukertesting**
 
 Fem personer uten medisinsk bakgrunn, for eksempel medstudenter, prøver appen én og én. Hver får én oppgave med mal 1 der varselet ikke vises, og én der det vises.
 
-- **SM-5: Forståelighet.** Testbrukeren forklarer med egne ord hva grafen viser, og om tallene er sikre. Mål: minst 4 av 5 svarer riktig på begge. Validerer FR-9, FR-13, FR-19, FR-20.
+- **SM-5: Forståelighet.** Testbrukeren forklarer med egne ord hva grafen viser, og om tallene er sikre. Før testen skriver vi en fasit for hver oppgave (hovedtrekket i grafen og om varselet vises, og hvorfor). To i gruppen vurderer svarene hver for seg mot fasiten, og blir enige ved uenighet. Mål: minst 4 av 5 svarer riktig på begge. Validerer FR-9, FR-13, FR-19, FR-20.
 - **SM-6: Tid.** Tid fra valgt mal til forklart situasjonsbilde. Mål: under 1 minutt for minst 4 av 5. Validerer FR-1–FR-4, NFR-2.
 
 **Motvekter (skal ikke optimaliseres)**
@@ -492,4 +500,5 @@ PRD-en skulle vært ferdig 8. november 2026. Den ble skrevet 20. november, fordi
 
 - §2.3 — Personen «Sara» er laget ut fra hovedbrukeren i briefen.
 - FR-7 — Mellomlagrede data fornyes etter FHIs ukentlige publisering. Nøyaktig regel avgjøres i arkitekturen.
+- FR-8 — FHI-API-et regnes som utilgjengelig etter 10 sekunder uten svar.
 - NFR-11 — Mobil og PC, fra `docs/sjekkliste.md`.

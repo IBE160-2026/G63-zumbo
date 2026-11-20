@@ -126,11 +126,11 @@ Pilen betyr «kan importere». Kjernemodulene (`domene`, `sesong`, fhi-tolking, 
 
 ### AD-9 — Ruter og lastemønster
 
-- **Binds (gjelder):** `web`; FR-1–FR-5, FR-8, FR-22, FR-25, NFR-2
-- **Prevents (hindrer):** at siden venter på KI-en, at et dobbelttrykk starter flere kall mot FHI, og at oppdatering av siden sender skjemaet på nytt.
+- **Binds (gjelder):** `web`, `static/app.js`; FR-1–FR-5, FR-8, FR-20, FR-22, FR-25, NFR-2
+- **Prevents (hindrer):** at siden venter på KI-en, at skjermleserbrukere ikke får vite når forklaringen kommer, at et dobbelttrykk starter flere kall mot FHI, og at oppdatering av siden sender skjemaet på nytt.
 - **Rule (regel):**
   - `GET /` med utvalget som query-parametre (`mal`, `virus`, `sesong`, `alder`) viser skjema og resultat. Uten parametre vises bare skjemaet. Ugyldige parametre gir en norsk melding og ingen henting (FR-5). Validering skjer bare i `domene.Utvalg.fra_parametre`.
-  - `GET /forklaring` med samme parametre returnerer et HTML-fragment med KI-forklaringen. `app.js` henter det etter at siden er vist.
+  - `GET /forklaring` med samme parametre returnerer et HTML-fragment med KI-forklaringen. `app.js` henter det etter at siden er vist og setter det inn i forklaringsområdet. Området har `aria-live="polite"` og inneholder «Forklaringen lages …» fra start (FR-20). Hvis kallet feiler (nettverksfeil eller annen status enn 200), setter `app.js` inn FR-22-meldingen «forklaringen kunne ikke lages akkurat nå». Teksten legges av malen i et `data-feiltekst`-attributt på området, slik at alle faste tekster står i malene og ikke i JavaScript.
   - `POST /hent-nyeste` (skjema med samme felt) henter på nytt uten mellomlagring og svarer med `303` til `GET /` for samme utvalg. `app.js` deaktiverer knappen når skjemaet sendes. I `tjeneste` sørger en lås per utvalg for at samtidige forespørsler deler ett kall til FHI.
   - Brukeren ser aldri tekniske feilkoder. `FhiUtilgjengelig` gir FR-8-meldingen, med eller uten lagrede tall.
 - **Begrunnelse:** Graf og tabell vises innen 5 sekunder selv om KI-en er treg (NFR-2). Mønsteret med POST og omdirigering gjør at FR-25-knappen ikke sendes på nytt hvis brukeren oppdaterer siden.

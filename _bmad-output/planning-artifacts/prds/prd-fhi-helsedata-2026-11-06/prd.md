@@ -353,6 +353,8 @@ Appen lager en kort forklaring av hva tallene i utvalget viser, med enkle ord. R
 - Forklaringen er merket «Skrevet av KI».
 - Forklaringen er på norsk og høyst 120 ord.
 - Kildehenvisningen fra FR-12 vises sammen med forklaringen.
+- Forklaringen settes inn i et område med `aria-live="polite"`, slik at skjermlesere leser den opp når den kommer.
+- Mens forklaringen hentes, står det «Forklaringen lages …» i området.
 
 #### FR-21: Krav til innholdet i KI-forklaringen
 
@@ -369,6 +371,7 @@ Når KI-nøkkelen mangler, eller språkmodellen gir feil, virker resten av appen
 
 - Uten nøkkel står det i forklaringsfeltet at KI-forklaringen krever en nøkkel, og at graf, tabell og varsel er komplette uten den.
 - Ved feil fra språkmodellen står det at forklaringen ikke kunne lages akkurat nå.
+- Hvis selve hentingen av forklaringen feiler, for eksempel ved nettverksfeil, vises den samme meldingen.
 - Graf, tabell, begrepsforklaringer, varsel og kildehenvisning vises i begge tilfellene.
 
 ### 6.7 Mal 2 – sammenligning av sesonger (strekkmål)

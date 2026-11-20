@@ -139,7 +139,7 @@ Pilen betyr «kan importere». Kjernemodulene (`domene`, `sesong`, fhi-tolking, 
 
 - **Binds (gjelder):** `tests/`; NFR-10, SM-1, SM-2, SM-3
 - **Prevents (hindrer):** at en test gjør et ekte kall mot FHI eller Claude og blir treg, ustabil eller koster penger.
-- **Rule (regel):** `pytest` kjøres med `pytest-socket` (`--disable-socket`), slik at alle nettverkskall feiler. HTTP mot FHI mockes med `respx` og svar fra `tests/fixtures/fhi/`. KI testes med en falsk klient og tekster fra `tests/fixtures/ki/`. Konstruerte data for grensetilfellene i R1–R5 ligger i `tests/fixtures/konstruert/`. Testene laster aldri `.env`. De lager `Innstillinger` direkte, uten nøkkel og med `CACHE_DIR` lik `tmp_path`, og overstyrer `les_innstillinger` i app-testene. `ruff check` og `ruff format --check` skal bestå før commit.
+- **Rule (regel):** `pytest` kjøres med `pytest-socket` (`--disable-socket`), slik at alle nettverkskall feiler. HTTP mot FHI mockes med `respx` og svar fra `tests/fixtures/fhi/`. KI testes med en falsk klient og tekster fra `tests/fixtures/ki/`. Konstruerte data for grensetilfellene i R1–R5 ligger i `tests/fixtures/konstruert/`. Testsettet med 10 spørsmål (SM-1–SM-3) har fasit hentet manuelt fra FHI i `tests/fixtures/testsett/`, med hentedato i hver fil. Testene laster aldri `.env`. De lager `Innstillinger` direkte, uten nøkkel og med `CACHE_DIR` lik `tmp_path`, og overstyrer `les_innstillinger` i app-testene. `ruff check` og `ruff format --check` skal bestå før commit.
 - **Begrunnelse:** Med nettsperre kan ingen test ved et uhell ringe ut, slik NFR-10 krever. Fixturene er samme format som cachen (AD-4), så vi trenger bare én tolker.
 
 ### AD-11 — Kjøring lokalt og valgfritt på Vercel `[ADOPTED]`
@@ -212,6 +212,7 @@ fhi-helsedata/
       fixtures/fhi/         # lagrede FHI-svar (SM-1, SM-2)
       fixtures/ki/          # lagrede KI-svar (SM-4)
       fixtures/konstruert/  # grensetilfeller R1–R5 (SM-3)
+      fixtures/testsett/    # fasit for de 10 testspørsmålene (SM-1–SM-3)
       test_*.py
 ```
 

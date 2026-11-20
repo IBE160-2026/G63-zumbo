@@ -137,7 +137,8 @@ Hovedskjermen er én side. På mobil ligger delene under hverandre i samme rekke
 │  ● = sikker uke  ○ = usikker uke         │ * færre enn 30 tester   │
 ├──────────────────────────────────────────┴─────────────────────────┤
 │ Kilde: MSIS-labdatabasen, FHI. Tabell 724 «RESPIaggr Influensa     │
-│ antall og andel». Hentet 20.11.2026.                               │
+│ antall og andel». Hentet 20.11.2026 kl. 14:05.                     │
+│ FHI publiserer nye tall hver torsdag.   [ Hent nyeste tall nå ]    │
 ├────────────────────────────────────────────────────────────────────┤
 │ 5  HVA BETYR ORDENE?                                               │
 │    ▸ Andel positive  ▸ Test og positiv prøve  ▸ Sesong             │
@@ -220,6 +221,19 @@ Begrunnelse for 10 sekunder: Brukeren venter neppe lenger før hen tror appen ha
 - Hvis det finnes mellomlagrede data for utvalget, vises de med teksten «Sist lagrede tall, hentet [dato og klokkeslett]».
 - Hvis det ikke finnes mellomlagrede data, vises ingen graf eller tabell. Feilmeldingen foreslår å prøve igjen senere.
 - Kontrollreglene og begrepsforklaringene gjelder også for mellomlagrede data.
+
+#### FR-25: Hente nyeste tall nå
+
+*Lagt til 20. november 2026, etter at PRD-en var ferdig.*
+
+Brukeren kan be appen hente tallene fra FHI på nytt, uten å vente på at de mellomlagrede tallene blir utdaterte (FR-7).
+
+- Siden viser når tallene ble hentet (dato og klokkeslett), og at FHI publiserer nye tall hver torsdag.
+- En knapp «Hent nyeste tall nå» henter tallene for utvalget fra FHI på nytt uten å bruke mellomlagringen, og lagrer de nye tallene med nytt hentetidspunkt.
+- Mens hentingen pågår, er knappen deaktivert, slik at gjentatte trykk ikke starter nye kall.
+- Hvis FHI ikke svarer, gjelder FR-8: sist lagrede tall vises med dato.
+- Hvis tallene ikke har endret seg, gjenbrukes den lagrede KI-forklaringen.
+- Knappen kan brukes med tastatur (NFR-5).
 
 ### 6.3 Graf og tabell
 
@@ -454,6 +468,7 @@ Alle automatiske tester kjører uten nett og uten KI-nøkkel. De bruker lagrede 
 - Overvåkingstype: vanlig klinisk praksis.
 - Graf, tabell, usikre uker, begrepsforklaringer, kildehenvisning, varsel (R1–R5) og KI-forklaring.
 - Mellomlagring og feilmelding når FHI-API-et ikke svarer.
+- Knappen «Hent nyeste tall nå» (FR-25, lagt til 20. november 2026).
 
 **Strekkmål**
 - Mal 2, sammenligning av sesonger (FR-23, FR-24).
@@ -491,6 +506,8 @@ Fem personer uten medisinsk bakgrunn, for eksempel medstudenter, prøver appen �
 ## 11. Avvik fra planen
 
 PRD-en skulle vært ferdig 8. november 2026. Den ble skrevet 20. november, fordi økten med `bmad-prd` 6. november stoppet etter at bare et tomt skjelett var laget (commit `353556c`). I mellomtiden ble product brief endret med ny retning: beredskap og helseregister, og en hovedbruker uten medisinsk bakgrunn. PRD-en bygger derfor på den nye briefen, og noen tidligere notater gjelder ikke lenger, blant annet at tabell 733 var strekkmål.
+
+FR-25 («Hente nyeste tall nå») ble lagt til 20. november 2026, etter at PRD-en var ferdig, og før arkitekturen ble skrevet.
 
 ## 12. Åpne spørsmål
 

@@ -212,7 +212,9 @@ Appen lagrer hentede tall sammen med tidspunktet for hentingen.
 
 #### FR-8: Håndtere at FHI-API-et ikke svarer
 
-Når FHI-API-et ikke svarer, gir feil eller ikke har svart innen 10 sekunder, sier appen tydelig fra. Realiserer UJ-3. `[ANTAKELSE]` Grensen på 10 sekunder er vårt forslag.
+Når FHI-API-et ikke svarer, gir feil eller ikke har svart innen 10 sekunder, sier appen tydelig fra. Realiserer UJ-3.
+
+Begrunnelse for 10 sekunder: Brukeren venter neppe lenger før hen tror appen har hengt seg. Mellomlagrede tall vises uansett innen 5 sekunder (NFR-2).
 
 - Appen viser en feilmelding på norsk, uten tekniske feilkoder, som sier at tallene ikke kunne hentes fra FHI akkurat nå.
 - Hvis det finnes mellomlagrede data for utvalget, vises de med teksten «Sist lagrede tall, hentet [dato og klokkeslett]».
@@ -500,5 +502,4 @@ PRD-en skulle vært ferdig 8. november 2026. Den ble skrevet 20. november, fordi
 
 - §2.3 — Personen «Sara» er laget ut fra hovedbrukeren i briefen.
 - FR-7 — Mellomlagrede data fornyes etter FHIs ukentlige publisering. Nøyaktig regel avgjøres i arkitekturen.
-- FR-8 — FHI-API-et regnes som utilgjengelig etter 10 sekunder uten svar.
 - NFR-11 — Mobil og PC, fra `docs/sjekkliste.md`.

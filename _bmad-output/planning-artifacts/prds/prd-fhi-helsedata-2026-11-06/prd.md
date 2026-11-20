@@ -499,7 +499,7 @@ Hentet fra `docs/sjekkliste.md` og bekreftet av gruppen 20. november 2026. Hoved
 
 Fem personer uten medisinsk bakgrunn, for eksempel medstudenter, prøver appen én og én. Hver får én oppgave med mal 1 der varselet ikke vises, og én der det vises.
 
-- **SM-5: Forståelighet.** Testbrukeren forklarer med egne ord hva grafen viser, og om tallene er sikre. Før testen skriver vi en fasit for hver oppgave (hovedtrekket i grafen og om varselet vises, og hvorfor). To i gruppen vurderer svarene hver for seg mot fasiten, og blir enige ved uenighet. Mål: minst 4 av 5 svarer riktig på begge. Validerer FR-9, FR-13, FR-19, FR-20.
+- **SM-5: Forståelighet.** Testbrukeren forklarer med egne ord hva grafen viser, og om tallene er sikre. Før testen skrives en fasit for hver oppgave (hovedtrekket i grafen og om varselet vises, og hvorfor). Jeg vurderer svarene mot fasiten. Hvis det er mulig, vurderer en medstudent de samme svarene uavhengig av meg. Mål: minst 4 av 5 svarer riktig på begge. Validerer FR-9, FR-13, FR-19, FR-20.
 - **SM-6: Tid.** Tid fra valgt mal til forklart situasjonsbilde. Mål: under 1 minutt for minst 4 av 5. Validerer FR-1–FR-4, NFR-2.
 
 **Motvekter (skal ikke optimaliseres)**

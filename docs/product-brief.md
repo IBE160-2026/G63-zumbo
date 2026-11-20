@@ -71,7 +71,7 @@ Studenten representerer en større gruppe: folk uten medisinsk eller forskningsb
 | --- | --- | --- | --- |
 | Korrekte tall | Fast testsett med 10 malspørsmål fordelt på influensa, RSV og SARS-CoV-2, der riktige tall er hentet manuelt fra FHI på forhånd | 10 av 10 gir samme tall som fasiten | Automatiske tester mot lagrede API-svar |
 | Kildehenvisning | Andel svar i testsettet med korrekt kildehenvisning | 100 % | Automatiske tester |
-| Varsel om tynt datagrunnlag | Testsettet har tilfeller der varselet skal vises (f.eks. RSV og SARS-CoV-2 utenom sesong, perioder over 1. mars 2025) og der det ikke skal vises | Varselet vises riktig, med riktig begrunnelse, i alle tilfeller | Automatiske tester |
+| Varsel om tynt datagrunnlag | Testsettet har utvalg som kan velges i appen, der varselet skal vises (f.eks. smale aldersgrupper og perioder over 1. mars 2025) og der det ikke skal vises. De konkrete tilfellene bekreftes når testsettet lages fra ekte tall. Grensetilfellene for hver regel testes med konstruerte testdata i `tests/fixtures/` | Varselet vises riktig, med riktig begrunnelse, i alle tilfeller | Automatiske tester |
 | Forklaringens kvalitet | KI-forklaringene vurderes mot en sjekkliste: bruker bare hentede tall, ingen oppdiktede årsaker, ingen uforklarte faguttrykk, nevner usikkerhet når varselet vises | Alle forklaringer i testsettet består | Manuell gjennomgang av lagrede forklaringer |
 | Forståelighet | Testbrukere uten medisinsk bakgrunn forklarer med egne ord hva grafen viser, og om tallene er sikre | Minst 4 av 5 testbrukere svarer riktig på begge | Ved brukertesting |
 | Brukerutfall | Tid fra valgt mal til forklart situasjonsbilde | Under 1 minutt | Ved brukertesting |

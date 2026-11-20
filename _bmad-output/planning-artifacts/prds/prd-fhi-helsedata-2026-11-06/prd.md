@@ -463,7 +463,7 @@ Alle automatiske tester kjører uten nett og uten KI-nøkkel. De bruker lagrede 
 
 - **SM-1: Korrekte tall.** Et fast testsett med 10 malspørsmål fordelt på influensa, RSV og SARS-CoV-2, med fasit hentet manuelt fra FHI. Mål: 10 av 10 gir samme tall som fasiten. Automatiske tester mot lagrede API-svar. Validerer FR-2, FR-3, FR-4, FR-6.
 - **SM-2: Kildehenvisning.** Mål: 100 % av svarene i testsettet har korrekt kildehenvisning. Automatiske tester. Validerer FR-12.
-- **SM-3: Riktig varsel.** Testsettet har tilfeller der varselet skal vises (for eksempel RSV og SARS-CoV-2 utenom sesong, sesongen 2024/2025) og der det ikke skal vises, og grensetilfeller for hver regel (19/20 positive, 20 %/25 % uker med færre enn 30 tester, 20 %/30 % manglende uker, 2/3 uker). Mål: riktig varsel med riktig begrunnelse i alle tilfeller. Automatiske tester. Validerer FR-14–FR-19.
+- **SM-3: Riktig varsel.** Testsettet har utvalg som kan velges i appen, både der varselet skal vises og der det ikke skal vises. Eksempler på utvalg som kan gi varsel er smale aldersgrupper (for eksempel 0–4 år eller 80+ år) og sesongen 2024/2025, som alltid gir varsel etter R5. De konkrete tilfellene bekreftes når testsettet lages fra ekte tall. Grensetilfellene for hver regel (19/20 positive, 20 %/25 % uker med færre enn 30 tester, 20 %/30 % manglende uker, 2/3 uker) testes med konstruerte testdata i `tests/fixtures/`. Mål: riktig varsel med riktig begrunnelse i alle tilfeller. Automatiske tester. Validerer FR-14–FR-19.
 - **SM-4: Forklaringens kvalitet.** KI-forklaringene i testsettet vurderes mot sjekklisten i FR-21. Mål: alle består. Manuell gjennomgang av lagrede forklaringer. Validerer FR-20, FR-21.
 
 **Brukertesting**

@@ -36,7 +36,7 @@ Beredskapsrådgivere, journalister og kommunikasjonsrådgivere kan ha nytte av a
 
 ### 2.3 Brukerreiser
 
-`[ANTAKELSE]` Personen «Sara» er laget for denne PRD-en ut fra hovedbrukeren i briefen, og bør justeres etter brukertestingen.
+Personen «Sara» er laget for denne PRD-en ut fra hovedbrukeren i briefen, og er bekreftet av gruppen 20. november 2026. Hun kan justeres etter brukertestingen.
 
 - **UJ-1. Sara ser influensasesongen uke for uke.**
   Sara studerer samfunnssikkerhet og skriver om beredskap for luftveisinfeksjoner. Hun åpner appen i nettleseren, uten innlogging. Hun velger mal 1, influensa, sesongen 2025/2026 og «alle aldersgrupper». Appen viser en graf over andel positive tester uke for uke, en tabell med tallene, korte forklaringer av begrepene og en KI-skrevet forklaring med kilde. Ingen varsel vises. Sara kopierer kildehenvisningen og forklarer utviklingen med egne ord i oppgaven sin.
@@ -456,7 +456,7 @@ Alle automatiske tester kjører uten nett og uten KI-nøkkel. De bruker lagrede 
 
 #### NFR-11: Mobil og PC
 
-`[ANTAKELSE]` Hentet fra `docs/sjekkliste.md`. Hovedskjermen kan brukes på mobil (fra 360 piksler bredde) og PC uten vannrett rulling.
+Hentet fra `docs/sjekkliste.md` og bekreftet av gruppen 20. november 2026. Hovedskjermen kan brukes på mobil (fra 360 piksler bredde) og PC uten vannrett rulling.
 
 ## 8. Ikke-mål
 
@@ -521,5 +521,4 @@ FR-25 («Hente nyeste tall nå») ble lagt til 20. november 2026, etter at PRD-e
 
 ## 13. Antakelser
 
-- §2.3 — Personen «Sara» er laget ut fra hovedbrukeren i briefen.
-- NFR-11 — Mobil og PC, fra `docs/sjekkliste.md`.
+Ingen antakelser står åpne per 20. november 2026. Personen «Sara» (§2.3), fornyingen av mellomlagrede tall (FR-7) og kravet om mobil og PC (NFR-11) er bekreftet.

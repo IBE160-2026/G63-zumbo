@@ -22,6 +22,8 @@ Krever uv (https://docs.astral.sh/uv/).
     uv sync
     uv run pytest
 
+KI-forklaringen trenger en nøkkel. Kopier `.env.example` til `.env` i reporoten og fyll inn `ANTHROPIC_API_KEY`. `.env` og mellomlageret i `.cache/` holdes utenfor git.
+
 ## Struktur
 
 - backend/: Python-prosjekt (uv)

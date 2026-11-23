@@ -11,6 +11,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-2-ruff-og-pytest-uten-nett.md`
   summary: App-testene med FastAPIs `TestClient` trenger `--allow-unix-socket` i `addopts` ved siden av `--disable-socket`.
   evidence: Sjekket 23.11.: en `TestClient(app).get("/")` feiler med `SocketBlockedError: A test tried to use socket.socket` (asyncio sin self-pipe bruker `socket.socketpair`). Med `--allow-unix-socket` består den, og testene i `test_nettsperre.py` består fortsatt (TCP og DNS er fortsatt stoppet). Må tas i den første storyen med app-tester (epic 3).
+  status: løst 2026-11-23 i story 1.2 — `--allow-unix-socket` er lagt i `addopts`, og en test viser at en lokal socketpair er tillatt mens nettkall fortsatt stoppes.
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-2-ruff-og-pytest-uten-nett.md`
   summary: Ingenting kjører `ruff check`, `ruff format --check` og `pytest` automatisk før commit eller push (ingen CI eller pre-commit).
-  evidence: AD-10 sier at ruff skal bestå før commit. README sier det nå, men ingen test eller hook håndhever det, så `uv run pytest` er grønn selv om ruff feiler. Hører naturlig hjemme i en GitHub Actions-jobb eller pre-commit når det settes opp.
+  evidence: AD-10 sier at ruff skal bestå før commit. README sier det nå, men ingen test eller hook håndhever det, så `uv run pytest` er grønn selv om ruff feiler. Hører naturlig hjemme i en GitHub Actions-jobb eller pre-commit når det settes opp. Vurderes i epic 7 hvis det blir tid.

@@ -36,3 +36,11 @@ def test_respx_virker_med_sperren_på() -> None:
     # Slik skal FHI mockes i senere tester: respx svarer uten å åpne en socket.
     respx.get(FHI_URL).respond(200, json={"tabell": 724})
     assert httpx.get(FHI_URL).json() == {"tabell": 724}
+
+
+def test_lokal_socketpair_er_tillatt() -> None:
+    # --allow-unix-socket: FastAPIs testklient trenger en lokal socketpair.
+    a, b = socket.socketpair()
+    with a, b:
+        a.sendall(b"hei")
+        assert b.recv(3) == b"hei"

@@ -28,3 +28,8 @@ context:
 - Ukene i forespørselen tas fra dimensjonslisten (33 uker; ISO-året 2025 har ikke uke 53).
 - Filnavn for dataene: `724-influensa-2025-2026-alle-nonstl.json`. `Utvalg.nøkkel` finnes ikke før story 2.1, så navnet er bare for lesbarhet. Testene leser filene med navn.
 - Hentingen gjøres med et lite engangsskript i scratchpad, ikke i repoet. Forespørselskroppen står i README-notisen, så den kan gjentas.
+- Hentet 23.11.2026 kl. 21:20 UTC med `httpx` fra et engangsskript i scratchpad. Svaret har 33 uker × 3 måltall = 99 verdier. FHI oppdaterte tabellen sist 19.11.2026 (`updated`).
+- `.gitkeep` i `fixtures/fhi/` er fjernet, siden mappen nå har filer. `test_fixturemapper.py` består fortsatt.
+- Testen (`backend/tests/test_fhi_fixturer.py`) sjekker mer enn AC-en krever: at `hentet` er i UTC, at utvalget er det storyen ber om, og at dimensjonslisten har sesongens første og siste uke. Da oppdager vi det hvis noen bytter fixturen mot et annet utvalg.
+- Rot-README-en sa at det første lagrede svaret kom i 1.3. Den peker nå til `fixtures/fhi/README.md`.
+- Som i 1.1 og 1.2 ble oneshot-stegets Blind Hunter erstattet av en full `bmad-code-review`.

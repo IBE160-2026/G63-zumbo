@@ -84,6 +84,8 @@ Alle tre tabellene ligger i FHIs åpne statistikk-API under MSIS. De har ukentli
 | 729 | RESPIaggr RSV antall og andel | RSV | RS-virus (A+B) | Påvisninger, Testede, Andel (%) |
 | 731 | RESPIaggr SARS-CoV-2 antall og andel | SARS-CoV-2 | (ingen typeinndeling) | Påvisninger, Testede, Andel (%) |
 
+Tabellnavnet for 724 er bekreftet mot metadataene 23. november 2026.
+
 Felles valg for alle tre tabellene i v1:
 
 - **Overvåkingstype:** vanlig klinisk praksis (Non-Sentinel). Det gir flest prøver og dermed færre usikre uker. Fyrtårnsystemet er en mulig utvidelse.

@@ -40,6 +40,6 @@ Metadataene har ingen sesongdimensjon. De sier at influensaepidemiene kommer fra
 
 - 729: «Kilde: MSIS-labdatabase og Referanselaboratoriet for RS-virus, Folkehelseinstituttet (FHI).»
 - 731: «Kilde: MSIS-labdatabase og Referanselaboratoriet for koronavirus med utbruddspotensiale, Folkehelseinstituttet (FHI).»
-- 724: tilsvarende, med referanselaboratoriet for influensa. Ordlyden må sjekkes i metadataene.
+- 724: «Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, Folkehelseinstituttet (FHI).» Sjekket i metadataene 22. november 2026.
 
 FHI skal oppgis som kilde ved all presentasjon av tallene.

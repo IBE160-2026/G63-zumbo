@@ -52,3 +52,19 @@ Før merge av PR #41: utvide sjekk 3 i `backend/tests/test_gitignore.py` slik at
 
 ### Åpne punkter
 Ingen nye. Punktet om tom `ANTHROPIC_MODEL`/`ANTHROPIC_API_KEY` i `config.les_innstillinger()` står fortsatt åpent i `issues.md`.
+
+## 2026-11-23 kl. 20:25 — Irene Zumbo
+
+### Oppgave
+Pushe loggcommiten til `ibe`, sette `IBE160-2026/G63-zumbo` som standardrepo for `gh`, merge PR #41 med `--merge --delete-branch` og hente main.
+
+### Plan
+- `git push ibe story-1.1`, `gh repo set-default IBE160-2026/G63-zumbo`, `gh pr merge 41 --merge --delete-branch`, `git pull`.
+
+### Resultat
+- Loggcommiten 5bc52fe er pushet. PR #41 ble merget 2026-11-23 med mergecommit f14818b, og issue #1 er lukket.
+- Branchen `story-1.1` er slettet både lokalt og på `ibe`. Lokal `main` er lik `ibe/main`.
+- `uv run pytest` på main: 6 passed.
+
+### Åpne punkter
+- `sprint-status.yaml` har fortsatt story 1.1 som `review`. Den bør settes til `done` nå som PR-en er merget.

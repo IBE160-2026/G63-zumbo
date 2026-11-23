@@ -1,21 +1,21 @@
 """Sjekker at README i reporoten forklarer hvordan man kommer i gang (story 1.5)."""
 
-import subprocess
 from pathlib import Path
 
 import pytest
 
+# backend/tests/test_readme.py -> reporoten. Trenger ikke git.
+README = Path(__file__).resolve().parents[2] / "README.md"
+
 
 @pytest.fixture(scope="module")
 def readme() -> str:
-    ut = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        cwd=Path(__file__).parent,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    return (Path(ut.stdout.strip()) / "README.md").read_text(encoding="utf-8")
+    return README.read_text(encoding="utf-8")
+
+
+def _seksjon(readme: str, overskrift: str) -> str:
+    etter = readme.split(overskrift, 1)[1]
+    return etter.split("\n#", 1)[0]
 
 
 @pytest.mark.parametrize(
@@ -27,9 +27,12 @@ def test_readme_nevner_kommandoen(readme: str, kommando: str) -> None:
 
 
 def test_readme_har_plass_for_oppstart(readme: str) -> None:
+    # Plassen fylles ut i story 3.1 (AD-11). Da må denne testen endres med vilje.
     assert "### Starte appen" in readme
+    assert "story 3.1" in _seksjon(readme, "### Starte appen")
 
 
 def test_readme_sier_at_env_er_valgfri(readme: str) -> None:
-    assert "`.env` er valgfri" in readme
-    assert "uten KI-nøkkel" in readme
+    tekst = readme.lower()
+    assert "`.env` er valgfri" in tekst
+    assert "appen virker uten ki-nøkkel" in tekst

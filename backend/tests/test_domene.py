@@ -1,5 +1,10 @@
 """Tester for domenemodellen (story 2.1, AD-2)."""
 
+import ast
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+
 import pytest
 
 from backend import domene
@@ -103,3 +108,74 @@ def test_ugyldig_ukenummer(ukenummer: int) -> None:
 def test_negative_tall_avvises() -> None:
     with pytest.raises(ValueError):
         Uke(2025, 40, -1, 0)
+
+
+# --- Utvalg, Dataserie og Regelutslag ---
+
+
+def test_utvalg_har_alle_som_standard_og_finner_tabellen() -> None:
+    utvalg = domene.Utvalg(mal=1, virus="influensa", sesong="2025/2026")
+    assert utvalg.aldersgruppe == "alle"
+    assert utvalg.tabell == 724
+
+
+def test_dataserie_lagrer_ukene_som_tuple() -> None:
+    utvalg = domene.Utvalg(1, "rsv", "2025/2026")
+    serie = domene.Dataserie(utvalg, [Uke(2025, 40, 100, 5), Uke(2025, 41, None, 2)])
+    assert isinstance(serie.uker, tuple)
+    assert [u.manglende for u in serie.uker] == [False, True]
+
+
+def test_regelutslag() -> None:
+    utslag = domene.Regelutslag("R2", "6 av 20 uker har færre enn 30 tester")
+    assert utslag.regel == "R2"
+    with pytest.raises(ValueError):
+        domene.Regelutslag("R6", "finnes ikke")
+    with pytest.raises(ValueError):
+        domene.Regelutslag("R1", " ")
+
+
+# --- Kildehenvisning ---
+
+HENTET = datetime(2026, 11, 23, 13, 5, tzinfo=UTC)
+
+
+def test_kildehenvisning_for_724() -> None:
+    kilde = domene.kildehenvisning(724, HENTET)
+    assert kilde.kildetekst == (
+        "Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, "
+        "Folkehelseinstituttet (FHI)."
+    )
+    assert kilde.tabell == 724
+    assert kilde.tabellnavn == "RESPIaggr Influensa antall og andel"
+    assert kilde.hentet == HENTET
+
+
+@pytest.mark.parametrize("tabell", [729, 731])
+def test_kildehenvisning_for_rsv_og_sars_cov_2(tabell: int) -> None:
+    kilde = domene.kildehenvisning(tabell, HENTET)
+    assert kilde.kildetekst.startswith("Kilde: MSIS-labdatabase og Referanselab")
+    assert kilde.kildetekst.endswith("Folkehelseinstituttet (FHI).")
+
+
+def test_kildehenvisning_avviser_ukjent_tabell_og_tid_uten_tidssone() -> None:
+    with pytest.raises(ValueError):
+        domene.kildehenvisning(733, HENTET)
+    with pytest.raises(ValueError):
+        domene.kildehenvisning(724, datetime(2026, 11, 23, 13, 5))
+
+
+# --- Ren kjerne (AD-1) ---
+
+
+def test_domene_importerer_bare_standardbiblioteket() -> None:
+    tre = ast.parse(Path(domene.__file__).read_text(encoding="utf-8"))
+    moduler: set[str] = set()
+    for node in ast.walk(tre):
+        if isinstance(node, ast.Import):
+            moduler |= {a.name.split(".")[0] for a in node.names}
+        elif isinstance(node, ast.ImportFrom):
+            assert node.level == 0, "domene skal ikke ha relative importer"
+            moduler.add((node.module or "").split(".")[0])
+    assert moduler <= set(sys.stdlib_module_names), moduler
+    assert "backend" not in moduler

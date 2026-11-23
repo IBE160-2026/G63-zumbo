@@ -6,6 +6,7 @@ Skjulte og manglende verdier er `None`, aldri `0`.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from types import MappingProxyType
 
 GRENSE_USIKKER_UKE = 30
@@ -146,3 +147,76 @@ class Uke:
     def usikker(self) -> bool:
         """Sann ved færre enn 30 tester eller skjult antall tester (FR-10)."""
         return self.tester is None or self.tester < GRENSE_USIKKER_UKE
+
+
+@dataclass(frozen=True)
+class Utvalg:
+    """Kombinasjonen brukeren har valgt (PRD kapittel 3).
+
+    Feltene er nøklene i `MALER`, `VIRUS` og `ALDERSGRUPPER`, og sesongen skrevet
+    som «2025/2026». Gyldige verdier sjekkes i `Utvalg.fra_parametre` (story 2.2).
+    Overvåkingstypen er alltid vanlig klinisk praksis i v1.
+    """
+
+    mal: int
+    virus: str
+    sesong: str
+    aldersgruppe: str = STANDARD_ALDERSGRUPPE
+
+    @property
+    def tabell(self) -> int:
+        return VIRUS[self.virus].tabell
+
+
+@dataclass(frozen=True)
+class Dataserie:
+    """Ukene for ett utvalg, i rekkefølge, én `Uke` per forventet uke (AD-3)."""
+
+    utvalg: Utvalg
+    uker: tuple[Uke, ...]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "uker", tuple(self.uker))
+
+
+REGLER = ("R1", "R2", "R3", "R4", "R5")
+
+
+@dataclass(frozen=True)
+class Regelutslag:
+    """At én kontrollregel slo inn, med en ferdig setning på enkel norsk."""
+
+    regel: str
+    tekst: str
+
+    def __post_init__(self) -> None:
+        if self.regel not in REGLER:
+            raise ValueError(f"ukjent kontrollregel: {self.regel!r}")
+        if not self.tekst.strip():
+            raise ValueError("regelutslaget mangler tekst")
+
+
+@dataclass(frozen=True)
+class Kildehenvisning:
+    """Henvisning til FHI-tabellen tallene kommer fra (PRD kapittel 3, FR-12).
+
+    `hentet` er tidspunktet for hentingen, med tidssone. Formatering for visning
+    skjer i `web`.
+    """
+
+    kildetekst: str
+    tabell: int
+    tabellnavn: str
+    hentet: datetime
+
+
+def kildehenvisning(tabell: int, hentet: datetime) -> Kildehenvisning:
+    """Lager kildehenvisningen for en tabell. Den eneste måten å lage en på."""
+    if tabell not in TABELLER:
+        raise ValueError(f"ukjent tabell: {tabell}")
+    if hentet.utcoffset() is None:
+        raise ValueError("hentet må ha tidssone")
+    t = TABELLER[tabell]
+    return Kildehenvisning(
+        kildetekst=t.kildetekst, tabell=t.nummer, tabellnavn=t.navn, hentet=hentet
+    )

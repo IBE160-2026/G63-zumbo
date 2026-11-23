@@ -71,4 +71,19 @@ Ingen nye. Punktene om `--allow-unix-socket` for TestClient og om CI/pre-commit 
 - `issues.md`: punktet om `--allow-unix-socket` er lukket, og CI-punktet er oppdatert.
 
 ### Åpne punkter
-- Endringen er ikke i main, fordi PR #43 allerede var merget. Branchen `story-1.2` trenger en ny PR.
+- Endringen er ikke i main, fordi PR #43 allerede var merget. Branchen `story-1.2` trenger en ny PR (laget som PR #44, se neste seksjon).
+
+## 2026-11-23 kl. 22:06 — Irene Zumbo
+
+### Oppgave
+Lage en PR fra `story-1.2` til main med tittelen «Story 1.2 (oppfølging): tillat lokale sockets for FastAPIs testklient». Beskrivelsen skal ha «Refs #2» (ikke Closes), forklare at endringen kom etter at PR #43 var merget, og si at det ikke er kjørt full `bmad-code-review`, men at kontrollene er gjort. Ikke merge.
+
+### Plan
+- `gh pr create` med beskrivelsen fra en fil i scratchpad.
+
+### Resultat
+- PR: https://github.com/IBE160-2026/G63-zumbo/pull/44, ikke merget. Den inneholder bd0a9f3, 6ec12ac og b971ebc.
+- Beskrivelsen har bakgrunn, endringer, kontroller (13 passed, ruff OK, den nye testen feiler uten flagget, TestClient består) og hvorfor det ikke er kjørt full kodegjennomgang.
+
+### Åpne punkter
+Ingen nye.

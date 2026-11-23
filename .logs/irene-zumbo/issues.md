@@ -22,3 +22,5 @@
 - [ ] 2026-11-23 [story-1-2](993-2026-11-23-21-01-08-story-1-2-ruff-og-pytest-uten-nett.md) — ingen CI/pre-commit kjører ruff og pytest automatisk; vurderes i epic 7 hvis det blir tid (se deferred-work.md)
 - [x] 2026-11-23 [story-1-3](992-2026-11-23-22-23-37-story-1-3-fixture-tabell-724.md) — oppdatere arkitekturen §8 og `epic-1-context.md`: FHI-svaret hentes som `json-stat2` (se deferred-work.md) (løst 2026-11-23 i 9890350)
 - [ ] 2026-11-23 [story-1-3](992-2026-11-23-22-23-37-story-1-3-fixture-tabell-724.md) — skjulte verdier i `json-stat2` fra FHI er ikke sett i ekte data; de konstruerte dataene i story 2.4 bygger på en antakelse (se `backend/tests/fixtures/fhi/README.md`)
+- [ ] 2026-11-23 [story-1-5](991-2026-11-23-22-35-37-story-1-5-enkel-readme.md) — test som viser at testene aldri laster `.env`, når python-dotenv tas i bruk (se deferred-work.md)
+- [ ] 2026-11-23 [story-1-5](991-2026-11-23-22-35-37-story-1-5-enkel-readme.md) — story 3.1: skrive oppstartskommandoen inn i README og endre `test_readme_har_plass_for_oppstart`

@@ -35,10 +35,25 @@ def test_env_example_er_ikke_ignorert(reporot: Path) -> None:
     assert not _er_ignorert(".env.example", reporot)
 
 
+def _er_hemmelig_eller_cache(sti: str) -> bool:
+    # Samme regler som .gitignore: .env og .env.* i alle mapper, men ikke
+    # malene .env.example og .env.*.example. Alt under en .cache/-mappe.
+    deler = sti.split("/")
+    navn = deler[-1]
+    if ".cache" in deler[:-1]:
+        return True
+    if navn == ".env.example" or (
+        navn.startswith(".env.") and navn.endswith(".example")
+    ):
+        return False
+    return navn == ".env" or navn.startswith(".env.")
+
+
 def test_nøkler_og_cache_er_ikke_sjekket_inn(reporot: Path) -> None:
-    ut = _git("ls-files", "--", ".env", ".cache", cwd=reporot)
+    ut = _git("ls-files", "-z", cwd=reporot)
     assert ut.returncode == 0, ut.stderr
-    assert ut.stdout == ""
+    sporet = [sti for sti in ut.stdout.split("\0") if sti]
+    assert [sti for sti in sporet if _er_hemmelig_eller_cache(sti)] == []
 
 
 def test_env_example_har_nøklene(reporot: Path) -> None:

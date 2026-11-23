@@ -21,7 +21,7 @@ Gjøre prosjektet klart til å bygges før funksjonaliteten starter. Det eksiste
 - Alle automatiske tester kjører uten nett og uten KI-nøkkel, med lagrede svar i `tests/fixtures/`. Testene laster aldri `.env`.
 - Alt unntatt KI-forklaringen skal virke uten KI-nøkkel; README skal si at `.env` er valgfri.
 - Bare åpne, aggregerte data fra FHI. Ingen persondata, ingen innlogging.
-- FHI skal alltid oppgis som kilde. Kildehenvisningen består av MSIS-labdatabasen, FHI, tabellnummer, tabellnavn og hentedato. Tabellnavnet for 724 er antatt «RESPIaggr Influensa antall og andel» og skal bekreftes mot metadataene.
+- FHI skal alltid oppgis som kilde. Kildehenvisningen består av FHIs egen kildetekst for tabellen, tabellnummer, tabellnavn og hentedato. For 724 er kildeteksten «Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, Folkehelseinstituttet (FHI).» Tabellnavnet «RESPIaggr Influensa antall og andel» er bekreftet mot metadataene (story 1.4).
 - Felles ferdigkriterier for utviklerstories (alle unntatt Irenes): egne automatiske tester for akseptansekriteriene, `uv run pytest` består uten nett og nøkkel, `ruff check` og `ruff format --check` består, ingen import bryter avhengighetsretningen, og README oppdateres når installering, oppstart, konfigurasjon eller tester endres.
 - Stories merket «(Irene)» gjøres manuelt og har ingen automatiske tester.
 

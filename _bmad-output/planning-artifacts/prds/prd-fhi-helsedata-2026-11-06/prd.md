@@ -71,7 +71,7 @@ Disse begrepene brukes likt i hele PRD-en og i stories og kode.
 - **Kontrollregel** — En av de fem faste reglene R1–R5 i kapittel 6.5.
 - **Varsel om tynt datagrunnlag** — Melding som vises når minst én kontrollregel slår inn.
 - **KI-forklaring** — Kort tekst skrevet av en språkmodell ut fra de hentede tallene.
-- **Kildehenvisning** — Henvisning til FHI-tabellen tallene kommer fra: MSIS-labdatabasen, FHI, tabellnummer, tabellnavn og dato for hentingen.
+- **Kildehenvisning** — Henvisning til FHI-tabellen tallene kommer fra: FHIs egen kildetekst for tabellen, tabellnummer, tabellnavn og dato for hentingen. For tabell 724 er kildeteksten «Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, Folkehelseinstituttet (FHI).»
 - **Mellomlagrede data** — Tall appen har hentet fra FHI tidligere og lagret, med tidspunkt for hentingen.
 
 ## 4. Datasett
@@ -83,6 +83,8 @@ Alle tre tabellene ligger i FHIs åpne statistikk-API under MSIS. De har ukentli
 | 724 | RESPIaggr Influensa antall og andel | Influensa | Influensa (A+B) | Påvisninger, Testede, Andel (%) |
 | 729 | RESPIaggr RSV antall og andel | RSV | RS-virus (A+B) | Påvisninger, Testede, Andel (%) |
 | 731 | RESPIaggr SARS-CoV-2 antall og andel | SARS-CoV-2 | (ingen typeinndeling) | Påvisninger, Testede, Andel (%) |
+
+Tabellnavnet for 724 er bekreftet mot metadataene 23. november 2026.
 
 Felles valg for alle tre tabellene i v1:
 
@@ -136,7 +138,8 @@ Hovedskjermen er én side. På mobil ligger delene under hverandre i samme rekke
 │     40  44  48  52  4   8                │ 7       24    5 20,8 %* │
 │  ● = sikker uke  ○ = usikker uke         │ * færre enn 30 tester   │
 ├──────────────────────────────────────────┴─────────────────────────┤
-│ Kilde: MSIS-labdatabasen, FHI. Tabell 724 «RESPIaggr Influensa     │
+│ Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa,    │
+│ Folkehelseinstituttet (FHI). Tabell 724 «RESPIaggr Influensa       │
 │ antall og andel». Hentet 20.11.2026 kl. 14:05.                     │
 │ FHI publiserer nye tall hver torsdag.   [ Hent nyeste tall nå ]    │
 ├────────────────────────────────────────────────────────────────────┤
@@ -148,7 +151,8 @@ Hovedskjermen er én side. På mobil ligger delene under hverandre i samme rekke
 │ 6  FORKLARING (skrevet av KI)                                      │
 │    «Andelen positive influensatester steg fra 1 % i uke 40 til     │
 │    ...»                                                            │
-│    Kilde: MSIS-labdatabasen, FHI, tabell 724. Hentet 20.11.2026.   │
+│    Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, │
+│    Folkehelseinstituttet (FHI), tabell 724. Hentet 20.11.2026.     │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -267,8 +271,11 @@ Appen viser tallene i en tabell ved siden av eller under grafen.
 
 Appen viser kildehenvisning under graf og tabell.
 
-- Kildehenvisningen inneholder MSIS-labdatabasen, FHI, tabellnummer, tabellnavn og dato for hentingen.
+- Kildehenvisningen begynner med FHIs egen kildetekst for tabellen, ordrett slik den står i metadataene (se `addendum.md`). For tabell 724: «Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, Folkehelseinstituttet (FHI).»
+- Deretter kommer tabellnummer, tabellnavn og dato for hentingen.
 - Kildehenvisningen vises også når KI-forklaringen mangler.
+
+Endret 23. november 2026: bruker FHIs ordlyd fra story 1.4.
 
 ### 6.4 Begrepsforklaringer
 

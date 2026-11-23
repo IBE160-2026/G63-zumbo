@@ -21,6 +21,10 @@ Krever uv (https://docs.astral.sh/uv/).
     cd backend
     uv sync
     uv run pytest
+    uv run ruff check
+    uv run ruff format --check
+
+Testene kjører uten nett: `pytest-socket` stopper alle nettverkskall, så ingen test kan kalle FHI eller Claude. Testene bruker lagrede svar fra `backend/tests/fixtures/`.
 
 `.env` er valgfri. Uten KI-nøkkel virker alt unntatt KI-forklaringen. Vil du ha KI-forklaringen, kopierer du `.env.example` til `.env` i reporoten og fyller inn `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
 

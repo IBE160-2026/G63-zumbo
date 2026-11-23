@@ -16,16 +16,19 @@ KI-assistert applikasjon for å utforske FHIs åpne statistikk om smittsomme syk
 
 ## Kom i gang
 
-Krever [uv](https://docs.astral.sh/uv/). uv henter selv riktig Python-versjon (3.13). Alle kommandoene kjøres fra `backend/`.
+Krever git og [uv](https://docs.astral.sh/uv/) (se lenken for hvordan uv installeres). uv henter selv riktig Python-versjon (3.13). Alle `uv`-kommandoene kjøres fra `backend/`.
 
 ### Installere
 
-    cd backend
+    git clone https://github.com/IBE160-2026/G63-zumbo.git
+    cd G63-zumbo/backend
     uv sync
 
-`uv sync` installerer appen og utviklingsverktøyene (pytest og ruff) med versjonene som er låst i `uv.lock`.
+`uv sync` installerer appen og utviklingsverktøyene (pytest, pytest-socket, respx og ruff) med versjonene som er låst i `uv.lock`.
 
 ### Kjøre testene og ruff
+
+Fra `backend/`:
 
     uv run pytest
     uv run ruff check
@@ -39,7 +42,11 @@ Web-appen finnes ikke ennå. Kommandoen for å starte den lokalt skrives inn her
 
 ### KI-nøkkel er valgfri
 
-`.env` er valgfri. Appen virker uten KI-nøkkel. Da virker alt unntatt KI-forklaringen. Vil du ha KI-forklaringen, kopierer du `.env.example` til `.env` i reporoten og fyller inn `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
+`.env` er valgfri. Appen virker uten KI-nøkkel: alt unntatt KI-forklaringen virker. Vil du ha KI-forklaringen, kopierer du `.env.example` til `.env` i reporoten og fyller inn `ANTHROPIC_API_KEY`. Fra reporoten:
+
+    cp .env.example .env
+
+`ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
 
 ## Struktur
 

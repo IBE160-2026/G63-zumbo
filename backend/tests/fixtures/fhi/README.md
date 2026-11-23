@@ -14,8 +14,11 @@ Hver fil har samme format som cachen (AD-4):
 | `724-dimensjoner.json` | `GET https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimension` | 23.11.2026 |
 | `724-influensa-2025-2026-alle-nonstl.json` | `POST https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data`, se kroppen under | 23.11.2026 |
 
-Kroppen i `POST`-forespørselen. Alle dimensjoner må være med. Ukene er de 33
-ukene fra `2025-w40` til `2026-w20` i dimensjonslisten:
+Kroppen i `POST`-forespørselen, sendt med `Content-Type: application/json`.
+Alle dimensjoner må være med. `…` står for resten av ukene: i den ekte
+forespørselen er `values` alle de 33 ukene fra `2025-w40` til `2026-w20`, i
+samme rekkefølge som i dimensjonslisten (`2025-w40`, `2025-w41`, …,
+`2025-w52`, `2026-w01`, …, `2026-w20`). ISO-året 2025 har ingen uke 53.
 
 ```json
 {
@@ -45,7 +48,17 @@ FHI kan svare med `json-stat2`, `csv2` (norske etiketter), `csv3` (koder) eller
 
 Verdiene ligger i én flat liste, `value`. Rekkefølgen følger `id` og `size`:
 uke først, måltall sist. Uke `2025-w40` er altså de tre første tallene:
-påvisninger, testede og andel.
+påvisninger, testede og andel (`64`, `7023`, `0.9112915`).
+
+Dette må tolkingen passe på:
+
+- Ukedimensjonen må finnes med koden `dateusedforstatistics`. `role.time` er
+  `null`, så den kan ikke finnes ut fra rollen.
+- Ukekodene har formen `ÅÅÅÅ-wUU` med liten `w` (`2025-w40`).
+- I dimensjonslisten ligger aldersgruppene som `children` under `Alle`, ikke
+  ved siden av den.
+- I dimensjonslisten har kategoriene for `MEASURE_TYPE` `"children": null`.
+  De andre dimensjonene har `[]`.
 
 ## FLAGG
 
@@ -58,6 +71,12 @@ FLAGG forteller hvorfor en verdi mangler. Sjekket 23.11.2026:
 - En bredere spørring (alle aldersgrupper, `NONSTL` og `STL`, `A+B`, `A` og
   `B`, hele sesongen) ga 4 752 verdier uten `null` og uten andre flagg.
 
-Ekte data for tabell 724 har altså ingen skjulte verdier nå. Skjulte og
-manglende verdier må derfor testes med konstruerte data i
-`tests/fixtures/konstruert/`.
+Ekte data for tabell 724 har altså ingen skjulte verdier nå. Vi har derfor
+ikke sett hvordan en skjult verdi ser ut i `json-stat2` fra FHI. Etter
+JSON-stat-formatet blir den `null` i `value`, og da er `status` et objekt eller
+en liste med et flaggsymbol for den plassen i stedet for en tom streng.
+Flaggsymbolet forklares i `extension.flags`. Dette er en antakelse, ikke noe vi
+har sett.
+
+Skjulte og manglende verdier må derfor testes med konstruerte data i
+`backend/tests/fixtures/konstruert/`, i samme `json-stat2`-form som her.

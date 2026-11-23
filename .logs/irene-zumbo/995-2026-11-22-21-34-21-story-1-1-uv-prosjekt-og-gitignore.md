@@ -34,3 +34,21 @@ Avvist som falske: «`uv.lock` mangler» (holdt utenfor diffen med vilje, `uv lo
 
 ### Åpne punkter
 - `config.les_innstillinger()` må behandle tom `ANTHROPIC_MODEL`/`ANTHROPIC_API_KEY` som ikke satt (`os.getenv(...) or standard`). Står også i `_bmad-output/implementation-artifacts/deferred-work.md`.
+
+## 2026-11-23 kl. 19:35 — Irene Zumbo
+
+### Oppgave
+Før merge av PR #41: utvide sjekk 3 i `backend/tests/test_gitignore.py` slik at den også oppdager sporede `.env`-filer som `.env.local`, men ikke `.env.example`. Én liten commit på `story-1.1`, kjøre pytest og ruff, vise at sjekken feiler når en `.env.local` er sporet, og pushe til `ibe`. Ikke merge.
+
+### Plan
+- Gikk gjennom PR #41 sammen med brukeren og fant at `git ls-files -- .env .cache` bare så etter de to stiene i reporoten.
+- Byttet til `git ls-files -z` og filtrerte i Python etter de samme reglene som `.gitignore` (`.env`, `.env.*`, `!.env.example`, `!.env.*.example`, `.cache/`), i alle mapper.
+
+### Resultat
+- Commit cb5f4b6 («Test: oppdag alle sporede .env-filer, ikke bare .env»), pushet til `ibe/story-1.1`. PR #41 er ikke merget.
+- Ny hjelpefunksjon `_er_hemmelig_eller_cache()`. Den flagger `.env`, `.env.local`, `backend/.env`, `.cache/x.json` og `backend/.cache/a/b.json`, men ikke `.env.example`, `.env.local.example`, `README.md` eller `.envrc`.
+- `uv run pytest`: 6 passed. `uvx ruff@0.17.6 check` og `format --check` består.
+- Kontroll: med `.env.local` midlertidig sporet (`git add -f`, ingen commit) feilet `test_nøkler_og_cache_er_ikke_sjekket_inn` med `assert ['.env.local'] == []`. Etter `git rm --cached` og sletting var arbeidskopien ren igjen, og alle 6 besto.
+
+### Åpne punkter
+Ingen nye. Punktet om tom `ANTHROPIC_MODEL`/`ANTHROPIC_API_KEY` i `config.les_innstillinger()` står fortsatt åpent i `issues.md`.

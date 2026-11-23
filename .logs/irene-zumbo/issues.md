@@ -15,4 +15,4 @@
 - [ ] 2026-11-20 [epics-og-stories](997-2026-11-20-16-48-40-epics-og-stories.md) — gå gjennom KI-forklaringene mot FR-21, SM-4 (story 7.5, #36)
 - [ ] 2026-11-20 [epics-og-stories](997-2026-11-20-16-48-40-epics-og-stories.md) — hvis mal 1 for influensa ikke virker 2. desember: skrive inn i PRD-en som avvik at RSV og SARS-CoV-2 droppes (PRD §9, SM-1)
 - [ ] 2026-11-22 [story-1-1](995-2026-11-22-21-34-21-story-1-1-uv-prosjekt-og-gitignore.md) — `config.les_innstillinger()` må behandle tom `ANTHROPIC_MODEL`/`ANTHROPIC_API_KEY` som ikke satt (se deferred-work.md)
-- [ ] 2026-11-23 [story-1-1](995-2026-11-22-21-34-21-story-1-1-uv-prosjekt-og-gitignore.md) — sette story 1.1 til `done` i sprint-status.yaml etter merge av PR #41
+- [x] 2026-11-23 [story-1-1](995-2026-11-22-21-34-21-story-1-1-uv-prosjekt-og-gitignore.md) — sette story 1.1 til `done` i sprint-status.yaml etter merge av PR #41 (løst 2026-11-23 i d1abfd8)

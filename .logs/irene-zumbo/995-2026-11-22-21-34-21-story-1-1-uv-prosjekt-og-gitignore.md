@@ -66,5 +66,7 @@ Pushe loggcommiten til `ibe`, sette `IBE160-2026/G63-zumbo` som standardrepo for
 - Branchen `story-1.1` er slettet både lokalt og på `ibe`. Lokal `main` er lik `ibe/main`.
 - `uv run pytest` på main: 6 passed.
 
+- Etterpå satt til `done` i `sprint-status.yaml` (commit d1abfd8, epic 1 fortsatt `in-progress`). Commitene er pushet til `ibe/main`.
+
 ### Åpne punkter
-- `sprint-status.yaml` har fortsatt story 1.1 som `review`. Den bør settes til `done` nå som PR-en er merget.
+Ingen nye.

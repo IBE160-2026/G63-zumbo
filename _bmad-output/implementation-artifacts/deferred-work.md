@@ -22,3 +22,9 @@
   summary: Arkitekturen §8 («Utsatt») og `epic-1-context.md` bør si at FHI-svaret hentes som `json-stat2`, og peke til `backend/tests/fixtures/fhi/README.md`.
   evidence: §8 sier fortsatt at «Nøyaktig format på FHI-forespørselen (CSV eller JSON) og tolking av FLAGG-kolonnen» skal avgjøres. Epic-konteksten beskriver CSV-kolonnene «Påvisninger», «Testede», «Andel (%)» og «FLAGG». Story 1.3 valgte `json-stat2` (se README-en). Senere stories kan lese at saken er uavklart. Rettingen endrer planleggingsdokumenter, så den hører hjemme i en egen oppdatering (for eksempel med `bmad-architecture`).
   status: løst 2026-11-23 i story 1.3 — §8 og epic-konteksten sier nå at `json-stat2` er valgt.
+
+## Deferred from: code review of spec-1-5-enkel-readme.md (2026-11-23)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-5-enkel-readme.md`
+  summary: Lag en test som viser at testene aldri laster `.env`, når python-dotenv tas i bruk (AD-6, AD-10).
+  evidence: README og AD-10 sier at testene aldri leser `.env`. Det stemmer i dag fordi ingen kode laster `.env`, men ingen test håndhever det. Når `config.py` eller `web` begynner å kalle `load_dotenv`, kan en import ved et uhell lese en ekte nøkkel. Testen kan legge en falsk `.env` med `ANTHROPIC_API_KEY` i `tmp_path` og sjekke at verdien ikke havner i miljøet.

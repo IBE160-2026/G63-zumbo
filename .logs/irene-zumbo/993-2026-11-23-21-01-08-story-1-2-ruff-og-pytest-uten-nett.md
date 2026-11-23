@@ -87,3 +87,19 @@ Lage en PR fra `story-1.2` til main med tittelen «Story 1.2 (oppfølging): till
 
 ### Åpne punkter
 Ingen nye.
+
+## 2026-11-23 kl. 22:08 — Irene Zumbo
+
+### Oppgave
+Merge PR #44 med `gh pr merge 44 --merge --delete-branch` og hente main.
+
+### Plan
+- Merget PR-en, byttet til main og hentet med `git pull --ff-only ibe main`.
+- Den upushede loggcommiten fra forrige seksjon lå bare på den lokale `story-1.2`. Den ble flyttet til main med cherry-pick før branchen ble slettet.
+
+### Resultat
+- PR #44 er merget (merge-commit d1c15aa). Branchen `story-1.2` er slettet på `ibe` og lokalt.
+- På main: `addopts = ["--disable-socket", "--allow-unix-socket"]`, `uv run pytest` 13 passed, og `ruff check` og `ruff format --check` består.
+
+### Åpne punkter
+Ingen nye. CI-punktet (vurderes i epic 7) står fortsatt åpent i `issues.md`.

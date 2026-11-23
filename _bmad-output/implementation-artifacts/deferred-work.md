@@ -28,3 +28,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-5-enkel-readme.md`
   summary: Lag en test som viser at testene aldri laster `.env`, når python-dotenv tas i bruk (AD-6, AD-10).
   evidence: README og AD-10 sier at testene aldri leser `.env`. Det stemmer i dag fordi ingen kode laster `.env`, men ingen test håndhever det. Når `config.py` eller `web` begynner å kalle `load_dotenv`, kan en import ved et uhell lese en ekte nøkkel. Testen kan legge en falsk `.env` med `ANTHROPIC_API_KEY` i `tmp_path` og sjekke at verdien ikke havner i miljøet.
+
+## Deferred from: code review of spec-2-1-domenemodellen.md (2026-11-23)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-1-domenemodellen.md`
+  summary: Avgjør i story 2.4 om `Uke` skal avvise flere positive enn tester (andel over 100 %).
+  evidence: `Uke(2025, 40, 100, 200)` gir i dag `andel == 200.0`. Vi vet ikke om FHI kan ha flere påvisninger enn testede i en uke (for eksempel hvis én person teller som påvisning for både A og B). En sperre i `Uke` ville da gjort at `fhi.tolk` feiler på ekte data. Sjekk dette mot FHI-dataene i story 2.4 før vi legger inn en sperre. Alvorlighet ukjent (ikke bekreftet).

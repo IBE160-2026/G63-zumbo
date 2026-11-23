@@ -2,7 +2,7 @@
 title: 'Story 1.3: Lagre et ekte svar fra tabell 724 som fixture'
 type: 'chore'
 created: '2026-11-23'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 context:
@@ -33,3 +33,26 @@ context:
 - Testen (`backend/tests/test_fhi_fixturer.py`) sjekker mer enn AC-en krever: at `hentet` er i UTC, at utvalget er det storyen ber om, og at dimensjonslisten har sesongens første og siste uke. Da oppdager vi det hvis noen bytter fixturen mot et annet utvalg.
 - Rot-README-en sa at det første lagrede svaret kom i 1.3. Den peker nå til `fixtures/fhi/README.md`.
 - Som i 1.1 og 1.2 ble oneshot-stegets Blind Hunter erstattet av en full `bmad-code-review`.
+
+## Review Triage Log
+
+Diff: `git diff main...HEAD` uten `backend/uv.lock` og `_bmad-output/`. Lag: Blind Hunter (BH), Edge Case Hunter (ECH), Verification Gap (VG), Acceptance Auditor (AA). VG fant ingen mangler. AA fant ingen brudd på akseptansekriteriene.
+
+### Review Findings
+
+- [x] [Review][Patch] Ingen test viste at fixturen har alle ukene i sesongen. En fixtur med en uke borte i midten ville bestått [backend/tests/test_fhi_fixturer.py] — low (BH+ECH+AA). Ukene sammenlignes nå med utsnittet `2025-w40`–`2026-w20` av dimensjonslisten, og det skal være 33 (243d21d).
+- [x] [Review][Patch] README beskriver rekkefølgen i `value` (følger `id` og `size`), men ingen test sjekket den, og verdiene for uke 40 var ikke låst [backend/tests/test_fhi_fixturer.py] — low (BH+ECH+AA). Testen sjekker nå `id`, `size`, `len(value)` og de tre første tallene (243d21d).
+- [x] [Review][Patch] README sier at svaret ikke har `null`, men ingen test sjekket det [backend/tests/test_fhi_fixturer.py] — low (ECH). Alle verdier må være tall (243d21d).
+- [x] [Review][Patch] `assert innhold["svar"]` godtok også en CSV-tekst eller en feilmelding fra FHI [backend/tests/test_fhi_fixturer.py] — low (BH+ECH). `svar` må være et JSON-objekt, og dataene må ha `class: dataset` og `version: 2.0` (243d21d).
+- [x] [Review][Patch] Forespørselen i README kunne ikke gjentas som den sto: `…` i ukelisten og ingen `Content-Type` [backend/tests/fixtures/fhi/README.md] — low (BH). Det står nå hva `…` betyr, og hvilken header som brukes (3bb2b8d).
+- [x] [Review][Patch] README sa ikke hvordan en skjult verdi vil se ut i `json-stat2`, eller hvilke særheter tolkingen må passe på (`role.time` er `null`, `children: null` for `MEASURE_TYPE`, aldersgruppene ligger under `Alle`, liten `w` i ukekodene) [backend/tests/fixtures/fhi/README.md] — low (BH+ECH). Lagt til, og det står tydelig at formen på skjulte verdier er en antakelse (3bb2b8d).
+- [x] [Review][Patch] Notisen skrev `tests/fixtures/konstruert/`, mens rot-README-en bruker `backend/tests/…` [backend/tests/fixtures/fhi/README.md] — low (BH+AA). Endret til full sti (3bb2b8d).
+- [x] [Review][Defer] Arkitekturen §8 og epic-konteksten sier fortsatt at CSV eller JSON ikke er bestemt, og beskriver CSV-kolonnene [_bmad-output/planning-artifacts/architecture/architecture.md] — low (BH). Rettingen endrer planleggingsdokumentene, så den er ført i deferred-work.md.
+
+**Avvist:**
+- false (BH): sprint-status og specen var ikke satt til done. Det gjøres i dette steget, etter gjennomgangen.
+- false (ECH): ukelisten for sesongen 2026/27 kan mangle uke 53. Ukene tas fra dimensjonslisten, ikke ved å telle 1–52, og fixturen gjelder bare 2025/2026.
+- false (ECH): andre som kopierer den flate lesingen av kategoriene, går glipp av aldersgruppene. Ingen kode leser dimensjonslisten ennå, og testen trenger bare ukene. Hierarkiet står nå i README.
+- low (ECH): `next(...)` gir `StopIteration` i stedet for en tydelig assert hvis ukedimensjonen mangler. Testen feiler uansett med en traceback som peker på linjen.
+- low (BH): den bredere spørringen (4 752 verdier) er ikke lagret. Utvalget står i README, og en tredje fixtur ville gitt mer å vedlikeholde uten å teste noe nytt, siden svaret ikke har skjulte verdier.
+- low (AA): `hentet` sjekkes ikke mot datoen i README-tabellen. En slik test ville låst to kopier av samme dato mot hverandre for liten nytte.

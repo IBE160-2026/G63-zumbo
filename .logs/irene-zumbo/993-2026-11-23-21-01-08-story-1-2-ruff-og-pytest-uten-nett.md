@@ -49,3 +49,26 @@ Merge PR #43 med `gh pr merge 43 --merge --delete-branch` og hente main.
 
 ### Åpne punkter
 Ingen nye. Punktene om `--allow-unix-socket` for TestClient og om CI/pre-commit står fortsatt åpne i `issues.md`.
+
+## 2026-11-23 kl. 22:02 — Irene Zumbo
+
+### Oppgave
+«Før merge av PR #43»: legge `--allow-unix-socket` i `addopts` med en kommentar om FastAPIs testklient, legge til en test som viser at en lokal socketpair er tillatt, merke punktet om flagget som løst i deferred-work.md og skrive at CI vurderes i epic 7. Én commit på `story-1.2` og push til `ibe` sammen med loggcommiten. Ikke merge.
+
+### Plan
+- PR #43 var allerede merget og branchen slettet (forrige seksjon). `story-1.2` ble derfor laget på nytt fra main. Main hadde også den upushede loggcommiten bd0a9f3.
+- Endringen ble lagt på den nye branchen, etterfulgt av en loggcommit. Ingen ny PR ble laget, siden brukeren ikke ba om det.
+
+### Resultat
+- Commit 6ec12ac:
+  - `backend/pyproject.toml`: `addopts = ["--disable-socket", "--allow-unix-socket"]`, med en kommentar om testklienten.
+  - `backend/tests/test_nettsperre.py`: ny test `test_lokal_socketpair_er_tillatt`.
+  - deferred-work.md: punktet om flagget er merket løst, og CI-punktet sier «vurderes i epic 7 hvis det blir tid».
+- `uv run pytest`: 13 passed. `ruff check` og `ruff format --check` består.
+- Kontroller:
+  - Med bare `--disable-socket` feiler den nye testen, mens de tre andre sperretestene består (TCP og DNS er fortsatt stoppet).
+  - En midlertidig `TestClient(app).get("/")` består nå. Den feilet før med `SocketBlockedError`.
+- `issues.md`: punktet om `--allow-unix-socket` er lukket, og CI-punktet er oppdatert.
+
+### Åpne punkter
+- Endringen er ikke i main, fordi PR #43 allerede var merget. Branchen `story-1.2` trenger en ny PR.

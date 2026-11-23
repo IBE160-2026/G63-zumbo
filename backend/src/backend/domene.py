@@ -6,7 +6,7 @@ Skjulte og manglende verdier er `None`, aldri `0`.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from types import MappingProxyType
 
 GRENSE_USIKKER_UKE = 30
@@ -111,32 +111,36 @@ class Uke:
     """Tallene for én ISO-uke (PRD kapittel 3).
 
     `tester` og `positive` er `None` når verdien er skjult eller mangler.
-    `andel` er andel positive i prosent. Den regnes ut fra `positive` og `tester`
-    når den ikke er oppgitt, og er alltid `None` for en manglende uke (FR-11).
+    `andel` regnes alltid ut her fra `positive` og `tester`, slik at den ikke kan
+    bli stående gammel eller avvike fra tallene.
     """
 
     år: int
     ukenummer: int
     tester: int | None
     positive: int | None
-    andel: float | None = None
 
     def __post_init__(self) -> None:
-        if not 1 <= self.ukenummer <= 53:
-            raise ValueError(f"ugyldig ukenummer: {self.ukenummer}")
+        try:
+            date.fromisocalendar(self.år, self.ukenummer, 1)
+        except ValueError:
+            raise ValueError(f"uka finnes ikke: {self.år}-w{self.ukenummer}") from None
         for navn in ("tester", "positive"):
             verdi = getattr(self, navn)
             if verdi is not None and verdi < 0:
                 raise ValueError(f"{navn} kan ikke være negativ: {verdi}")
-        if self.manglende:
-            andel = None
-        elif self.andel is not None:
-            andel = self.andel
-        elif self.tester:
-            andel = self.positive * 100 / self.tester
-        else:
-            andel = None
-        object.__setattr__(self, "andel", andel)
+
+    @property
+    def andel(self) -> float | None:
+        """Andel positive i prosent: positive delt på tester, ganget med 100.
+
+        `None` for en manglende uke, aldri 0 (FR-11). `None` også når uka har
+        0 tester, fordi andelen da ikke kan regnes ut. En slik uke er usikker,
+        men ikke manglende (tallene er ikke skjult).
+        """
+        if self.manglende or not self.tester:
+            return None
+        return self.positive * 100 / self.tester
 
     @property
     def manglende(self) -> bool:
@@ -170,7 +174,11 @@ class Utvalg:
 
 @dataclass(frozen=True)
 class Dataserie:
-    """Ukene for ett utvalg, i rekkefølge, én `Uke` per forventet uke (AD-3)."""
+    """Ukene for ett utvalg.
+
+    `fhi.tolk` (story 2.4) lager serien med én `Uke` per forventet uke, i
+    rekkefølge (AD-3). Dataklassen sjekker ikke dette selv.
+    """
 
     utvalg: Utvalg
     uker: tuple[Uke, ...]
@@ -211,7 +219,11 @@ class Kildehenvisning:
 
 
 def kildehenvisning(tabell: int, hentet: datetime) -> Kildehenvisning:
-    """Lager kildehenvisningen for en tabell. Den eneste måten å lage en på."""
+    """Lager kildehenvisningen for en tabell.
+
+    Bruk alltid denne og ikke `Kildehenvisning(...)` direkte, slik at teksten
+    og tabellnavnet kommer fra `TABELLER` (konvensjonen «Kildehenvisning»).
+    """
     if tabell not in TABELLER:
         raise ValueError(f"ukjent tabell: {tabell}")
     if hentet.utcoffset() is None:

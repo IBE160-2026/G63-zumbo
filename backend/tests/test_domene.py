@@ -1,6 +1,8 @@
 """Tester for domenemodellen (story 2.1, AD-2)."""
 
 import ast
+import dataclasses
+import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,6 +39,15 @@ def test_sju_aldersgrupper_med_alle_først_og_uten_ukjent() -> None:
     assert "Ukjent" not in {g.fhi_kode for g in grupper}
 
 
+def test_aldersgruppekodene_finnes_hos_fhi() -> None:
+    fil = Path(__file__).parent / "fixtures" / "fhi" / "724-dimensjoner.json"
+    dimensjoner = json.loads(fil.read_text(encoding="utf-8"))["svar"]["dimensions"]
+    (alder,) = [d for d in dimensjoner if d["code"] == "aldersgruppe"]
+    (alle,) = alder["categories"]
+    koder = {alle["value"]} | {c["value"] for c in alle["children"]}
+    assert {g.fhi_kode for g in domene.ALDERSGRUPPER.values()} == koder - {"Ukjent"}
+
+
 def test_mal_1_finnes() -> None:
     assert list(domene.MALER) == [1]
     assert domene.MALER[1].tittel == "Andel positive tester uke for uke"
@@ -70,24 +81,21 @@ def test_skjult_antall_positive_er_manglende_men_ikke_usikker() -> None:
 
 
 def test_begge_skjult() -> None:
-    uke = Uke(2025, 50, None, None, andel=1.5)
+    uke = Uke(2025, 50, None, None)
     assert uke.manglende
     assert uke.andel is None
 
 
-def test_andel_fra_fhi_er_none_når_uka_er_manglende() -> None:
-    # Selv om FHI skulle sende en andel, er den aldri med for en manglende uke.
-    assert Uke(2025, 50, 100, None, andel=0.0).andel is None
-
-
-def test_andel_regnes_ut_når_den_ikke_er_oppgitt() -> None:
+def test_andel_stemmer_med_fhi() -> None:
+    # Uke 2025-w40 i fixturen: 64 positive av 7023 tester, pos_rate 0.9112915.
     uke = Uke(2025, 40, 7023, 64)
     assert not uke.manglende
     assert uke.andel == pytest.approx(0.9112915, abs=1e-6)
 
 
-def test_andel_fra_fhi_beholdes() -> None:
-    assert Uke(2025, 40, 7023, 64, andel=0.9112915).andel == 0.9112915
+def test_andel_følger_tallene_etter_replace() -> None:
+    uke = dataclasses.replace(Uke(2025, 40, 100, 5), positive=10)
+    assert uke.andel == 10.0
 
 
 def test_null_positive_gir_andel_null_ikke_none() -> None:
@@ -95,19 +103,27 @@ def test_null_positive_gir_andel_null_ikke_none() -> None:
     assert Uke(2025, 40, 100, 0).andel == 0.0
 
 
-def test_null_tester_gir_ingen_andel() -> None:
-    assert Uke(2025, 40, 0, 0).andel is None
+def test_null_tester_gir_ingen_andel_men_er_ikke_manglende() -> None:
+    uke = Uke(2025, 40, 0, 0)
+    assert uke.andel is None
+    assert not uke.manglende
+    assert uke.usikker
 
 
-@pytest.mark.parametrize("ukenummer", [0, 54])
-def test_ugyldig_ukenummer(ukenummer: int) -> None:
+@pytest.mark.parametrize(("år", "ukenummer"), [(2025, 0), (2025, 53), (2026, 54)])
+def test_uker_som_ikke_finnes_avvises(år: int, ukenummer: int) -> None:
     with pytest.raises(ValueError):
-        Uke(2025, ukenummer, 100, 5)
+        Uke(år, ukenummer, 100, 5)
 
 
-def test_negative_tall_avvises() -> None:
+def test_uke_53_godtas_når_året_har_den() -> None:
+    assert Uke(2026, 53, 100, 5).ukenummer == 53
+
+
+@pytest.mark.parametrize(("tester", "positive"), [(-1, 0), (100, -1)])
+def test_negative_tall_avvises(tester: int, positive: int) -> None:
     with pytest.raises(ValueError):
-        Uke(2025, 40, -1, 0)
+        Uke(2025, 40, tester, positive)
 
 
 # --- Utvalg, Dataserie og Regelutslag ---
@@ -140,22 +156,39 @@ def test_regelutslag() -> None:
 HENTET = datetime(2026, 11, 23, 13, 5, tzinfo=UTC)
 
 
-def test_kildehenvisning_for_724() -> None:
-    kilde = domene.kildehenvisning(724, HENTET)
-    assert kilde.kildetekst == (
-        "Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, "
-        "Folkehelseinstituttet (FHI)."
-    )
-    assert kilde.tabell == 724
-    assert kilde.tabellnavn == "RESPIaggr Influensa antall og andel"
-    assert kilde.hentet == HENTET
-
-
-@pytest.mark.parametrize("tabell", [729, 731])
-def test_kildehenvisning_for_rsv_og_sars_cov_2(tabell: int) -> None:
+@pytest.mark.parametrize(
+    ("tabell", "kildetekst", "tabellnavn"),
+    [
+        (
+            724,
+            (
+                "Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, "
+                "Folkehelseinstituttet (FHI)."
+            ),
+            "RESPIaggr Influensa antall og andel",
+        ),
+        (
+            729,
+            (
+                "Kilde: MSIS-labdatabase og Referanselaboratoriet for RS-virus, "
+                "Folkehelseinstituttet (FHI)."
+            ),
+            "RESPIaggr RSV antall og andel",
+        ),
+        (
+            731,
+            (
+                "Kilde: MSIS-labdatabase og Referanselaboratoriet for koronavirus med "
+                "utbruddspotensiale, Folkehelseinstituttet (FHI)."
+            ),
+            "RESPIaggr SARS-CoV-2 antall og andel",
+        ),
+    ],
+)
+def test_kildehenvisning(tabell: int, kildetekst: str, tabellnavn: str) -> None:
+    # Ordrett fra addendumet (story 1.4) og tabellnavn fra PRD kapittel 4.
     kilde = domene.kildehenvisning(tabell, HENTET)
-    assert kilde.kildetekst.startswith("Kilde: MSIS-labdatabase og Referanselab")
-    assert kilde.kildetekst.endswith("Folkehelseinstituttet (FHI).")
+    assert kilde == domene.Kildehenvisning(kildetekst, tabell, tabellnavn, HENTET)
 
 
 def test_kildehenvisning_avviser_ukjent_tabell_og_tid_uten_tidssone() -> None:

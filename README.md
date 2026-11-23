@@ -24,7 +24,7 @@ Krever uv (https://docs.astral.sh/uv/).
     uv run ruff check
     uv run ruff format --check
 
-Alle tre kommandoene skal bestå før hver commit. Testene kjører uten nett: `pytest-socket` stopper alle nettverkskall, så ingen test kan kalle FHI eller Claude ved et uhell. Lagrede svar fra FHI og KI skal ligge i `backend/tests/fixtures/` (det første kommer i story 1.3).
+Alle tre kommandoene skal bestå før hver commit. Testene kjører uten nett: `pytest-socket` stopper alle nettverkskall, så ingen test kan kalle FHI eller Claude ved et uhell. Testene bruker lagrede svar i `backend/tests/fixtures/`. Ekte svar fra FHI for tabell 724 ligger i `backend/tests/fixtures/fhi/`, og README-en der forklarer formatet og hvordan de ble hentet.
 
 `.env` er valgfri. Uten KI-nøkkel virker alt unntatt KI-forklaringen. Vil du ha KI-forklaringen, kopierer du `.env.example` til `.env` i reporoten og fyller inn `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
 

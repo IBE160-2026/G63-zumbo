@@ -28,7 +28,7 @@ Dette dokumentet deler kravene i PRD-en (med addendum) og beslutningene i arkite
 - FR-9: Appen viser andel positive uke for uke som linjegraf med tittel som gjentar utvalget. Manglende uker er brudd i linjen, ikke 0.
 - FR-10: Usikre uker (færre enn 30 tester eller skjult antall tester) markeres i graf og tabell med form, ikke bare farge, med forklaring i grafen og tegn og fotnote i tabellen.
 - FR-11: Appen viser en tabell med uke, tester, positive prøver og andel positive, med de samme tallene som grafen. Skjulte verdier vises som «skjult» eller «mangler», ikke som 0.
-- FR-12: Appen viser kildehenvisning (MSIS-labdatabasen, FHI, tabellnummer, tabellnavn, hentedato) under graf og tabell, også når KI-forklaringen mangler.
+- FR-12: Appen viser kildehenvisning (FHIs egen kildetekst for tabellen, tabellnummer, tabellnavn, hentedato) under graf og tabell, også når KI-forklaringen mangler.
 - FR-13: Appen har sju faste begrepsforklaringer i koden (andel positive, test og positiv prøve, sesong, aldersgruppe, overvåkingstype, MSIS, «for tynt datagrunnlag»), på høyst tre setninger hver, som kan åpnes med mus og tastatur.
 - FR-14: R1 – varsel når summen av positive prøver er under 20 (19 → varsel, 20 → ikke). Skjulte verdier telles ikke.
 - FR-15: R2 – varsel når mer enn 20 % av ukene har et kjent antall tester under 30. Uker med skjult antall tester telles under R3, ikke R2.
@@ -82,7 +82,7 @@ Dette dokumentet deler kravene i PRD-en (med addendum) og beslutningene i arkite
 - AD-10: pytest med `--disable-socket`, `respx` for FHI, falsk KI-klient, fixtures i `tests/fixtures/fhi/`, `ki/` og `konstruert/`. Testene laster aldri `.env`. `ruff check` og `ruff format --check` skal bestå.
 - AD-11: Lokalt med `uv run uvicorn backend.web:app --reload`. Vercel er valgfritt (`[tool.vercel] entrypoint`, `/tmp` er flyktig).
 - Konvensjoner (arkitektur kapittel 4): norske navn, `kontrollregler.vurder(serie) -> list[Regelutslag]`, kildehenvisning bare fra `domene.kildehenvisning`, tallformat («20,8 %», tusenskille med mellomrom, «uke 50»), formatering bare i Jinja2-filtre, konfigurasjon bare i `config.py`.
-- Addendum: endepunktene for metadata, dimensjoner og data. Kildehenvisningen for tabell 724 må sjekkes i FHIs metadata. Etiketten «RS-virus (A+B)» vises ikke for brukeren.
+- Addendum: endepunktene for metadata, dimensjoner og data. FHIs kildetekst for tabell 724 er «Kilde: MSIS-labdatabase og Referanselaboratoriet for influensa, Folkehelseinstituttet (FHI).» (sjekket 22. november 2026, story 1.4). Etiketten «RS-virus (A+B)» vises ikke for brukeren.
 
 ### UX-krav
 
@@ -275,7 +275,7 @@ slik at alle moduler bruker de samme begrepene som PRD-en (AD-2).
 **Så** finnes `Utvalg`, `Uke`, `Dataserie`, `Regelutslag` og `Kildehenvisning`, og faste lister for virus → tabell (influensa 724, RSV 729, SARS-CoV-2 731), de sju aldersgruppevalgene og maler (FR-2, FR-4, AD-2)
 **Og** `Uke.usikker` er sann ved færre enn 30 tester eller skjult antall tester, og `Uke.manglende` er sann når tester eller positive er `None` (PRD kapittel 3, FR-10, FR-16)
 **Og** `Uke.andel` er `None` for manglende uker, aldri 0 (FR-11)
-**Og** `domene.kildehenvisning(tabell, hentet)` gir MSIS-labdatabasen, FHI, tabellnummer, tabellnavn og hentedato, med ordlyden fra story 1.4 (FR-12, konvensjonen «Kildehenvisning»)
+**Og** `domene.kildehenvisning(tabell, hentet)` gir FHIs egen kildetekst for tabellen (ordlyden fra story 1.4), tabellnummer, tabellnavn og hentedato (FR-12, konvensjonen «Kildehenvisning»)
 **Og** tester dekker 29 og 30 tester, skjulte verdier og kildehenvisningen for 724
 **Og** `domene.py` importerer ingen skallmoduler (AD-1)
 

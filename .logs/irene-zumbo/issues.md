@@ -3,7 +3,7 @@
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — `architecture/technology.md` beskriver et annet prosjekt (Pytagoras); må erstattes av eget arkitekturdokument (løst 2026-11-20: punktet var feil. Faglærer la inn fila 12. november som referanse for arkitekturarbeidet, commit `04e4076`. Den skal ikke slettes eller endres. Vår arkitektur skrives i en egen fil i samme mappe.)
 - [ ] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — skrive tekstene til de sju begrepsforklaringene (FR-13) (story 3.5, #19)
 - [ ] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — velge 10 testspørsmål og hente fasit manuelt fra FHI (story 7.1, #32)
-- [ ] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — sjekke FHIs kildehenvisning for tabell 724 (story 1.4, #4)
+- [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — sjekke FHIs kildehenvisning for tabell 724 (story 1.4, #4) (løst 2026-11-23 i PR #42, se [story-1-4](994-2026-11-23-20-35-25-story-1-4-kildehenvisning-724.md))
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — bekrefte antakelser i PRD-en: «Sara», fornying av mellomlager, NFR-11 mobil og PC (fornying avklart 2026-11-20: 24 timer, FR-7; «Sara» og NFR-11 bekreftet, løst 2026-11-20)
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — vurder å presisere i product brief at smale aldersgrupper gir varsel tidlig i sesongen som pågår (R1); R2 og R3 slår ikke inn i ekte data (løst 2026-11-20: raden «Varsel om tynt datagrunnlag» i briefen er presisert)
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — bekreft tidsgrensen på 10 sekunder for FHI-API-et (FR-8) (løst 2026-11-20: godkjent, begrunnelse skrevet i FR-8)
@@ -16,3 +16,4 @@
 - [ ] 2026-11-20 [epics-og-stories](997-2026-11-20-16-48-40-epics-og-stories.md) — hvis mal 1 for influensa ikke virker 2. desember: skrive inn i PRD-en som avvik at RSV og SARS-CoV-2 droppes (PRD §9, SM-1)
 - [ ] 2026-11-22 [story-1-1](995-2026-11-22-21-34-21-story-1-1-uv-prosjekt-og-gitignore.md) — `config.les_innstillinger()` må behandle tom `ANTHROPIC_MODEL`/`ANTHROPIC_API_KEY` som ikke satt (se deferred-work.md)
 - [x] 2026-11-23 [story-1-1](995-2026-11-22-21-34-21-story-1-1-uv-prosjekt-og-gitignore.md) — sette story 1.1 til `done` i sprint-status.yaml etter merge av PR #41 (løst 2026-11-23 i d1abfd8)
+- [ ] 2026-11-23 [story-1-4](994-2026-11-23-20-35-25-story-1-4-kildehenvisning-724.md) — avklare om kildeteksten i appen skal bruke FHIs ordlyd i stedet for «MSIS-labdatabasen, FHI» som står i begrepslisten og skissen i PRD-en (før story 3.2)

@@ -40,4 +40,6 @@ target-version = "py313"
 line-length = 88
 
 [tool.ruff.lint]
+# I: importrekkefølge, UP: moderne Python, B: vanlige feil.
+# PLW1510: subprocess.run uten check (fant en feil i story 1.1).
 extend-select = ["I", "UP", "B", "PLW1510"]

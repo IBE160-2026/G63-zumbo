@@ -16,17 +16,30 @@ KI-assistert applikasjon for å utforske FHIs åpne statistikk om smittsomme syk
 
 ## Kom i gang
 
-Krever uv (https://docs.astral.sh/uv/).
+Krever [uv](https://docs.astral.sh/uv/). uv henter selv riktig Python-versjon (3.13). Alle kommandoene kjøres fra `backend/`.
+
+### Installere
 
     cd backend
     uv sync
+
+`uv sync` installerer appen og utviklingsverktøyene (pytest og ruff) med versjonene som er låst i `uv.lock`.
+
+### Kjøre testene og ruff
+
     uv run pytest
     uv run ruff check
     uv run ruff format --check
 
-Alle tre kommandoene skal bestå før hver commit. Testene kjører uten nett: `pytest-socket` stopper alle nettverkskall, så ingen test kan kalle FHI eller Claude ved et uhell. Testene bruker lagrede svar i `backend/tests/fixtures/`. Ekte svar fra FHI for tabell 724 ligger i `backend/tests/fixtures/fhi/`, og README-en der forklarer formatet og hvordan de ble hentet.
+Alle tre kommandoene skal bestå før hver commit. Testene kjører uten nett: `pytest-socket` stopper alle nettverkskall, så ingen test kan kalle FHI eller Claude ved et uhell. Testene trenger heller ingen KI-nøkkel og leser aldri `.env`. De bruker lagrede svar i `backend/tests/fixtures/`. Ekte svar fra FHI for tabell 724 ligger i `backend/tests/fixtures/fhi/`, og README-en der forklarer formatet og hvordan de ble hentet.
 
-`.env` er valgfri. Uten KI-nøkkel virker alt unntatt KI-forklaringen. Vil du ha KI-forklaringen, kopierer du `.env.example` til `.env` i reporoten og fyller inn `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
+### Starte appen
+
+Web-appen finnes ikke ennå. Kommandoen for å starte den lokalt skrives inn her i story 3.1.
+
+### KI-nøkkel er valgfri
+
+`.env` er valgfri. Appen virker uten KI-nøkkel. Da virker alt unntatt KI-forklaringen. Vil du ha KI-forklaringen, kopierer du `.env.example` til `.env` i reporoten og fyller inn `ANTHROPIC_API_KEY`. `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
 
 ## Struktur
 

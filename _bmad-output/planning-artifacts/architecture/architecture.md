@@ -264,7 +264,7 @@ sequenceDiagram
 
 | Hva | Hvorfor det kan vente |
 | --- | --- |
-| Nøyaktig format på FHI-forespørselen (CSV eller JSON) og tolking av FLAGG-kolonnen | Bare `fhi.py` kjenner formatet (AD-3). Det avgjøres i første story mot ekte svar og lagres som fixture. |
+| ~~Nøyaktig format på FHI-forespørselen (CSV eller JSON) og tolking av FLAGG-kolonnen~~ **Avgjort: JSON (`json-stat2`).** Endret 23. november 2026. | Avgjort i story 1.3 mot ekte svar. Med JSON blir `svar` i cachen et vanlig JSON-objekt med tall som tall, og vi slipper å tolke CSV-tekst. Både koder og etiketter følger med. Tabell 724 har bare flagg 0 («Verdi finnes i tabellen»). Detaljer og forespørselen står i `backend/tests/fixtures/fhi/README.md`. Bare `fhi.py` kjenner formatet (AD-3). |
 | Tekstene i de sju begrepsforklaringene og i prompten | PRD åpent spørsmål 2. Skrives før FR-13 og FR-20 bygges, og prøves ut i brukertestingen. |
 | De 10 spørsmålene i testsettet og fasiten | PRD åpent spørsmål 3. Hentes manuelt fra FHI før SM-1-testene skrives. |
 | `max_tokens`, `effort` og tidsgrense for Claude | Innstillinger inne i `ki.py`. Påvirker ingen andre moduler. |

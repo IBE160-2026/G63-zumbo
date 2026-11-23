@@ -34,3 +34,18 @@ Avvist: asynkron httpx slipper gjennom (false, sjekket), fixture-testen fanger i
 ### Åpne punkter
 - FastAPIs `TestClient` feiler med `SocketBlockedError` under `--disable-socket` (asyncio sin self-pipe). Den første storyen med app-tester (epic 3) må legge til `--allow-unix-socket` i `addopts`. Sjekket: TCP og DNS er fortsatt stoppet med flagget.
 - Ingen CI eller pre-commit kjører ruff og pytest automatisk. Står i deferred-work.md.
+
+## 2026-11-23 kl. 21:58 — Irene Zumbo
+
+### Oppgave
+Merge PR #43 med `gh pr merge 43 --merge --delete-branch` og hente main.
+
+### Plan
+- Merget PR-en, byttet til main, hentet med `git pull --ff-only ibe main` og slettet den lokale branchen.
+
+### Resultat
+- PR #43 er merget (merge-commit 0a3bb08), og issue #2 er lukket. Branchen `story-1.2` er slettet både på `ibe` og lokalt.
+- Lokal main er lik `ibe/main`. På main: `uv run pytest` 12 passed, og `ruff check` og `ruff format --check` består.
+
+### Åpne punkter
+Ingen nye. Punktene om `--allow-unix-socket` for TestClient og om CI/pre-commit står fortsatt åpne i `issues.md`.

@@ -156,21 +156,28 @@ class Tjeneste:
             return None
         return lagret
 
-    def _dimensjonsliste(self, nå: datetime) -> dict[str, Any]:
+    def _dimensjonsliste(self, nå: datetime, tving: bool = False) -> dict[str, Any]:
         """Fersk lagret dimensjonsliste, ellers en ny fra FHI som lagres.
 
         Gir `FhiUtilgjengelig` når den må hentes og FHI ikke svarer, og uten
         nytt kall i `PAUSE_ETTER_FEIL` etter at FHI ikke svarte. Cachen
         leses inne i den delte jobben, slik at et kall som kommer rett etter at
         et annet har hentet listen, bruker den lagrede listen.
+
+        Med `tving` hentes listen fra FHI selv om den lagrede er fersk, og også
+        rett etter en feil, fordi brukeren har bedt om nye tall (FR-25). Slik
+        kommer en ny uke med, selv om listen ble lagret før FHI publiserte.
         """
 
         def hent() -> dict[str, Any]:
-            lagret = self._lagret_dimensjonsliste()
-            if lagret is not None and not sesong.er_utdatert(lagret.hentet, nå):
-                return lagret.svar
-            if self._feilet is not None and nå - self._feilet < PAUSE_ETTER_FEIL:
-                raise fhi.FhiUtilgjengelig("FHI svarte ikke nylig, prøver ikke på nytt")
+            if not tving:
+                lagret = self._lagret_dimensjonsliste()
+                if lagret is not None and not sesong.er_utdatert(lagret.hentet, nå):
+                    return lagret.svar
+                if self._feilet is not None and nå - self._feilet < PAUSE_ETTER_FEIL:
+                    raise fhi.FhiUtilgjengelig(
+                        "FHI svarte ikke nylig, prøver ikke på nytt"
+                    )
             try:
                 svar = fhi.hent_dimensjoner(SESONGTABELL, klient=self._klient)
             except fhi.FhiUtilgjengelig:
@@ -180,7 +187,8 @@ class Tjeneste:
             self._lagre(mellomlager.lagre_dimensjoner, SESONGTABELL, svar, nå)
             return svar
 
-        return self._én_gang(f"dimensjoner-{SESONGTABELL}", hent)
+        jobb = f"dimensjoner-{SESONGTABELL}" + ("-tving" if tving else "")
+        return self._én_gang(jobb, hent)
 
     def sesonger(self, nå: datetime) -> tuple[str, ...]:
         """Sesongene brukeren kan velge, eldste først (FR-3, AD-3).
@@ -201,29 +209,35 @@ class Tjeneste:
 
     # --- Svaret for et utvalg ---
 
-    def svar(self, utvalg: Utvalg, nå: datetime) -> Resultat:
+    def svar(self, utvalg: Utvalg, nå: datetime, tving: bool = False) -> Resultat:
         """Tall, regelutslag og kildehenvisning for utvalget (FR-7, FR-8).
 
         Ferske lagrede tall brukes uten kall til FHI. Ellers hentes nye tall, som
         lagres. Når FHI er nede, brukes lagrede tall merket «sist lagrede», eller
         så gir svaret en melding om at det ikke finnes tall. Kontrollreglene
         gjelder alltid, også for lagrede tall.
+
+        Med `tving` hentes tallene og dimensjonslisten fra FHI selv om de lagrede
+        er ferske, og lagres med `nå` som nytt hentetidspunkt (FR-25). Når FHI
+        ikke svarer, gjelder FR-8 som ellers. Samtidige tvungne hentinger for
+        samme utvalg deler ett kall til FHI (AD-9).
         """
         if utvalg.tabell not in fhi.FASTE_FILTRE:
             # RSV og SARS-CoV-2 kommer i epic 6.
             return Resultat(
                 utvalg, melding=IKKE_KLART.format(virus=VIRUS[utvalg.virus].navn)
             )
-        return self._én_gang(utvalg.nøkkel, lambda: self._svar(utvalg, nå))
+        jobb = utvalg.nøkkel + ("-tving" if tving else "")
+        return self._én_gang(jobb, lambda: self._svar(utvalg, nå, tving))
 
-    def _svar(self, utvalg: Utvalg, nå: datetime) -> Resultat:
+    def _svar(self, utvalg: Utvalg, nå: datetime, tving: bool = False) -> Resultat:
         lagret = self._lagret_svar(utvalg)
-        if lagret is not None and not sesong.er_utdatert(lagret[0], nå):
+        if not tving and lagret is not None and not sesong.er_utdatert(lagret[0], nå):
             return self._resultat(utvalg, lagret[1], lagret[0])
         # Feiler dimensjonslisten, prøver vi ikke datakallet i tillegg. Da venter
         # brukeren høyst én tidsgrense (10 s) før de lagrede tallene vises (FR-8).
         try:
-            siste = fhi.siste_publiserte_uke(self._dimensjonsliste(nå))
+            siste = fhi.siste_publiserte_uke(self._dimensjonsliste(nå, tving))
             if not sesong.uker(utvalg.sesong, siste):
                 return Resultat(
                     utvalg, melding=IKKE_PUBLISERT.format(sesong=utvalg.sesong)

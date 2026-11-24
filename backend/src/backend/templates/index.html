@@ -47,6 +47,56 @@
 {% if resultat and resultat.melding %}
 <div class="melding" role="status">
   <p>{{ resultat.melding }}</p>
+  {% if resultat.sist_lagrede and resultat.kilde %}
+  <p>Sist lagrede tall, hentet {{ resultat.kilde.hentet|tidspunkt }}.</p>
+  {% endif %}
 </div>
+{% endif %}
+
+{% if resultat and resultat.serie is not none %}
+{% set uker = resultat.serie.uker %}
+{% set har_usikker = uker|selectattr("usikker")|list|length > 0 %}
+{% set har_flere_positive = uker|selectattr("flere_positive_enn_tester")|list|length > 0 %}
+<section class="tall" aria-labelledby="tabelltittel">
+  <h2 id="tabelltittel">Tallene uke for uke</h2>
+  <div class="tabellboks">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Uke</th>
+          <th scope="col">Tester</th>
+          <th scope="col">Positive prøver</th>
+          <th scope="col">Andel positive</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in uker %}
+        <tr{% if u.usikker %} class="usikker"{% endif %}>
+          <th scope="row">{{ u|uke }}
+            {%- if u.usikker %}<span aria-hidden="true">*</span><span class="for-skjermleser"> (usikker uke)</span>{% endif %}
+            {%- if u.flere_positive_enn_tester %}<span aria-hidden="true">†</span><span class="for-skjermleser"> (flere positive prøver enn tester)</span>{% endif -%}
+          </th>
+          <td>{{ u.tester|tall }}</td>
+          <td>{{ u.positive|tall }}</td>
+          <td>{{ u.andel|andel }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if har_usikker or har_flere_positive %}
+  <div class="fotnoter">
+    {% if har_usikker %}
+    <p>* Usikker uke: færre enn 30 tester, skjult antall tester eller flere positive prøver enn tester.</p>
+    {% endif %}
+    {% if har_flere_positive %}
+    <p>† Flere positive prøver enn tester denne uka. Det kan skyldes hvordan prøvene er registrert. Tolk tallet med forsiktighet.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if resultat.kilde %}
+  <p class="kilde">{{ resultat.kilde.kildetekst }} Tabell {{ resultat.kilde.tabell }} «{{ resultat.kilde.tabellnavn }}». Hentet {{ resultat.kilde.hentet|tidspunkt }}.</p>
+  {% endif %}
+</section>
 {% endif %}
 {% endblock %}

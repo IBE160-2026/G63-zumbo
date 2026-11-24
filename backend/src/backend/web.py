@@ -80,10 +80,14 @@ def lag_app(
             request,
             "index.html",
             {
-                "maler": [(str(m.nummer), _spørsmål(m.spørsmål)) for m in MALER.values()],
+                "maler": [
+                    (str(m.nummer), _spørsmål(m.spørsmål)) for m in MALER.values()
+                ],
                 "virus": [(n, VIRUS[n].navn) for n in KLARE_VIRUS],
                 "sesonger": sesonger,
-                "aldersgrupper": [(g.nøkkel, g.etikett) for g in ALDERSGRUPPER.values()],
+                "aldersgrupper": [
+                    (g.nøkkel, g.etikett) for g in ALDERSGRUPPER.values()
+                ],
                 "valgt": valgt,
                 "feilmelding": feilmelding,
                 "resultat": resultat,

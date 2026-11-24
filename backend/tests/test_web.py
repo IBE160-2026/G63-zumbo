@@ -53,13 +53,13 @@ def klient(innstillinger: Innstillinger, fhi_mock: respx.MockRouter) -> Iterator
 
 def _valgt(html: str, felt: str) -> list[str]:
     """Verdiene som er forhåndsvalgt i nedtrekkslisten `felt`."""
-    liste = re.search(rf'<select id="{felt}".*?</select>', html, re.S)
+    liste = re.search(rf'<select id="{felt}".*?</select>', html, re.DOTALL)
     assert liste, f"fant ikke feltet {felt}"
     return re.findall(r'<option value="([^"]*)" selected>', liste[0])
 
 
 def _verdier(html: str, felt: str) -> list[str]:
-    liste = re.search(rf'<select id="{felt}".*?</select>', html, re.S)
+    liste = re.search(rf'<select id="{felt}".*?</select>', html, re.DOTALL)
     assert liste, f"fant ikke feltet {felt}"
     return re.findall(r'<option value="([^"]*)"', liste[0])
 

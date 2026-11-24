@@ -13,6 +13,7 @@ standardbiblioteket, `domene` og `sesong`. Formatet og særhetene står i
 import math
 import re
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import httpx
@@ -224,9 +225,14 @@ def _tolk(svar: Mapping[str, Any], utvalg: Utvalg, siste: IsoUke | None) -> Data
 # --- Henting fra FHI (skallet, AD-3) ---
 
 BASE_URL = "https://statistikk-data.fhi.no/api/open/v1/msis"
-TIDSGRENSE = httpx.Timeout(10.0)
-"""Gir opp etter 10 sekunder (FR-8). Gjelder hvert steg: tilkobling, sending og
-hver lesing."""
+TOTAL_TIDSGRENSE = 10.0
+"""Hele kallet gir opp etter 10 sekunder (FR-8), også navneoppslaget (DNS)."""
+
+TIDSGRENSE = httpx.Timeout(TOTAL_TIDSGRENSE)
+"""Grensen for hvert steg i `httpx`. Den gjør at tråden bak et kall som har gitt
+opp, også stopper av seg selv."""
+
+HODER = {"Accept": "application/json", "User-Agent": "fhi-helsedata/0.1"}
 
 
 class FhiUtilgjengelig(Exception):
@@ -272,16 +278,43 @@ def forespørsel(utvalg: Utvalg, siste_publiserte_uke: IsoUke) -> dict[str, Any]
 def _kall(
     metode: str, url: str, klient: httpx.Client | None, **kwargs: Any
 ) -> dict[str, Any]:
-    """Ett kall til FHI. Alle feil, også ugyldig JSON, blir `FhiUtilgjengelig`."""
+    """Ett kall til FHI med 10 sekunders grense for hele kallet (FR-8).
+
+    Kallet kjøres i en egen tråd, fordi `httpx` bare har grenser per steg og
+    ingen for navneoppslaget. Når grensen er nådd, gir vi opp med
+    `FhiUtilgjengelig`. Tråden stopper av seg selv når grensen per steg slår
+    inn. Ingen nye forsøk: `tjeneste` bruker lagrede tall i stedet (FR-8).
+    """
+    utfører = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fhi")
+    try:
+        fremtid = utfører.submit(_kall_i_tråd, metode, url, klient, kwargs)
+        try:
+            return fremtid.result(timeout=TOTAL_TIDSGRENSE)
+        except TimeoutError as feil:
+            raise FhiUtilgjengelig(
+                f"{metode} {url}: ga opp etter {TOTAL_TIDSGRENSE} s"
+            ) from feil
+    finally:
+        utfører.shutdown(wait=False, cancel_futures=True)
+
+
+def _kall_i_tråd(
+    metode: str, url: str, klient: httpx.Client | None, kwargs: dict[str, Any]
+) -> dict[str, Any]:
+    """Selve kallet. Alle feil, også ugyldig JSON, blir `FhiUtilgjengelig`."""
     try:
         if klient is None:
             with httpx.Client(timeout=TIDSGRENSE) as ny_klient:
-                svar = ny_klient.request(metode, url, **kwargs)
+                svar = ny_klient.request(metode, url, headers=HODER, **kwargs)
         else:
-            svar = klient.request(metode, url, timeout=TIDSGRENSE, **kwargs)
+            svar = klient.request(
+                metode, url, headers=HODER, timeout=TIDSGRENSE, **kwargs
+            )
         svar.raise_for_status()
         innhold = svar.json()
-    except (httpx.HTTPError, ValueError) as feil:
+    except (httpx.HTTPError, httpx.InvalidURL, ValueError, RuntimeError) as feil:
+        # RuntimeError dekker RecursionError (dypt nøstet JSON),
+        # httpx.StreamError og en klient som er lukket.
         raise FhiUtilgjengelig(f"{metode} {url}: {feil!r}") from feil
     if not isinstance(innhold, dict):
         raise FhiUtilgjengelig(f"{metode} {url}: svaret er ikke et JSON-objekt")
@@ -300,7 +333,7 @@ def hent_dimensjoner(
     try:
         siste_publiserte_uke(svar)
         sesonger(svar)
-    except ValueError as feil:
+    except (ValueError, RecursionError) as feil:
         raise FhiUtilgjengelig(f"GET {url}: ugyldig dimensjonsliste") from feil
     return svar
 
@@ -315,13 +348,14 @@ def hent(
 
     Svaret sjekkes med `tolk` før det returneres, slik at bare svar som kan
     tolkes havner i cachen. Gir `FhiUtilgjengelig` ved tidsavbrudd etter
-    10 sekunder, nettverksfeil, HTTP-feil og ugyldig svar.
+    10 sekunder, nettverksfeil, HTTP-feil (også 3xx) og ugyldig svar.
+    Gir `ValueError` for et utvalg som ikke kan hentes (se `forespørsel`).
     """
     kropp = forespørsel(utvalg, siste_publiserte_uke)
     url = f"{BASE_URL}/Table/{utvalg.tabell}/data"
     svar = _kall("POST", url, klient, json=kropp)
     try:
         tolk(svar, utvalg, siste_publiserte_uke)
-    except ValueError as feil:
+    except (ValueError, RecursionError) as feil:
         raise FhiUtilgjengelig(f"POST {url}: ugyldig svar") from feil
     return svar

@@ -365,17 +365,8 @@ def test_andre_tabeller_kan_ikke_tolkes_ennå() -> None:
 
 # --- Ren kjerne (AD-1) ---
 
-TOLKEFUNKSJONER = {
-    "les_ukekode",
-    "_ukekoder_i_dimensjonslisten",
-    "siste_publiserte_uke",
-    "sesonger",
-    "_kategorier",
-    "_tall",
-    "_sjekk_filtre",
-    "tolk",
-    "_tolk",
-}
+SKALLFUNKSJONER = {"_kall", "_kall_i_tråd", "hent", "hent_dimensjoner"}
+"""Funksjonene i fhi.py som får bruke nettet. Alle andre skal være rene (AD-1)."""
 
 
 def test_fhi_importerer_ikke_andre_skallmoduler() -> None:
@@ -395,13 +386,19 @@ def test_fhi_importerer_ikke_andre_skallmoduler() -> None:
     }
 
 
-def test_tolkefunksjonene_bruker_ikke_httpx_eller_nettet() -> None:
+def test_alle_andre_funksjoner_enn_skallet_er_rene() -> None:
     tre = ast.parse(Path(fhi.__file__).read_text(encoding="utf-8"))
     funksjoner = {
         node.name: node for node in tre.body if isinstance(node, ast.FunctionDef)
     }
-    assert TOLKEFUNKSJONER <= set(funksjoner)
-    skall = {"httpx", "_kall", "hent", "hent_dimensjoner", "open"}
-    for navn in TOLKEFUNKSJONER:
-        brukt = {n.id for n in ast.walk(funksjoner[navn]) if isinstance(n, ast.Name)}
-        assert brukt & skall == set(), (navn, brukt & skall)
+    assert SKALLFUNKSJONER <= set(funksjoner)
+    assert {"tolk", "siste_publiserte_uke", "sesonger"} <= set(funksjoner)
+    urent = SKALLFUNKSJONER | {"httpx", "open", "socket", "ThreadPoolExecutor"}
+    for navn, funksjon in funksjoner.items():
+        if navn in SKALLFUNKSJONER:
+            continue
+        brukt = {n.id for n in ast.walk(funksjon) if isinstance(n, ast.Name)}
+        assert brukt & urent == set(), (navn, brukt & urent)
+        assert not any(
+            isinstance(n, ast.Import | ast.ImportFrom) for n in ast.walk(funksjon)
+        ), navn

@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-20-2026 23:52
-last_updated: 11-24-2026 15:03
+last_updated: 11-24-2026 15:19
 project: fhi-helsedata
 project_key: NOKEY
 tracking_system: file-system
@@ -47,7 +47,7 @@ development_status:
   2-1-domenemodellen: done
   2-2-gyldige-utvalg-fra-parametre: done
   2-3-sesonger-uker-og-utdaterte-tall: done
-  2-4-tolke-fhi-svar-til-en-komplett-dataserie: backlog
+  2-4-tolke-fhi-svar-til-en-komplett-dataserie: in-progress
   2-5-hente-fra-fhi-med-tidsgrense: backlog
   2-6-mellomlagre-fhi-svar: backlog
   2-7-kontrollregler-r1-r3: backlog

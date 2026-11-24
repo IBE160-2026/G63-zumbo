@@ -7,6 +7,8 @@ import copy
 import json
 import logging
 import threading
+from collections.abc import Callable
+from concurrent.futures import Future
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -17,7 +19,7 @@ import respx
 
 from backend import kontrollregler, mellomlager, sesong, tjeneste
 from backend.config import Innstillinger
-from backend.domene import Utvalg
+from backend.domene import VIRUS, Utvalg
 from backend.tjeneste import Tjeneste
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -193,22 +195,24 @@ def test_lagret_fil_som_ikke_kan_tolkes_regnes_som_manglende(
 
 def test_meldingene_har_ingen_fhi_koder() -> None:
     tekster = [
-        tjeneste.IKKE_KLART,
+        *(tjeneste.IKKE_KLART.format(virus=v.navn) for v in VIRUS.values()),
         tjeneste.FHI_NEDE_LAGRET,
         tjeneste.FHI_NEDE_INGEN_TALL,
-        tjeneste.IKKE_PUBLISERT,
+        tjeneste.IKKE_PUBLISERT.format(sesong="2026/2027"),
     ]
     for kode in ("NONSTL", "A+B", "724", "Table", "http"):
         assert all(kode not in tekst for tekst in tekster)
 
 
 def test_lagring_som_feiler_gir_likevel_tall(
-    tmp_path: Path, fhi_mock: respx.MockRouter
+    tmp_path: Path, fhi_mock: respx.MockRouter, caplog: pytest.LogCaptureFixture
 ) -> None:
     fil = tmp_path / "ikke-en-mappe"
     fil.write_text("", encoding="utf-8")
-    resultat = Tjeneste(Innstillinger(None, "modell", fil)).svar(UTVALG, NÅ)
+    with caplog.at_level(logging.INFO, logger="backend.tjeneste"):
+        resultat = Tjeneste(Innstillinger(None, "modell", fil)).svar(UTVALG, NÅ)
     assert resultat.serie is not None and resultat.melding is None
+    assert "Kunne ikke lagre i cachen" in caplog.text
 
 
 # --- Utvalg som ikke kan hentes ennå (åpne punkter fra 2.3 og 2.5) ---
@@ -273,7 +277,11 @@ def test_fhi_nede_gir_lagret_sesongliste_selv_om_den_er_gammel(
     assert tj.sesonger(NÅ) == ("2024/2025", "2025/2026")
 
 
-@pytest.mark.parametrize("lagret", [None, "{ikke json", '{"hentet": 1}'])
+UTEN_UKER = '{"hentet": "2026-11-24T11:00:00Z", "svar": {"dimensions": []}}'
+"""En fersk fil med riktig form, men uten uker."""
+
+
+@pytest.mark.parametrize("lagret", [None, "{ikke json", '{"hentet": 1}', UTEN_UKER])
 def test_fhi_nede_uten_brukbar_liste_gir_reserven(
     tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter, lagret: str | None
 ) -> None:
@@ -285,38 +293,147 @@ def test_fhi_nede_uten_brukbar_liste_gir_reserven(
     assert tj.sesonger(NÅ) == sesong.sesonger_fra_dato(NÅ)
 
 
+def _skriv_dimensjonsfil(mappe: Path, innhold: str) -> None:
+    fil = mellomlager.dimensjonsfil(mappe, 724)
+    fil.parent.mkdir(parents=True, exist_ok=True)
+    fil.write_text(innhold, encoding="utf-8")
+
+
+def test_lagret_liste_uten_uker_hentes_på_nytt(
+    tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    _skriv_dimensjonsfil(mappe, UTEN_UKER)
+    resultat = tj.svar(UTVALG, NÅ)
+    assert resultat.serie is not None and resultat.melding is None
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+
+
+def test_gammel_dimensjonsliste_hentes_på_nytt_når_fhi_svarer(
+    tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    mellomlager.lagre_dimensjoner(
+        mappe, 724, _dimensjoner_til("2026-w10"), NÅ - timedelta(hours=24)
+    )
+    tj.svar(UTVALG, NÅ)
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+    kropp = json.loads(fhi_mock.routes["data"].calls.last.request.content)
+    uker = next(
+        d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
+    )
+    assert uker[-1] == "2026-w20"
+    assert "2026/2027" in tj.sesonger(NÅ)
+
+
 # --- Samtidige kall (AD-9) ---
 
 
-def test_to_samtidige_kall_deler_ett_kall_til_fhi(
-    tj: Tjeneste, fhi_mock: respx.MockRouter
-) -> None:
-    startet = threading.Event()
-    slipp = threading.Event()
+def _to_samtidige(
+    monkeypatch: pytest.MonkeyPatch,
+    rute: respx.Route,
+    svar: Callable[[], httpx.Response],
+    første: Callable[[], object],
+    andre: Callable[[], object],
+) -> tuple[object, object]:
+    """Kjører `første`, holder kallet til `rute` igjen til `andre` venter på
+    den delte jobben, og slipper det så. Gir resultatene (eller feilene)."""
+    startet, slipp, venter = threading.Event(), threading.Event(), threading.Event()
+
+    class Fremtid(Future):
+        def result(self, timeout: float | None = None) -> Any:
+            venter.set()
+            return super().result(timeout)
+
+    monkeypatch.setattr(tjeneste, "Future", Fremtid)
 
     def treg(_: httpx.Request) -> httpx.Response:
         startet.set()
         assert slipp.wait(5)
-        return httpx.Response(200, json=DATA)
+        return svar()
 
-    fhi_mock.routes["data"].mock(side_effect=treg)
-    resultater: list[tjeneste.Resultat] = []
+    rute.mock(side_effect=treg)
+    resultater: dict[str, object] = {}
 
-    def kall() -> None:
-        resultater.append(tj.svar(UTVALG, NÅ))
+    def kjør(navn: str, kall: Callable[[], object]) -> None:
+        try:
+            resultater[navn] = kall()
+        except BaseException as feil:  # noqa: BLE001 - feilen vises i testen
+            resultater[navn] = feil
 
-    første = threading.Thread(target=kall)
-    første.start()
+    tråder = [
+        threading.Thread(target=kjør, args=("første", første)),
+        threading.Thread(target=kjør, args=("andre", andre)),
+    ]
+    tråder[0].start()
     assert startet.wait(5)
-    andre = threading.Thread(target=kall)
-    andre.start()
-    andre.join(0.2)  # Den andre venter på det første kallet.
+    tråder[1].start()
+    assert venter.wait(5), "det andre kallet venter ikke på det første"
     slipp.set()
-    første.join(5)
-    andre.join(5)
-    assert len(resultater) == 2
-    assert resultater[0] == resultater[1]
+    for tråd in tråder:
+        tråd.join(5)
+        assert not tråd.is_alive()
+    return resultater["første"], resultater["andre"]
+
+
+def _nede() -> httpx.Response:
+    raise httpx.ConnectError("nede")
+
+
+def test_to_samtidige_kall_deler_ett_kall_til_fhi(
+    tj: Tjeneste, fhi_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a, b = _to_samtidige(
+        monkeypatch,
+        fhi_mock.routes["data"],
+        lambda: httpx.Response(200, json=DATA),
+        lambda: tj.svar(UTVALG, NÅ),
+        lambda: tj.svar(UTVALG, NÅ),
+    )
+    assert isinstance(a, tjeneste.Resultat) and a.serie is not None
+    assert a == b
     assert fhi_mock.routes["data"].call_count == 1
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+
+
+def test_to_samtidige_kall_deler_ett_kall_også_når_fhi_er_nede(
+    tj: Tjeneste, fhi_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    a, b = _to_samtidige(
+        monkeypatch,
+        fhi_mock.routes["data"],
+        _nede,
+        lambda: tj.svar(UTVALG, NÅ),
+        lambda: tj.svar(UTVALG, NÅ),
+    )
+    assert isinstance(a, tjeneste.Resultat)
+    assert a.melding == tjeneste.FHI_NEDE_INGEN_TALL and a == b
+    assert fhi_mock.routes["data"].call_count == 1
+
+
+@pytest.mark.parametrize(
+    ("svar", "forventet"),
+    [
+        (lambda: httpx.Response(200, json=DIMENSJONER), None),
+        (_nede, "reserve"),
+    ],
+)
+def test_samtidige_sesongkall_deler_ett_kall_til_fhi(
+    tj: Tjeneste,
+    fhi_mock: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+    svar: Callable[[], httpx.Response],
+    forventet: str | None,
+) -> None:
+    a, b = _to_samtidige(
+        monkeypatch,
+        fhi_mock.routes["dimensjoner"],
+        svar,
+        lambda: tj.sesonger(NÅ),
+        lambda: tj.sesonger(NÅ),
+    )
+    if forventet == "reserve":
+        assert a == b == sesong.sesonger_fra_dato(NÅ)
+    else:
+        assert a == b == ("2024/2025", "2025/2026", "2026/2027")
     assert fhi_mock.routes["dimensjoner"].call_count == 1
 
 

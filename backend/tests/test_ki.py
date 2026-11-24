@@ -240,9 +240,12 @@ def test_modellen_kan_overstyres_med_anthropic_model() -> None:
     assert klient.kall[0]["model"] == "claude-sonnet-5-5"
 
 
-def test_standard_klient_er_anthropic() -> None:
-    standard = inspect.signature(ki.forklar).parameters["ny_klient"].default
-    assert standard is anthropic.Anthropic
+def test_uten_ny_klient_brukes_anthropic(monkeypatch: pytest.MonkeyPatch) -> None:
+    klient = FalskKlient()
+    monkeypatch.setattr(anthropic, "Anthropic", klient)
+    utfall = ki.forklar(SERIE, (), KILDE, innstillinger())
+    assert utfall == ki.Forklaring(FORKLARING.strip())
+    assert klient.laget_med is not None
 
 
 # --- Prompten (FR-20) ---

@@ -276,7 +276,8 @@ def test_forklaring_som_mangler_gir_none(tmp_path: Path) -> None:
         "ikke json",
         "[]",
         '{"laget": "2026-11-24T11:30:00Z", "modell": "m"}',
-        '{"laget": "2026-11-24T11:30:00Z", "modell": "m", "tekst": "", "x": 1}',
+        '{"laget": "2026-11-24T11:30:00Z", "modell": "m", "tekst": "T", "x": 1}',
+        '{"laget": "2026-11-24T11:30:00Z", "modell": " ", "tekst": "T"}',
         '{"laget": "2026-11-24T11:30:00", "modell": "m", "tekst": "T"}',
         '{"laget": "i går", "modell": "m", "tekst": "T"}',
         '{"laget": "2026-11-24T11:30:00Z", "modell": 1, "tekst": "T"}',
@@ -303,10 +304,22 @@ def test_ugyldig_forklaringsnøkkel_avvises(tmp_path: Path, nøkkel: object) -> 
         mellomlager.les_forklaring(tmp_path, nøkkel)  # type: ignore[arg-type]
 
 
-def test_tom_forklaring_lagres_ikke(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("nøkkel", "modell", "tekst"),
+    [
+        (NØKKEL, "m", " "),
+        (NØKKEL, "", "T"),
+        (NØKKEL, None, "T"),
+        (NØKKEL, "m", None),
+        ("../" + "a" * 61, "m", "T"),
+    ],
+)
+def test_ugyldig_forklaring_lagres_ikke(
+    tmp_path: Path, nøkkel: str, modell: Any, tekst: Any
+) -> None:
     with pytest.raises(ValueError):
-        mellomlager.lagre_forklaring(tmp_path, NØKKEL, LAGET, "m", " ")
-    assert not (tmp_path / "ki").exists()
+        mellomlager.lagre_forklaring(tmp_path, nøkkel, LAGET, modell, tekst)
+    assert list(tmp_path.rglob("*")) == []
 
 
 def test_laget_uten_tidssone_avvises(tmp_path: Path) -> None:

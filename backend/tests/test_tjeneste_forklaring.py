@@ -6,6 +6,7 @@ og `tmp_path` som cache. De kaller aldri Claude (AD-10).
 """
 
 import json
+import logging
 import threading
 from concurrent.futures import Future
 from datetime import UTC, datetime, timedelta
@@ -240,6 +241,24 @@ def test_forklaringen_vises_selv_om_den_ikke_kan_lagres(
     assert utfall == ki.Forklaring(FORKLARING)
 
 
+def test_forklaringen_vises_selv_med_nå_uten_tidssone(mappe: Path) -> None:
+    # `nå` uten tidssone kan ikke lagres, men forklaringen vises likevel.
+    utfall = tjeneste_med(mappe, FalskKlient()).forklaring(
+        resultat(), datetime(2026, 11, 24, 12, 0)
+    )
+    assert utfall == ki.Forklaring(FORKLARING)
+    assert ki_filer(mappe) == []
+
+
+def test_lagret_forklaring_logges(
+    mappe: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    tjeneste_med(mappe, FalskKlient()).forklaring(resultat(), NÅ)
+    caplog.set_level(logging.INFO, logger="backend.tjeneste")
+    tjeneste_med(mappe, FalskKlient()).forklaring(resultat(), NÅ)
+    assert "Bruker lagret KI-forklaring" in caplog.text
+
+
 def test_ødelagt_lagret_forklaring_gir_nytt_kall(mappe: Path) -> None:
     fil = mellomlager.forklaringsfil(mappe, ki.nøkkel(SERIE, (), MODELL))
     fil.parent.mkdir(parents=True)
@@ -252,11 +271,19 @@ def test_ødelagt_lagret_forklaring_gir_nytt_kall(mappe: Path) -> None:
     assert mellomlager.les_forklaring(mappe, ki.nøkkel(SERIE, (), MODELL)) is not None
 
 
+@pytest.mark.parametrize(
+    "feil",
+    [
+        FileNotFoundError("forklaring.md"),
+        UnicodeDecodeError("utf-8", b"\xff", 0, 1, "ugyldig"),
+    ],
+    ids=["mangler", "ikke-utf-8"],
+)
 def test_prompt_som_ikke_kan_leses_gir_ki_feil(
-    mappe: Path, monkeypatch: pytest.MonkeyPatch
+    mappe: Path, monkeypatch: pytest.MonkeyPatch, feil: Exception
 ) -> None:
     def mangler() -> str:
-        raise FileNotFoundError("forklaring.md")
+        raise feil
 
     monkeypatch.setattr(ki, "_mal", mangler)
     klient = FalskKlient()

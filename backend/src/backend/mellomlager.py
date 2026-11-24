@@ -161,8 +161,9 @@ def lagre_forklaring(
     mappe: Path, nøkkel: str, laget: datetime, modell: str, tekst: str
 ) -> None:
     """Lagrer en forklaring under nøkkelen. `OSError` sendes videre."""
-    if not isinstance(modell, str) or not isinstance(tekst, str) or not tekst.strip():
-        raise ValueError("modell og tekst må være tekst, og teksten kan ikke være tom")
+    for verdi in (modell, tekst):
+        if not isinstance(verdi, str) or not verdi.strip():
+            raise ValueError("modell og tekst må være tekst som ikke er tom")
     _skriv_json(
         forklaringsfil(mappe, nøkkel),
         {"laget": _som_tekst(laget), "modell": modell, "tekst": tekst},
@@ -180,8 +181,9 @@ def les_forklaring(mappe: Path, nøkkel: str) -> LagretForklaring | None:
         innhold["modell"],
         innhold["tekst"],
     )
-    if laget is None or not isinstance(modell, str) or not isinstance(tekst, str):
+    if laget is None:
         return None
-    if not tekst.strip():
-        return None
+    for verdi in (modell, tekst):
+        if not isinstance(verdi, str) or not verdi.strip():
+            return None
     return LagretForklaring(laget=laget, modell=modell, tekst=tekst)

@@ -108,9 +108,11 @@ class Tjeneste:
 
         De som venter, får samme resultat eller samme feil som den som kjørte
         jobben. Slik gir samtidige kall bare ett kall til FHI, også når FHI
-        er nede. Ventetiden er begrenset av tidsgrensen i `fhi` (10 s). De som
-        venter, får resultatet regnet ut med eierens «nå», som er noen
-        millisekunder unna.
+        er nede, og bare ett kall til Claude for samme forklaring. Ventetiden er
+        begrenset av tidsgrensen i `fhi` (10 s), og for KI-forklaringen av
+        tidsgrensen i `ki` (15 s per forsøk, drøyt 30 s i alt). De som venter,
+        får resultatet regnet ut med eierens «nå», som er noen millisekunder
+        unna.
         """
         with self._lås:
             fremtid = self._pågår.get(nøkkel)
@@ -282,24 +284,26 @@ class Tjeneste:
         modell = self._innstillinger.anthropic_model
         try:
             nøkkel = ki.nøkkel(serie, regelutslag, modell)
-        except OSError as feil:
+        except (OSError, ValueError) as feil:
             logger.info("Prompten kunne ikke leses: %r", feil)
             return ki.KiFeil()
 
         def lag() -> ki.Utfall:
             lagret = mellomlager.les_forklaring(self._mappe, nøkkel)
             if lagret is not None:
+                logger.info("Bruker lagret KI-forklaring %s", nøkkel)
                 return ki.Forklaring(lagret.tekst)
-            ekstra = (
-                {} if self._ny_ki_klient is None else {"ny_klient": self._ny_ki_klient}
-            )
             utfall = ki.forklar(
-                serie, regelutslag, kilde, self._innstillinger, **ekstra
+                serie, regelutslag, kilde, self._innstillinger, self._ny_ki_klient
             )
             if isinstance(utfall, ki.Forklaring):
-                self._lagre(
-                    mellomlager.lagre_forklaring, nøkkel, nå, modell, utfall.tekst
-                )
+                try:
+                    mellomlager.lagre_forklaring(
+                        self._mappe, nøkkel, nå, modell, utfall.tekst
+                    )
+                except (OSError, ValueError) as feil:
+                    # Forklaringen vises likevel (AD-4).
+                    logger.info("Kunne ikke lagre KI-forklaringen: %r", feil)
             return utfall
 
         return self._én_gang(f"ki-{nøkkel}", lag)

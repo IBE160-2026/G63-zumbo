@@ -163,7 +163,7 @@ def forklar(
     regelutslag: Iterable[Regelutslag],
     kilde: Kildehenvisning,
     innstillinger: Innstillinger,
-    ny_klient: Callable[..., Any] = anthropic.Anthropic,
+    ny_klient: Callable[..., Any] | None = None,
 ) -> Utfall:
     """Ber Claude forklare tallene for ett utvalg (AD-6).
 
@@ -172,7 +172,8 @@ def forklar(
     andre steder, og modellen er `innstillinger.anthropic_model`. Alle feil, også
     uventede, blir `KiFeil`, og bare feiltypen logges, aldri nøkkelen.
 
-    Testene sender inn `ny_klient` og kaller aldri Claude på ekte (AD-10).
+    `ny_klient` er `anthropic.Anthropic` når den er `None`. Testene sender inn
+    en falsk klient og kaller aldri Claude på ekte (AD-10).
     """
     nøkkel = innstillinger.anthropic_api_key
     if not nøkkel:
@@ -180,7 +181,7 @@ def forklar(
     try:
         prompt = lag_prompt(serie, regelutslag, kilde)
         # `with` lukker forbindelsene til klienten etter hvert kall.
-        with ny_klient(
+        with (ny_klient or anthropic.Anthropic)(
             api_key=nøkkel, timeout=TIDSGRENSE, max_retries=FORSØK_PÅ_NYTT
         ) as klient:
             svar = klient.messages.create(

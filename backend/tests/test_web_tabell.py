@@ -366,3 +366,60 @@ def test_sist_lagrede_står_over_tabellen_og_bare_når_fhi_er_nede(
     _fhi_nede(fhi_mock)
     html = klient.get(STI).text
     assert html.index("Sist lagrede tall, hentet") < html.index("<table>")
+
+
+# --- Prompten og tabellen har de samme tallene (story 4.3) ---
+
+_UKELINJE = re.compile(
+    r"uke (?P<uke>\d+): (?P<tester>.+?) tester, (?P<positive>.+?) positive, "
+    r"(?:andel )?(?P<andel>.+)"
+)
+
+
+def _tall_i_prompten(prompt: str) -> dict[int, tuple[str, str, str]]:
+    """Tester, positive og andel per uke, med «skjult antall» gjort om til
+    «skjult» slik tabellen skriver det."""
+    ukene = {}
+    for linje in prompt.splitlines():
+        if treff := _UKELINJE.fullmatch(linje):
+            tester, positive = (
+                treff[navn].replace("skjult antall", "skjult")
+                for navn in ("tester", "positive")
+            )
+            ukene[int(treff["uke"])] = (tester, positive, treff["andel"])
+    return ukene
+
+
+def _tall_i_tabellen(html: str) -> dict[int, tuple[str, str, str]]:
+    ukene = {}
+    for uke, tester, positive, andel in _rader(html):
+        ukenummer = int(re.match(r"uke (\d+)", uke)[1])
+        ukene[ukenummer] = (tester, positive, andel)
+    return ukene
+
+
+@pytest.mark.parametrize(
+    ("utvalg", "svar"),
+    [
+        (UTVALG, DATA),
+        (UTVALG, R2),
+        (Utvalg(1, "influensa", "2026/2027", "80+"), SKJULTE),
+    ],
+    ids=["ekte-2025-2026", "r2-med-0-tester-og-skjult", "skjulte-verdier"],
+)
+def test_prompten_har_de_samme_tallene_som_tabellen(
+    klient: TestClient, mappe: Path, utvalg: Utvalg, svar: dict[str, Any]
+) -> None:
+    from backend import fhi, ki
+
+    mellomlager.lagre_svar(mappe, utvalg, svar, HENTET)
+    alder = utvalg.aldersgruppe.replace("+", "%2B")
+    html = klient.get(
+        f"/?mal=1&virus=influensa&sesong={utvalg.sesong}&alder={alder}"
+    ).text
+    serie = fhi.tolk(svar, utvalg)
+    prompt = ki.lag_prompt(serie, (), kildehenvisning(724, HENTET))
+
+    tabellen = _tall_i_tabellen(html)
+    assert tabellen, "fant ingen uker i tabellen"
+    assert _tall_i_prompten(prompt) == tabellen

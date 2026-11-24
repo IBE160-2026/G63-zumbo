@@ -34,6 +34,12 @@ Beslutninger fra brukeren (Irene):
 - **README:** hvordan nøkkelen settes i `.env`, omstart, at `.env` vinner, og standardmodellen.
 - `httpx2` er lagt til som dev-avhengighet fordi `test_ki.py` lager SDK-feil med den.
 - pytest: 691 passed. ruff check og ruff format: OK.
+- **Endringer før merge (Irenes beslutninger på PR #66):**
+  - Overskriften «Kilde:» er strøket i prompten, fordi FHIs tekst starter med «Kilde:».
+  - Skjulte tall skrives som «skjult antall tester», og andelen som «andel mangler» eller «andel kan ikke regnes ut». Tabellen er uendret.
+  - `ukelinje` er flyttet fra `formatering` til `ki`, fordi den nå bare gjelder prompten.
+  - En ny test i `test_web_tabell.py` sammenligner tallene i hver ukelinje med tabellen på siden. Den dekker tre fixturer, også skjulte tall og 0 tester. Det løser punktet som var utsatt fra gjennomgangen.
+  - pytest: 698 passed.
 
 ## Review Triage Log
 

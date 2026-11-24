@@ -72,13 +72,21 @@ def uke(verdi: Uke) -> str:
     return f"uke {verdi.ukenummer}"
 
 
+def utvalgstekst(verdi: Utvalg) -> str:
+    """«Influensa, sesongen 2025/2026, alle aldersgrupper» (FR-9)."""
+    alder = ALDERSGRUPPER[verdi.aldersgruppe].etikett
+    return f"{VIRUS[verdi.virus].navn}, sesongen {verdi.sesong}, {alder[0].lower()}{alder[1:]}"
+
+
 def tidspunkt(verdi: datetime) -> str:
     """«20.11.2026 kl. 14:05» i norsk tid (AD-5)."""
     return verdi.astimezone(NORSK_TID).strftime("%d.%m.%Y kl. %H:%M")
 
 
 maler = Jinja2Templates(directory=MAPPE / "templates")
-maler.env.filters.update(tall=tall, andel=andel, uke=uke, tidspunkt=tidspunkt)
+maler.env.filters.update(
+    tall=tall, andel=andel, uke=uke, tidspunkt=tidspunkt, utvalgstekst=utvalgstekst
+)
 
 
 def _spørsmål(mal_spørsmål: str) -> str:

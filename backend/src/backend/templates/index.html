@@ -59,8 +59,9 @@
 {% set har_flere_positive = uker|selectattr("flere_positive_enn_tester")|list|length > 0 %}
 <section class="tall" aria-labelledby="tabelltittel">
   <h2 id="tabelltittel">Tallene uke for uke</h2>
-  <div class="tabellboks">
+  <div class="tabellboks" role="region" aria-labelledby="tabelltekst" tabindex="0">
     <table>
+      <caption id="tabelltekst">{{ resultat.utvalg|utvalgstekst }}</caption>
       <thead>
         <tr>
           <th scope="col">Uke</th>
@@ -71,7 +72,7 @@
       </thead>
       <tbody>
         {% for u in uker %}
-        <tr{% if u.usikker %} class="usikker"{% endif %}>
+        <tr>
           <th scope="row">{{ u|uke }}
             {%- if u.usikker %}<span aria-hidden="true">*</span><span class="for-skjermleser"> (usikker uke)</span>{% endif %}
             {%- if u.flere_positive_enn_tester %}<span aria-hidden="true">†</span><span class="for-skjermleser"> (flere positive prøver enn tester)</span>{% endif -%}

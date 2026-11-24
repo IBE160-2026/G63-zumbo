@@ -18,7 +18,8 @@ from fastapi.testclient import TestClient
 
 from backend import mellomlager, tjeneste, web
 from backend.config import Innstillinger
-from backend.domene import Uke, Utvalg
+from backend.domene import Dataserie, Uke, Utvalg, kildehenvisning
+from backend.tjeneste import Resultat
 
 FIXTURES = Path(__file__).parent / "fixtures"
 DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data"
@@ -41,6 +42,7 @@ def _svar(navn: str) -> dict[str, Any]:
 DIMENSJONER = _svar("fhi/724-dimensjoner.json")
 DATA = _svar("fhi/724-influensa-2025-2026-alle-nonstl.json")
 R2 = _svar("konstruert/724-r2-4-av-20-uker.json")
+SKJULTE = _svar("konstruert/724-skjulte-verdier.json")
 
 
 @pytest.fixture
@@ -263,8 +265,85 @@ def test_fhi_nede_uten_lagrede_tall_gir_ingen_tabell(
 # --- Uten JavaScript (AD-8) ---
 
 
-def test_tabellen_står_i_html_uten_javascript(klient: TestClient, mappe: Path) -> None:
+def test_tabellen_står_i_html_fra_serveren(klient: TestClient, mappe: Path) -> None:
     mellomlager.lagre_svar(mappe, UTVALG, DATA, HENTET)
     html = klient.get(STI).text
-    assert "<table>" in html
-    assert "<script" not in html
+    # Tallene står i tabellen i HTML-en, ikke i et skript som må kjøres.
+    tabell = html[html.index("<table>") : html.index("</table>")]
+    assert f"7{NB}023" in tabell
+    assert "<script" not in tabell
+
+
+# --- Rettelser etter kodegjennomgang ---
+
+
+def test_tabellen_har_utvalget_som_tittel_og_kan_rulles_med_tastatur(
+    klient: TestClient, mappe: Path
+) -> None:
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, HENTET)
+    html = klient.get(STI).text
+    assert (
+        '<caption id="tabelltekst">Influensa, sesongen 2025/2026, alle aldersgrupper'
+        "</caption>" in html
+    )
+    assert (
+        '<div class="tabellboks" role="region" aria-labelledby="tabelltekst" '
+        'tabindex="0">' in html
+    )
+
+
+def test_utvalgstekst_med_aldersgruppe() -> None:
+    assert (
+        web.utvalgstekst(Utvalg(1, "influensa", "2026/2027", "80+"))
+        == "Influensa, sesongen 2026/2027, 80+ år"
+    )
+
+
+def test_bare_stjerne_uten_kors_når_ingen_uke_har_flere_positive(
+    klient: TestClient, mappe: Path
+) -> None:
+    utvalg = Utvalg(1, "influensa", "2026/2027", "80+")
+    mellomlager.lagre_svar(mappe, utvalg, SKJULTE, HENTET)
+    html = klient.get("/?mal=1&virus=influensa&sesong=2026/2027&alder=80%2B").text
+    assert "* Usikker uke:" in html
+    assert "†" not in html
+    assert FOTNOTE_FLERE_POSITIVE not in html
+
+
+def test_tegnene_er_skjult_for_skjermlesere_i_radoverskriften(
+    klient: TestClient, mappe: Path
+) -> None:
+    mellomlager.lagre_svar(mappe, UTVALG, R2, HENTET)
+    html = klient.get(STI).text
+    rad = re.search(r'<th scope="row">uke 1<span.*?</th>', html, re.DOTALL)
+    assert rad, "uke 1 er ikke en radoverskrift"
+    assert '<span aria-hidden="true">*</span>' in rad[0]
+    assert '<span aria-hidden="true">†</span>' in rad[0]
+
+
+def test_uke_med_0_tester_og_positive_har_fotnote_men_ingen_andel(
+    klient: TestClient,
+) -> None:
+    serie = Dataserie(UTVALG, (Uke(2025, 40, 100, 5), Uke(2025, 41, 0, 3)))
+    resultat = Resultat(UTVALG, serie, kilde=kildehenvisning(724, HENTET))
+    klient.app.state.tjeneste.svar = lambda utvalg, nå: resultat
+    html = klient.get(STI).text
+    rad = _rad(html, 41)
+    assert rad[0].startswith("uke 41*")
+    assert "†" in rad[0]
+    assert rad[1:] == ["0", "3", "mangler"]
+    assert FOTNOTE_FLERE_POSITIVE in html
+
+
+def test_sist_lagrede_står_over_tabellen_og_bare_når_fhi_er_nede(
+    klient: TestClient, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, HENTET)
+    assert "Sist lagrede tall" not in klient.get(STI).text
+
+    gammel = datetime(2026, 11, 20, 13, 5, tzinfo=UTC)
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, gammel)
+    mellomlager.lagre_dimensjoner(mappe, 724, DIMENSJONER, gammel)
+    _fhi_nede(fhi_mock)
+    html = klient.get(STI).text
+    assert html.index("Sist lagrede tall, hentet") < html.index("<table>")

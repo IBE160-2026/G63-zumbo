@@ -1,7 +1,7 @@
 """Tester for `formatering` (story 4.3, arkitektur §4).
 
-Tabellen på siden og prompten til KI-en bruker de samme funksjonene, så ukene
-står likt begge steder (Irenes beslutning på #23).
+Tabellen på siden og prompten til KI-en bruker de samme funksjonene, så tallene
+er de samme begge steder (Irenes beslutning på #23).
 """
 
 import ast
@@ -12,25 +12,7 @@ from pathlib import Path
 import pytest
 
 from backend import formatering, web
-from backend.domene import Uke, kildehenvisning
-
-NBSP = "\u00a0"
-
-
-@pytest.mark.parametrize(
-    ("verdi", "tekst"),
-    [
-        (
-            Uke(2025, 50, 1210, 252),
-            f"uke 50: 1{NBSP}210 tester, 252 positive, 20,8{NBSP}%",
-        ),
-        (Uke(2026, 3, None, 5), "uke 3: skjult tester, 5 positive, mangler"),
-        (Uke(2026, 3, 40, None), "uke 3: 40 tester, skjult positive, mangler"),
-        (Uke(2025, 41, 0, 0), "uke 41: 0 tester, 0 positive, kan ikke regnes ut"),
-    ],
-)
-def test_ukelinje_viser_uka_slik_tabellen_gjør(verdi: Uke, tekst: str) -> None:
-    assert formatering.ukelinje(verdi) == tekst
+from backend.domene import kildehenvisning
 
 
 @pytest.mark.parametrize(
@@ -38,7 +20,7 @@ def test_ukelinje_viser_uka_slik_tabellen_gjør(verdi: Uke, tekst: str) -> None:
 )
 def test_tabellen_bruker_de_samme_funksjonene_som_prompten(navn: str) -> None:
     # Tabellen og kilden på siden lages med Jinja2-filtrene i `web`. Er filtrene
-    # de samme funksjonene som `ukelinje` og `ki` bruker, står tallene likt.
+    # de samme funksjonene som `ki` bruker, er tallene de samme.
     assert web.maler.env.filters[navn] is getattr(formatering, navn)
 
 

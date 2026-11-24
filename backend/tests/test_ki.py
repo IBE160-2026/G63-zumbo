@@ -20,7 +20,8 @@ from anthropic.types import Message, TextBlock, Usage
 
 from backend import fhi, ki
 from backend.config import Innstillinger, les_innstillinger
-from backend.domene import Regelutslag, Utvalg, kildehenvisning
+from backend.domene import Dataserie, Regelutslag, Uke, Utvalg, kildehenvisning
+from backend.formatering import kildetekst
 
 FIXTURES = Path(__file__).parent / "fixtures"
 FORKLARING = (FIXTURES / "ki" / "forklaring-influensa-2025-2026-alle.txt").read_text(
@@ -263,17 +264,15 @@ def test_prompten_har_ukene_slik_de_står_i_tabellen() -> None:
     assert len(linjer) == len(SERIE.uker)
 
 
-def test_prompten_har_skjulte_og_manglende_tall_slik_tabellen() -> None:
-    from backend.domene import Dataserie, Uke
-
+def test_prompten_har_skjulte_og_manglende_tall_skrevet_tydelig() -> None:
     serie = Dataserie(
         SERIE.utvalg,
         (Uke(2025, 40, None, 3), Uke(2025, 41, 0, 0), Uke(2025, 42, 25, None)),
     )
     prompt = ki.lag_prompt(serie, (), KILDE)
-    assert "uke 40: skjult tester, 3 positive, mangler" in prompt
-    assert "uke 41: 0 tester, 0 positive, kan ikke regnes ut" in prompt
-    assert "uke 42: 25 tester, skjult positive, mangler" in prompt
+    assert "uke 40: skjult antall tester, 3 positive, andel mangler" in prompt
+    assert "uke 41: 0 tester, 0 positive, andel kan ikke regnes ut" in prompt
+    assert "uke 42: 25 tester, skjult antall positive, andel mangler" in prompt
 
 
 def test_prompten_har_regelutslag_og_kilde() -> None:
@@ -296,9 +295,34 @@ def test_prompten_har_ingen_ufylte_plassholdere() -> None:
 
 
 def test_kilden_er_den_samme_som_under_grafen() -> None:
-    from backend.formatering import kildetekst
-
     assert kildetekst(KILDE) in ki.lag_prompt(SERIE, (), KILDE)
+
+
+def test_kilde_står_ikke_to_ganger() -> None:
+    # Irenes beslutning før merge av PR #66: FHIs tekst starter med «Kilde:».
+    prompt = ki.lag_prompt(SERIE, (), KILDE)
+    assert prompt.count("Kilde:") == 1
+    assert prompt.rstrip().endswith(kildetekst(KILDE))
+
+
+@pytest.mark.parametrize(
+    ("tester", "positive", "tekst"),
+    [
+        (1210, 252, f"uke 50: 1{NBSP}210 tester, 252 positive, 20,8{NBSP}%"),
+        (None, 5, "uke 50: skjult antall tester, 5 positive, andel mangler"),
+        (40, None, "uke 50: 40 tester, skjult antall positive, andel mangler"),
+        (
+            None,
+            None,
+            "uke 50: skjult antall tester, skjult antall positive, andel mangler",
+        ),
+        (0, 0, "uke 50: 0 tester, 0 positive, andel kan ikke regnes ut"),
+        (0, None, "uke 50: 0 tester, skjult antall positive, andel mangler"),
+        (40, 45, f"uke 50: 40 tester, 45 positive, 112,5{NBSP}%"),
+    ],
+)
+def test_ukelinje(tester: int | None, positive: int | None, tekst: str) -> None:
+    assert ki.ukelinje(Uke(2025, 50, tester, positive)) == tekst
 
 
 # --- Bare ki.py importerer anthropic (AD-6) ---

@@ -9,8 +9,9 @@ utfall og kaster aldri videre:
 
 Teksten brukeren ser for `ManglerNøkkel` og `KiFeil` står i malene (FR-22).
 Prompten i `prompts/forklaring.md` får bare utvalget, ukene, regelutslagene og
-kildehenvisningen, og ukene står slik de står i tabellen (Irenes beslutning på
-#23).
+kildehenvisningen. Tallene for hver uke er de samme som i tabellen (Irenes
+beslutning på #23), men skjulte tall og andeler som mangler, er skrevet
+tydeligere for KI-en (Irenes beslutning før merge av PR #66).
 """
 
 import logging
@@ -23,8 +24,8 @@ from typing import Any
 import anthropic
 
 from backend.config import Innstillinger
-from backend.domene import Dataserie, Kildehenvisning, Regelutslag
-from backend.formatering import kildetekst, ukelinje, utvalgstekst
+from backend.domene import Dataserie, Kildehenvisning, Regelutslag, Uke
+from backend.formatering import andelstekst, kildetekst, tall, uke, utvalgstekst
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,33 @@ class KiFeil:
 Utfall = Forklaring | ManglerNøkkel | KiFeil
 
 
+def ukelinje(verdi: Uke) -> str:
+    """Én uke slik KI-en får den.
+
+    Tallene er de samme som i tabellen («1 210», «20,8 %»), men ordene er
+    tydeligere når et tall er skjult eller andelen ikke finnes (Irenes beslutning
+    før merge av PR #66):
+
+    - «uke 50: 1 210 tester, 252 positive, 20,8 %»
+    - «uke 3: skjult antall tester, 5 positive, andel mangler»
+    - «uke 41: 0 tester, 0 positive, andel kan ikke regnes ut»
+    """
+    tester = (
+        "skjult antall tester"
+        if verdi.tester is None
+        else f"{tall(verdi.tester)} tester"
+    )
+    positive = (
+        "skjult antall positive"
+        if verdi.positive is None
+        else f"{tall(verdi.positive)} positive"
+    )
+    andel = andelstekst(verdi)
+    if verdi.andel is None:
+        andel = f"andel {andel}"
+    return f"{uke(verdi)}: {tester}, {positive}, {andel}"
+
+
 @cache
 def _mal() -> str:
     return PROMPT.read_text(encoding="utf-8")
@@ -76,7 +104,7 @@ def lag_prompt(
 ) -> str:
     """Fyller ut prompten med utvalget, ukene, regelutslagene og kilden.
 
-    Hver uke står på én linje slik raden står i tabellen. Hvert regelutslag står
+    Hver uke står på én linje, med de samme tallene som tabellen (`ukelinje`). Hvert regelutslag står
     på én linje med setningen fra varselet. Uten regelutslag står det ingenting
     der, slik prompten sier.
     """

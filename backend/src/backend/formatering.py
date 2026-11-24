@@ -2,7 +2,7 @@
 
 All formatering for visning står her, og bare her. `web` bruker funksjonene som
 Jinja2-filtre, og `ki` bruker de samme funksjonene når prompten fylles ut, slik
-at KI-en får tallene nøyaktig slik de står i tabellen (Irenes beslutning på #23).
+at KI-en får de samme tallene som tabellen (Irenes beslutning på #23).
 
 Modulen er ren: den importerer bare `domene` og standardbiblioteket.
 """
@@ -78,17 +78,4 @@ def kildetekst(kilde: Kildehenvisning) -> str:
     return (
         f"{kilde.kildetekst} Tabell {kilde.tabell} «{kilde.tabellnavn}». "
         f"Hentet {tidspunkt(kilde.hentet)}."
-    )
-
-
-def ukelinje(verdi: Uke) -> str:
-    """Én uke slik raden står i tabellen: «uke 50: 1 210 tester, 252 positive,
-    20,8 %» (Irenes beslutning på #23).
-
-    Et skjult tall står som «skjult» foran ordet, slik tabellen viser det i
-    kolonnen: «uke 3: skjult tester, 5 positive, mangler».
-    """
-    return (
-        f"{uke(verdi)}: {tall(verdi.tester)} tester, "
-        f"{tall(verdi.positive)} positive, {andelstekst(verdi)}"
     )

@@ -87,27 +87,37 @@ def utvalgstekst(verdi: Utvalg) -> str:
 def grafdata(serie: Dataserie) -> dict[str, Any]:
     """Tallene grafen tegner, fra samme `Dataserie` som tabellen (AD-8).
 
-    Manglende uker (og uker med 0 tester) har `null` som andel, så linjen får
-    brudd (FR-9). `usikker` sier hvilke punkter som får åpen sirkel (FR-10).
+    Uker uten andel (manglende uker og uker med 0 tester) har `null`, så linjen
+    får brudd (FR-9). `andel_tekst` er andelen slik tabellen viser den, til
+    verktøytipset. `usikker` sier hvilke punkter som får åpen sirkel (FR-10).
     """
     return {
         "uker": [uke(u) for u in serie.uker],
         "andel": [
             None if u.andel is None else float(_avrundet(u.andel)) for u in serie.uker
         ],
+        "andel_tekst": [andel(u.andel) for u in serie.uker],
         "usikker": [u.usikker for u in serie.uker],
-        "tekster": {"x": "Uke", "y": "Andel positive (%)"},
     }
 
 
+def har_andel(serie: Dataserie) -> bool:
+    """Sann når minst én uke har en andel, så grafen har noe å tegne."""
+    return any(u.andel is not None for u in serie.uker)
+
+
 def alternativtekst(serie: Dataserie) -> str:
-    """Alternativtekst for grafen med utvalg og hovedtrekk (NFR-6)."""
+    """Alternativtekst for grafen med utvalg og hovedtrekk (NFR-6).
+
+    Teksten beskriver det grafen viser: åpne sirkler bare for usikre uker med
+    andel, og brudd i linjen for uker uten andel.
+    """
     tekst = (
         f"Linjegraf over andel positive tester uke for uke. "
         f"{utvalgstekst(serie.utvalg)}."
     )
     med_andel = [u for u in serie.uker if u.andel is not None]
-    if not serie.uker or not med_andel:
+    if not med_andel:
         return tekst + " Ingen uker har en andel som kan vises."
     tekst += f" Grafen viser {uke(serie.uker[0])} til {uke(serie.uker[-1])}."
     høyest = max(med_andel, key=lambda u: u.andel)
@@ -117,10 +127,14 @@ def alternativtekst(serie: Dataserie) -> str:
         tekst += (
             f" I {uke(siste)}, den siste uka med tall, var den {andel(siste.andel)}."
         )
-    usikre = sum(u.usikker for u in serie.uker)
-    if usikre:
-        om_usikre = "uke er usikker" if usikre == 1 else "uker er usikre"
-        tekst += f" {usikre} {om_usikre} og markert med åpen sirkel."
+    åpne = sum(u.usikker for u in med_andel)
+    if åpne:
+        om = "uke er usikker" if åpne == 1 else "uker er usikre"
+        tekst += f" {åpne} {om} og markert med åpen sirkel."
+    uten = len(serie.uker) - len(med_andel)
+    if uten:
+        om = "uke har" if uten == 1 else "uker har"
+        tekst += f" {uten} {om} ingen andel og gir brudd i linjen."
     return tekst
 
 
@@ -137,6 +151,7 @@ maler.env.filters.update(
     tidspunkt=tidspunkt,
     utvalgstekst=utvalgstekst,
     grafdata=grafdata,
+    har_andel=har_andel,
     alternativtekst=alternativtekst,
 )
 

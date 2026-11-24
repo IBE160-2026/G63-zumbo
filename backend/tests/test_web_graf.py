@@ -19,7 +19,8 @@ from fastapi.testclient import TestClient
 
 from backend import mellomlager, web
 from backend.config import Innstillinger
-from backend.domene import Dataserie, Uke, Utvalg
+from backend.domene import Dataserie, Uke, Utvalg, kildehenvisning
+from backend.tjeneste import Resultat
 
 FIXTURES = Path(__file__).parent / "fixtures"
 STATIC = Path(web.__file__).parent / "static"
@@ -111,8 +112,10 @@ def test_jsonblokken_har_samme_tall_som_tabellen(
     tabell = _tabell(html)
     assert len(graf["uker"]) == len(graf["andel"]) == len(graf["usikker"])
     assert len(graf["uker"]) == len(tabell)
+    andel_tekst = graf["andel_tekst"]
     for uke, andel, rad in zip(graf["uker"], graf["andel"], tabell, strict=True):
-        assert rad[0].startswith(uke)
+        assert re.match(rf"{uke}(\D|$)", rad[0])
+        assert rad[3] in andel_tekst
         assert _som_tabell(andel) == rad[3]
 
 
@@ -120,7 +123,14 @@ def test_jsonblokken_med_ekte_tall(klient: TestClient, mappe: Path) -> None:
     graf = _grafdata(_side(klient, mappe, DATA))
     assert graf["uker"][:3] == ["uke 40", "uke 41", "uke 42"]
     assert graf["andel"][:3] == [0.9, 1.6, 2.0]
-    assert graf["tekster"] == {"x": "Uke", "y": "Andel positive (%)"}
+    assert graf["andel_tekst"][:3] == ["0,9\u00a0%", "1,6\u00a0%", "2,0\u00a0%"]
+
+
+def test_akseteksten_står_i_malen(klient: TestClient, mappe: Path) -> None:
+    html = _side(klient, mappe, DATA)
+    assert 'data-tekst-x="Uke"' in html
+    assert 'data-tekst-y="Andel positive (%)"' in html
+    assert 'data-tekst-usikker="usikker uke"' in html
 
 
 def test_manglende_uker_er_null(klient: TestClient, mappe: Path) -> None:
@@ -153,8 +163,8 @@ def test_grafen_har_forklaring_av_markeringen(klient: TestClient, mappe: Path) -
     assert forklaring
     tekst = re.sub(r"<[^>]+>", "", forklaring[1])
     assert "● Sikker uke" in tekst
-    assert "○ Usikker uke: færre enn 30 tester" in tekst
-    assert "flere positive prøver enn tester" in tekst
+    assert "○ Usikker uke: færre enn 30 tester eller flere positive" in tekst
+    assert "Uker uten andel (skjult antall tester eller 0 tester) gir brudd" in tekst
 
 
 def test_app_js_gir_usikre_uker_åpen_sirkel() -> None:
@@ -162,6 +172,14 @@ def test_app_js_gir_usikre_uker_åpen_sirkel() -> None:
     assert "graf.usikker.map((u) => (u ? bakgrunn : linje))" in kode
     assert "spanGaps: false" in kode
     assert 'pointStyle: "circle"' in kode
+    # Fargene app.js leser, finnes i style.css.
+    css = (STATIC / "style.css").read_text(encoding="utf-8")
+    for navn in re.findall(r'farge\("(--[a-z-]+)"\)', kode):
+        assert f"{navn}:" in css
+    # Nøklene app.js leser, finnes i grafdata.
+    data = web.grafdata(Dataserie(UTVALG, (Uke(2025, 40, 10, 1),)))
+    for nøkkel in re.findall(r"graf\.([a-z_]+)", kode):
+        assert nøkkel in data
 
 
 # --- Tittel og alternativtekst (FR-9, NFR-6) ---
@@ -179,7 +197,7 @@ def test_alternativtekst_med_utvalg_og_hovedtrekk(
     klient: TestClient, mappe: Path
 ) -> None:
     html = _side(klient, mappe, DATA)
-    lerret = re.search(r'<canvas id="graf" role="img" aria-label="([^"]*)">', html)
+    lerret = re.search(r'<canvas id="graf" role="img" aria-label="([^"]*)"', html)
     assert lerret
     tekst = unescape(lerret[1])
     assert tekst.startswith(
@@ -189,8 +207,11 @@ def test_alternativtekst_med_utvalg_og_hovedtrekk(
     assert "Grafen viser uke 40 til uke 20." in tekst
     assert "Andelen var høyest i uke 51 med 28,8 %." in tekst
     assert "den siste uka med tall" in tekst
-    # Samme tekst står i lerretet for nettlesere som ikke kan tegne grafen.
+    # Samme tekst står i lerretet og i reserveteksten, som vises når grafen
+    # ikke kan tegnes (uten JavaScript eller Chart.js).
     assert f">{lerret[1]}</canvas>" in html
+    assert f'<p class="grafreserve">{lerret[1]}</p>' in html
+    assert '<div class="grafboks" hidden>' in html
 
 
 def test_alternativtekst_nevner_usikre_uker() -> None:
@@ -199,6 +220,41 @@ def test_alternativtekst_nevner_usikre_uker() -> None:
     assert "Andelen var høyest i uke 40 med 10,0 %." in tekst
     assert "I uke 41, den siste uka med tall, var den 5,0 %." in tekst
     assert "1 uke er usikker og markert med åpen sirkel." in tekst
+
+
+def test_alternativtekst_teller_bare_tegnede_sirkler_og_brudd() -> None:
+    serie = Dataserie(
+        UTVALG,
+        (
+            Uke(2025, 40, 100, 10),
+            Uke(2025, 41, 20, 1),
+            Uke(2025, 42, 25, 2),
+            Uke(2025, 43, None, 3),
+            Uke(2025, 44, 0, 2),
+        ),
+    )
+    tekst = web.alternativtekst(serie)
+    assert "2 uker er usikre og markert med åpen sirkel." in tekst
+    assert "2 uker har ingen andel og gir brudd i linjen." in tekst
+
+
+def test_alternativtekst_når_siste_uke_er_høyest() -> None:
+    serie = Dataserie(UTVALG, (Uke(2025, 40, 100, 1), Uke(2025, 41, 100, 9)))
+    tekst = web.alternativtekst(serie)
+    assert "Andelen var høyest i uke 41 med 9,0\u00a0%." in tekst
+    assert "den siste uka med tall" not in tekst
+    assert "usikker" not in tekst
+    assert "brudd" not in tekst
+
+
+def test_ingen_graf_uten_andeler(klient: TestClient) -> None:
+    serie = Dataserie(UTVALG, (Uke(2025, 40, None, None), Uke(2025, 41, 0, 0)))
+    resultat = Resultat(UTVALG, serie, kilde=kildehenvisning(724, HENTET))
+    klient.app.state.tjeneste.svar = lambda utvalg, nå: resultat
+    html = klient.get(STI).text
+    assert "<table>" in html
+    assert 'id="graf"' not in html
+    assert "<script" not in html
 
 
 def test_alternativtekst_uten_andeler() -> None:

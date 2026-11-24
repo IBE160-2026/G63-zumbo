@@ -26,10 +26,13 @@ def test_readme_nevner_kommandoen(readme: str, kommando: str) -> None:
     assert kommando in readme
 
 
-def test_readme_har_plass_for_oppstart(readme: str) -> None:
-    # Plassen fylles ut i story 3.1 (AD-11). Da må denne testen endres med vilje.
-    assert "### Starte appen" in readme
-    assert "story 3.1" in _seksjon(readme, "### Starte appen")
+def test_readme_har_oppstartskommandoen(readme: str) -> None:
+    # Fylt ut i story 3.1 (AD-11).
+    seksjon = _seksjon(readme, "### Starte appen")
+    assert "uv run uvicorn backend.web:app --reload" in seksjon
+    assert "backend/" in seksjon
+    assert "http://127.0.0.1:8000" in seksjon
+    assert "story 3.1" not in seksjon
 
 
 def test_readme_sier_at_env_er_valgfri(readme: str) -> None:

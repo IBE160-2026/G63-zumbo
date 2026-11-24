@@ -444,3 +444,29 @@ def test_feil_i_jobben_gis_videre_og_nøkkelen_frigis(tj: Tjeneste) -> None:
     with pytest.raises(RuntimeError):
         tj._én_gang("nøkkel", feiler)
     assert tj._én_gang("nøkkel", lambda: 42) == 42
+
+
+# --- Pause etter at FHI ikke svarte (review av story 3.1) ---
+
+
+def test_dimensjonslisten_hentes_ikke_på_nytt_rett_etter_feil(
+    tj: Tjeneste, fhi_mock: respx.MockRouter
+) -> None:
+    _fhi_nede(fhi_mock)
+    tj.sesonger(NÅ)
+    resultat = tj.svar(UTVALG, NÅ + timedelta(seconds=1))
+    assert resultat.melding == tjeneste.FHI_NEDE_INGEN_TALL
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+
+
+def test_dimensjonslisten_prøves_igjen_etter_pausen(
+    tj: Tjeneste, fhi_mock: respx.MockRouter
+) -> None:
+    _fhi_nede(fhi_mock)
+    tj.sesonger(NÅ)
+    fhi_mock.routes["dimensjoner"].mock(side_effect=None)
+    fhi_mock.routes["dimensjoner"].respond(json=DIMENSJONER)
+    tj.sesonger(NÅ + tjeneste.PAUSE_ETTER_FEIL - timedelta(seconds=1))
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+    tj.sesonger(NÅ + tjeneste.PAUSE_ETTER_FEIL)
+    assert fhi_mock.routes["dimensjoner"].call_count == 2

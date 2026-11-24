@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block innhold %}
+<h1>Tall fra FHI om luftveisvirus</h1>
+
+<form method="get" action="/" class="skjema">
+  <p>
+    <label for="mal">Spørsmål</label>
+    <select id="mal" name="mal">
+      {% for verdi, tekst in maler %}
+      <option value="{{ verdi }}"{% if verdi == valgt.mal %} selected{% endif %}>{{ tekst }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="virus">Virus</label>
+    <select id="virus" name="virus">
+      {% for verdi, tekst in virus %}
+      <option value="{{ verdi }}"{% if verdi == valgt.virus %} selected{% endif %}>{{ tekst }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="sesong">Sesong</label>
+    <select id="sesong" name="sesong">
+      {% for verdi in sesonger %}
+      <option value="{{ verdi }}"{% if verdi == valgt.sesong %} selected{% endif %}>{{ verdi }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p>
+    <label for="alder">Aldersgruppe</label>
+    <select id="alder" name="alder">
+      {% for verdi, tekst in aldersgrupper %}
+      <option value="{{ verdi }}"{% if verdi == valgt.alder %} selected{% endif %}>{{ tekst }}</option>
+      {% endfor %}
+    </select>
+  </p>
+  <p><button type="submit">Vis tallene</button></p>
+</form>
+
+{% if feilmelding %}
+<div class="feilmelding" role="alert">
+  <p>{{ feilmelding }}</p>
+</div>
+{% endif %}
+
+{% if resultat and resultat.melding %}
+<div class="melding" role="status">
+  <p>{{ resultat.melding }}</p>
+</div>
+{% endif %}
+{% endblock %}

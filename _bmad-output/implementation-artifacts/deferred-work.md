@@ -55,3 +55,12 @@
   summary: `tjeneste` (story 2.9) må ikke kalle `fhi.hent` for RSV og SARS-CoV-2 før epic 6, og bare for sesonger fra `fhi.sesonger(dimensjoner)` (eller reserven).
   evidence: `fhi.forespørsel` gir `ValueError` for tabell 729 og 731 og for en sesong uten publiserte uker (for eksempel uke 40 før FHI har publisert). `Utvalg.fra_parametre` godtar `rsv` og `sars-cov-2`, så en URL kan nå dit. `tjeneste` fanger bare `FhiUtilgjengelig`. Enten må `tjeneste` gi en norsk melding for virus som ikke er klare, eller `fra_parametre` må få listen over virus som kan velges.
   status: løst 2026-11-24 i story 2.9 — `tjeneste.svar` stopper tabeller som ikke finnes i `fhi.FASTE_FILTRE` med «Tall for RSV kan ikke vises i appen ennå. Velg influensa.», og en sesong uten publiserte uker med en egen melding, før `fhi.hent` (`test_rsv_og_sars_cov_2_gir_norsk_melding_uten_kall`, `test_sesong_uten_publiserte_uker_gir_melding_uten_datakall`).
+
+## Deferred from: code review of spec-3-1-velge-mal-og-utvalg-pa-siden.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-velge-mal-og-utvalg-pa-siden.md`
+  summary: Meldingen fra `Utvalg.fra_parametre` for ukjent virus nevner RSV og SARS-CoV-2, selv om skjemaet bare tilbyr influensa til epic 6.
+  evidence: `fra_parametre` lister alle nøklene i `domene.VIRUS`. Velger brukeren RSV, svarer `tjeneste` «Velg influensa», så brukeren kommer ikke feil ut, men teksten er upresis. Løses av seg selv i epic 6, eller ved å gi `fra_parametre` listen over klare virus. Lav alvorlighet.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-velge-mal-og-utvalg-pa-siden.md`
+  summary: Meldingen for ukjent mal bruker malens tittel («Andel positive tester uke for uke»), mens skjemaet viser malen som spørsmål (FR-1).
+  evidence: `fra_parametre` bygger `Velg en mal: «{m.tittel}»`. Gjelder bare en manipulert URL. Kan vurderes når mal 2 kommer (epic 8). Lav alvorlighet.

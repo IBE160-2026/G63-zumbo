@@ -38,7 +38,11 @@ Alle tre kommandoene skal bestå før hver commit. Testene kjører uten nett: `p
 
 ### Starte appen
 
-Web-appen finnes ikke ennå. Kommandoen for å starte den lokalt skrives inn her i story 3.1.
+Fra `backend/`:
+
+    uv run uvicorn backend.web:app --reload
+
+Åpne så http://127.0.0.1:8000 i nettleseren. Appen starter uten `.env`. `--reload` starter appen på nytt når koden endres. Stopp den med Ctrl+C.
 
 ### KI-nøkkel er valgfri
 

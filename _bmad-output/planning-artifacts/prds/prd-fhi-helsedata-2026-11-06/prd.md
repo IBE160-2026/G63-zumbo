@@ -255,7 +255,8 @@ Appen viser andel positive uke for uke som en linjegraf. Realiserer UJ-1.
 Appen markerer usikre uker (færre enn 30 tester, skjult antall tester, eller flere positive prøver enn tester) i grafen og tabellen.
 
 - Uker der antall tester er skjult, markeres som usikre selv om de ikke telles i R2 (se FR-15).
-- Uker med flere positive prøver enn tester viser andelen som den er (over 100 %). De markeres som usikre og får en egen fotnote på enkel norsk, for eksempel «Flere positive prøver enn tester denne uka. Tallet kan være feil hos FHI.». De telles ikke i R2, som bare teller uker med færre enn 30 tester (FR-15). *Endret 24. november 2026: Irenes beslutning i story 2.4.*
+- Uker med flere positive prøver enn tester viser andelen som den er (over 100 %). De markeres som usikre og får en egen fotnote på enkel norsk: «Flere positive prøver enn tester denne uka. Det kan skyldes hvordan prøvene er registrert. Tolk tallet med forsiktighet.» De telles ikke i R2, som bare teller uker med færre enn 30 tester (FR-15). *Endret 24. november 2026: Irenes beslutning i story 2.4. Fotnoten: Endret 24. november 2026: Irenes beslutning.*
+- En uke med 0 tester og flere enn 0 positive er usikker og får fotnoten, men ingen andel, fordi andelen ikke kan regnes ut. *Endret 24. november 2026: Irenes beslutning.*
 - Usikre uker skilles fra andre uker med form (for eksempel åpen sirkel i stedet for fylt), ikke bare med farge.
 - Grafen har en forklaring som sier hva markeringen betyr.
 - I tabellen er usikre uker merket med tegn og fotnote.

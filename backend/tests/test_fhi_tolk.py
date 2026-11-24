@@ -365,8 +365,11 @@ def test_andre_tabeller_kan_ikke_tolkes_ennå() -> None:
 
 # --- Ren kjerne (AD-1) ---
 
+SKALLFUNKSJONER = {"_kall", "_kall_i_tråd", "hent", "hent_dimensjoner"}
+"""Funksjonene i fhi.py som får bruke nettet. Alle andre skal være rene (AD-1)."""
 
-def test_tolkingen_importerer_ikke_skallmoduler() -> None:
+
+def test_fhi_importerer_ikke_andre_skallmoduler() -> None:
     tre = ast.parse(Path(fhi.__file__).read_text(encoding="utf-8"))
     moduler: set[str] = set()
     for node in ast.walk(tre):
@@ -374,16 +377,28 @@ def test_tolkingen_importerer_ikke_skallmoduler() -> None:
             moduler |= {a.name for a in node.names}
         elif isinstance(node, ast.ImportFrom):
             moduler.add(node.module or "")
-    forbudt = {
-        "httpx",
-        "anthropic",
-        "backend.mellomlager",
-        "backend.config",
-        "backend.web",
-    }
+    forbudt = {"anthropic", "backend.mellomlager", "backend.config", "backend.web"}
     assert moduler & forbudt == set()
     assert {m for m in moduler if m.startswith("backend")} <= {
         "backend",
         "backend.domene",
         "backend.sesong",
     }
+
+
+def test_alle_andre_funksjoner_enn_skallet_er_rene() -> None:
+    tre = ast.parse(Path(fhi.__file__).read_text(encoding="utf-8"))
+    funksjoner = {
+        node.name: node for node in tre.body if isinstance(node, ast.FunctionDef)
+    }
+    assert SKALLFUNKSJONER <= set(funksjoner)
+    assert {"tolk", "siste_publiserte_uke", "sesonger"} <= set(funksjoner)
+    urent = SKALLFUNKSJONER | {"httpx", "open", "socket", "ThreadPoolExecutor"}
+    for navn, funksjon in funksjoner.items():
+        if navn in SKALLFUNKSJONER:
+            continue
+        brukt = {n.id for n in ast.walk(funksjon) if isinstance(n, ast.Name)}
+        assert brukt & urent == set(), (navn, brukt & urent)
+        assert not any(
+            isinstance(n, ast.Import | ast.ImportFrom) for n in ast.walk(funksjon)
+        ), navn

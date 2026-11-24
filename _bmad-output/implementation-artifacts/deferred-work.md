@@ -44,3 +44,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-tolke-fhi-svar-til-en-komplett-dataserie.md`
   summary: Story 2.7 (R2) må ha en test som viser at en uke med flere positive enn tester og minst 30 tester ikke telles i R2.
   evidence: Irenes beslutning 24.11.2026 og FR-15. `Uke.usikker` er nå sann for slike uker, så R2 må telle `tester < 30` direkte og ikke bruke `usikker`. Ingen test håndhever det ennå.
+
+## Deferred from: code review of spec-2-5-hente-fra-fhi-med-tidsgrense.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-5-hente-fra-fhi-med-tidsgrense.md`
+  summary: `tjeneste` (story 2.9) må ikke kalle `fhi.hent` for RSV og SARS-CoV-2 før epic 6, og bare for sesonger fra `fhi.sesonger(dimensjoner)` (eller reserven).
+  evidence: `fhi.forespørsel` gir `ValueError` for tabell 729 og 731 og for en sesong uten publiserte uker (for eksempel uke 40 før FHI har publisert). `Utvalg.fra_parametre` godtar `rsv` og `sars-cov-2`, så en URL kan nå dit. `tjeneste` fanger bare `FhiUtilgjengelig`. Enten må `tjeneste` gi en norsk melding for virus som ikke er klare, eller `fra_parametre` må få listen over virus som kan velges.

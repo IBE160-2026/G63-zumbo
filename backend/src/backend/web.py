@@ -6,16 +6,21 @@ Start lokalt fra `backend/` med `uv run uvicorn backend.web:app --reload`.
 `domene.Utvalg.fra_parametre`, og tallene kommer fra `tjeneste`. Innstillingene
 leses én gang, ved oppstart, og aldri ved import, slik at testene ikke laster
 `.env` (AD-6, AD-10).
+
+KI-forklaringen hentes for seg med `GET /forklaring`, etter at siden er vist,
+så `GET /` venter aldri på KI-en (FR-20, NFR-2, AD-9).
 """
 
+import re
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -41,7 +46,13 @@ from backend.formatering import (
     uke,
     utvalgstekst,
 )
-from backend.tjeneste import KLARE_VIRUS, Resultat, Tjeneste
+from backend.tjeneste import (
+    KLARE_VIRUS,
+    Forklaring,
+    ManglerNøkkel,
+    Resultat,
+    Tjeneste,
+)
 
 if TYPE_CHECKING:
     # Bare for typen til testklienten. `web` kaller aldri `fhi` (AD-1).
@@ -71,6 +82,23 @@ def grafdata(serie: Dataserie) -> dict[str, Any]:
         "positive_tekst": [tall(u.positive) for u in serie.uker],
         "usikker": [u.usikker for u in serie.uker],
     }
+
+
+def avsnitt(tekst: str) -> list[str]:
+    """Teksten delt i avsnitt på tomme linjer, uten tomme avsnitt."""
+    return [a.strip() for a in re.split(r"\n\s*\n", tekst) if a.strip()]
+
+
+def forklaringsadresse(utvalg: Utvalg) -> str:
+    """`/forklaring` med de samme parametrene som siden for `utvalg` (AD-9)."""
+    return "/forklaring?" + urlencode(
+        {
+            "mal": utvalg.mal,
+            "virus": utvalg.virus,
+            "sesong": utvalg.sesong,
+            "alder": utvalg.aldersgruppe,
+        }
+    )
 
 
 def har_andel(serie: Dataserie) -> bool:
@@ -122,6 +150,8 @@ maler.env.filters.update(
     grafdata=grafdata,
     har_andel=har_andel,
     alternativtekst=alternativtekst,
+    avsnitt=avsnitt,
+    forklaringsadresse=forklaringsadresse,
 )
 
 
@@ -146,16 +176,20 @@ def lag_app(
     les_innstillinger: Callable[[], Innstillinger] = config.les_innstillinger,
     klient: "fhi.Klient | None" = None,
     klokke: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ny_ki_klient: Callable[..., Any] | None = None,
 ) -> FastAPI:
-    """Lager appen. Testene sender inn egne innstillinger, en `klient` og en
-    fast `klokke`.
+    """Lager appen. Testene sender inn egne innstillinger, en `klient`, en
+    fast `klokke` og en falsk Claude (`ny_ki_klient`), så de aldri kaller
+    Claude på ekte (AD-10).
 
     `les_innstillinger` kalles én gang, når appen starter (AD-6).
     """
 
     @asynccontextmanager
     async def levetid(app: FastAPI) -> AsyncIterator[None]:
-        app.state.tjeneste = Tjeneste(les_innstillinger(), klient=klient)
+        app.state.tjeneste = Tjeneste(
+            les_innstillinger(), klient=klient, ny_ki_klient=ny_ki_klient
+        )
         yield
 
     app = FastAPI(lifespan=levetid, docs_url=None, redoc_url=None, openapi_url=None)
@@ -205,6 +239,40 @@ def lag_app(
                     b.html_id for b in BEGREPER if b.nøkkel == TYNT_DATAGRUNNLAG
                 ),
             },
+        )
+
+    @app.get("/forklaring", response_class=HTMLResponse)
+    def forklaring(request: Request) -> Response:
+        """KI-forklaringen for utvalget som et HTML-fragment (FR-20, FR-22, AD-9).
+
+        `app.js` setter fragmentet inn i forklaringsområdet bare når statusen
+        er 200. Et ugyldig utvalg gir 400, og da viser `app.js` feilteksten fra
+        `data-feiltekst`. Tekstene står i malene (AD-6).
+        """
+        tjeneste: Tjeneste = request.app.state.tjeneste
+        nå = klokke()
+        parametre = {navn: request.query_params.get(navn, "") for navn in PARAMETRE}
+        uten_lagring = {"Cache-Control": "no-store"}
+        try:
+            utvalg = Utvalg.fra_parametre(parametre, tjeneste.sesonger(nå))
+        except UgyldigUtvalg:
+            return Response(
+                "Ugyldig utvalg.",
+                status_code=400,
+                media_type="text/plain; charset=utf-8",
+                headers=uten_lagring,
+            )
+        resultat = tjeneste.svar(utvalg, nå)
+        utfall = tjeneste.forklaring(resultat, nå)
+        return maler.TemplateResponse(
+            request,
+            "_forklaring.html",
+            {
+                "resultat": resultat,
+                "forklaring": utfall.tekst if isinstance(utfall, Forklaring) else None,
+                "uten_nøkkel": isinstance(utfall, ManglerNøkkel),
+            },
+            headers=uten_lagring,
         )
 
     return app

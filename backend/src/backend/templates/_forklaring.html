@@ -1,0 +1,15 @@
+{#- Fragmentet `GET /forklaring` gir, og som app.js setter inn i
+    forklaringsområdet (FR-20, FR-22, AD-9). Tre utfall: forklaringen fra
+    Claude, uten KI-nøkkel, og feil. -#}
+{%- from "_ki_tekster.html" import ki_feil, mangler_nøkkel -%}
+{%- if forklaring -%}
+<p class="ki-merke">Skrevet av KI</p>
+{% for tekst in forklaring|avsnitt -%}
+<p>{{ tekst }}</p>
+{% endfor -%}
+<p class="kilde">{{ resultat.kilde|kildetekst }}</p>
+{%- elif uten_nøkkel -%}
+<p>{{ mangler_nøkkel }}</p>
+{%- else -%}
+<p>{{ ki_feil }}</p>
+{%- endif %}

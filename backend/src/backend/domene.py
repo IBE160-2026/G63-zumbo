@@ -326,7 +326,7 @@ class Kildehenvisning:
     """Henvisning til FHI-tabellen tallene kommer fra (PRD kapittel 3, FR-12).
 
     `hentet` er tidspunktet for hentingen, med tidssone. Formatering for visning
-    skjer i `web`.
+    skjer i `formatering`.
     """
 
     kildetekst: str

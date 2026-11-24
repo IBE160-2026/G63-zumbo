@@ -11,10 +11,8 @@ leses én gang, ved oppstart, og aldri ved import, slik at testene ikke laster
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -31,8 +29,17 @@ from backend.domene import (
     VIRUS,
     Dataserie,
     UgyldigUtvalg,
-    Uke,
     Utvalg,
+)
+from backend.formatering import (
+    andel,
+    andelstekst,
+    avrundet,
+    kildetekst,
+    tall,
+    tidspunkt,
+    uke,
+    utvalgstekst,
 )
 from backend.tjeneste import KLARE_VIRUS, Resultat, Tjeneste
 
@@ -44,58 +51,7 @@ MAPPE = Path(__file__).parent
 PARAMETRE = ("mal", "virus", "sesong", "alder")
 """Query-parametrene for et utvalg (AD-9)."""
 
-NORSK_TID = ZoneInfo("Europe/Oslo")
-"""Hentetidspunktet vises i norsk tid (AD-5). Lagret tid er UTC."""
-
-HARDT_MELLOMROM = "\u00a0"
-"""Mellomrom som ikke brytes, i tall og foran «%» (arkitektur §4)."""
-
-
-# --- Jinja2-filtre: all formatering for visning skjer her (arkitektur §4) ---
-
-
-def tall(verdi: int | None) -> str:
-    """«1 210» med mellomrom som tusenskille. `None` er en skjult verdi (FR-11)."""
-    if verdi is None:
-        return "skjult"
-    return f"{verdi:,}".replace(",", HARDT_MELLOMROM)
-
-
-def _avrundet(verdi: float) -> Decimal:
-    """Andelen med én desimal, avrundet halvt opp. Brukes av både tabellen og
-    grafen, så de viser samme tall."""
-    return Decimal(repr(verdi)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
-
-
-def andel(verdi: float | None) -> str:
-    """«20,8 %» med én desimal, avrundet halvt opp. `None` blir «mangler»."""
-    if verdi is None:
-        return "mangler"
-    return f"{_avrundet(verdi)}".replace(".", ",") + HARDT_MELLOMROM + "%"
-
-
-def andelstekst(verdi: Uke) -> str:
-    """Andelen i en uke slik tabellen viser den.
-
-    «mangler» bare når et tall er skjult eller mangler (FR-11). En uke med
-    0 tester har kjente tall, men andelen kan ikke regnes ut (Irenes beslutning
-    24.11.2026). Er antall tester 0 og antall positive skjult, er et tall skjult,
-    og uka viser «mangler».
-    """
-    if verdi.andel is not None or verdi.manglende:
-        return andel(verdi.andel)
-    return "kan ikke regnes ut"
-
-
-def uke(verdi: Uke) -> str:
-    """«uke 50»."""
-    return f"uke {verdi.ukenummer}"
-
-
-def utvalgstekst(verdi: Utvalg) -> str:
-    """«Influensa, sesongen 2025/2026, alle aldersgrupper» (FR-9)."""
-    alder = ALDERSGRUPPER[verdi.aldersgruppe].etikett
-    return f"{VIRUS[verdi.virus].navn}, sesongen {verdi.sesong}, {alder[0].lower()}{alder[1:]}"
+# --- Jinja2-filtre: formateringen står i `formatering` (arkitektur §4) ---
 
 
 def grafdata(serie: Dataserie) -> dict[str, Any]:
@@ -108,7 +64,7 @@ def grafdata(serie: Dataserie) -> dict[str, Any]:
     return {
         "uker": [uke(u) for u in serie.uker],
         "andel": [
-            None if u.andel is None else float(_avrundet(u.andel)) for u in serie.uker
+            None if u.andel is None else float(avrundet(u.andel)) for u in serie.uker
         ],
         "andel_tekst": [andelstekst(u) for u in serie.uker],
         "tester_tekst": [tall(u.tester) for u in serie.uker],
@@ -154,11 +110,6 @@ def alternativtekst(serie: Dataserie) -> str:
     return tekst
 
 
-def tidspunkt(verdi: datetime) -> str:
-    """«20.11.2026 kl. 14:05» i norsk tid (AD-5)."""
-    return verdi.astimezone(NORSK_TID).strftime("%d.%m.%Y kl. %H:%M")
-
-
 maler = Jinja2Templates(directory=MAPPE / "templates")
 maler.env.filters.update(
     tall=tall,
@@ -166,6 +117,7 @@ maler.env.filters.update(
     andelstekst=andelstekst,
     uke=uke,
     tidspunkt=tidspunkt,
+    kildetekst=kildetekst,
     utvalgstekst=utvalgstekst,
     grafdata=grafdata,
     har_andel=har_andel,

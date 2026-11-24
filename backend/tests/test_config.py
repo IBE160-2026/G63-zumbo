@@ -79,6 +79,28 @@ def test_tomme_verdier_fra_env_example_regnes_som_ikke_satt() -> None:
     assert innstillinger.anthropic_model == "claude-haiku-5-5"
 
 
+def test_verdier_med_bare_mellomrom_regnes_som_ikke_satt() -> None:
+    innstillinger = les_innstillinger(
+        {"ANTHROPIC_API_KEY": "  ", "ANTHROPIC_MODEL": " "}
+    )
+    assert innstillinger.anthropic_api_key is None
+    assert innstillinger.anthropic_model == "claude-haiku-5-5"
+
+
+def test_tomme_verdier_i_env_fil_regnes_som_ikke_satt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Story 4.3: tom nøkkel og modell i .env betyr ikke satt, også når skallet
+    # har verdier, fordi .env vinner (AD-6).
+    env = tmp_path / ".env"
+    env.write_text("ANTHROPIC_API_KEY=\nANTHROPIC_MODEL=\n")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fra-skallet")
+    monkeypatch.setenv("ANTHROPIC_MODEL", "fra-skallet")
+    innstillinger = les_innstillinger(env_fil=env)
+    assert innstillinger.anthropic_api_key is None
+    assert innstillinger.anthropic_model == "claude-haiku-5-5"
+
+
 def test_nøkkel_og_modell_leses() -> None:
     innstillinger = les_innstillinger(
         {"ANTHROPIC_API_KEY": "falsk-nøkkel", "ANTHROPIC_MODEL": "annen-modell"}

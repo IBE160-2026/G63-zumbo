@@ -39,3 +39,14 @@ def test_readme_sier_at_env_er_valgfri(readme: str) -> None:
     tekst = readme.lower()
     assert "`.env` er valgfri" in tekst
     assert "appen virker uten ki-nøkkel" in tekst
+
+
+def test_readme_forklarer_hvordan_nøkkelen_settes_i_env(readme: str) -> None:
+    # Story 4.3 (NFR-9).
+    seksjon = _seksjon(readme, "### KI-nøkkel er valgfri")
+    assert "cp .env.example .env" in seksjon
+    assert "ANTHROPIC_API_KEY=" in seksjon
+    assert "claude-haiku-5-5" in seksjon
+    assert "Start appen på nytt" in seksjon
+    assert "vinner over" in seksjon
+    assert "tom verdi regnes som ikke satt" in seksjon.lower()

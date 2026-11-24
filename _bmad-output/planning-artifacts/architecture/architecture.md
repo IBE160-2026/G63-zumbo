@@ -40,7 +40,7 @@ Dette dokumentet fastsetter beslutningene som gjør at moduler og stories som by
 
 **Funksjonell kjerne, imperativt skall**, i én Python-pakke (`backend`).
 
-- **Kjernen** er rene funksjoner uten nettverk, filer, klokke eller KI: `domene`, `sesong`, tolkingen i `fhi`, `kontrollregler` og `begreper`. Alt kravet om «faste regler i koden» (FR-6, FR-14–FR-19, FR-13) ligger her og testes med vanlige verdier inn og ut.
+- **Kjernen** er rene funksjoner uten nettverk, filer, klokke eller KI: `domene`, `sesong`, tolkingen i `fhi`, `kontrollregler`, `begreper` og `formatering`. Alt kravet om «faste regler i koden» (FR-6, FR-14–FR-19, FR-13) ligger her og testes med vanlige verdier inn og ut.
 - **Skallet** gjør I/O: henting i `fhi`, `mellomlager`, `ki`, `tjeneste` og `web`. `tjeneste` setter sammen ett svar for et utvalg. `web` gjør bare HTTP og HTML.
 
 ```mermaid
@@ -55,6 +55,9 @@ flowchart TD
     tjeneste --> kontrollregler
     tjeneste --> sesong
     ki --> domene
+    ki --> formatering
+    web --> formatering
+    formatering --> domene
     fhi_tolk --> domene
     fhi_tolk --> sesong
     kontrollregler --> domene
@@ -64,7 +67,7 @@ flowchart TD
     fhi_hent --> config
 ```
 
-Pilen betyr «kan importere». Kjernemodulene (`domene`, `sesong`, fhi-tolking, `kontrollregler`, `begreper`) importerer aldri skallmoduler.
+Pilen betyr «kan importere». Kjernemodulene (`domene`, `sesong`, fhi-tolking, `kontrollregler`, `begreper`, `formatering`) importerer aldri skallmoduler.
 
 ## 3. Beslutninger
 
@@ -156,7 +159,7 @@ Pilen betyr «kan importere». Kjernemodulene (`domene`, `sesong`, fhi-tolking, 
 | Navn | Moduler, funksjoner og dataklasser på norsk etter begrepene i PRD kapittel 3 (`Utvalg`, `Uke`, `Dataserie`, `kontrollregler.vurder`). Ord fra rammeverk og biblioteker beholdes på engelsk. |
 | Regelutslag | `kontrollregler.vurder(serie) -> list[Regelutslag]`. `Regelutslag` har `regel` (`"R1"`–`"R5"`) og en ferdig setning på enkel norsk med de faktiske tallene, for eksempel «6 av 20 uker har færre enn 30 tester». Tom liste betyr ingen varsel. Mal 2 kaller `vurder` én gang per sesong (FR-24). |
 | Kildehenvisning | Lages bare av `domene.kildehenvisning(tabell, hentet)` og brukes både under grafen og ved KI-forklaringen (FR-12, FR-20). |
-| Tall og datoer | Andel vises med én desimal og komma («20,8 %»), og store tall med mellomrom som tusenskille. Uker vises som «uke 50». Hentetidspunkt vises som «20.11.2026 kl. 14:05». Formatering skjer bare i Jinja2-filtre i `web`. |
+| Tall og datoer | Andel vises med én desimal og komma («20,8 %»), og store tall med mellomrom som tusenskille. Uker vises som «uke 50». Hentetidspunkt vises som «20.11.2026 kl. 14:05». Formateringen står bare i `formatering`, en ren modul som `web` bruker som Jinja2-filtre og `ki` bruker når prompten fylles ut, slik at KI-en får ukene slik de står i tabellen. *Endret 24. november 2026: story 4.3, Irenes beslutning på #23.* |
 | Feil | Skallet fanger feil ved grensen: `FhiUtilgjengelig` i `tjeneste`, KI-utfall i `ki`. Rutene i `web` viser bare faste norske tekster. Tekniske detaljer går til logg (`logging`, nivå INFO). |
 | Konfigurasjon | Bare `config.py` leser miljøvariabler, og bare via `les_innstillinger()`: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `CACHE_DIR`, `VERCEL`. Alle har standardverdier eller kan mangle. |
 | Faste tekster | Begrepsforklaringer i `begreper.py` (FR-13). Feil- og varseltekster i malene. KI-prompt i `prompts/forklaring.md`. Ingen tekst lages av KI utenom forklaringen. |

@@ -32,5 +32,4 @@ Tallene uke for uke (tester, positive prøver og andel positive):
 Kontrollregler som slo inn (tom hvis ingen slo inn):
 {regelutslag}
 
-Kilde:
 {kildehenvisning}

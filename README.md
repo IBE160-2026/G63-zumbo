@@ -50,7 +50,15 @@ Fra `backend/`:
 
     cp .env.example .env
 
-`ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
+Åpne `.env` i en teksteditor og lim inn nøkkelen etter likhetstegnet, uten mellomrom og uten anførselstegn:
+
+    ANTHROPIC_API_KEY=din-nøkkel-her
+
+Start appen på nytt etterpå, fordi `.env` bare leses når appen starter. Verdiene i `.env` vinner over miljøvariabler med samme navn i skallet. En tom verdi regnes som ikke satt, også når skallet har en verdi.
+
+`ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen `claude-haiku-5-5`. `.env` og mellomlageret i `.cache/` holdes utenfor git.
+
+Forklaringen lages i `backend/src/backend/ki.py` med prompten i `backend/src/backend/prompts/forklaring.md` (story 4.3). Uten nøkkel kalles ikke Claude. Feiler kallet, blir det ingen forklaring, men resten av siden virker som før. Forklaringen vises på siden fra story 4.5.
 
 ### Mellomlager
 

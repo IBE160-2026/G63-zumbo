@@ -121,7 +121,7 @@
   </div>
   {% endif %}
   {% if resultat.kilde %}
-  <p class="kilde">{{ resultat.kilde.kildetekst }} Tabell {{ resultat.kilde.tabell }} «{{ resultat.kilde.tabellnavn }}». Hentet {{ resultat.kilde.hentet|tidspunkt }}.</p>
+  <p class="kilde">{{ resultat.kilde|kildetekst }}</p>
   <p class="justering">Tallene for den siste uka kan bli justert når flere prøvesvar kommer inn.</p>
   {% endif %}
 </section>

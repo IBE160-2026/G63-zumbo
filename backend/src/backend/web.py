@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Request
@@ -28,6 +28,7 @@ from backend.domene import (
     MALER,
     STANDARD_ALDERSGRUPPE,
     VIRUS,
+    Dataserie,
     UgyldigUtvalg,
     Uke,
     Utvalg,
@@ -59,12 +60,17 @@ def tall(verdi: int | None) -> str:
     return f"{verdi:,}".replace(",", HARDT_MELLOMROM)
 
 
+def _avrundet(verdi: float) -> Decimal:
+    """Andelen med én desimal, avrundet halvt opp. Brukes av både tabellen og
+    grafen, så de viser samme tall."""
+    return Decimal(repr(verdi)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+
+
 def andel(verdi: float | None) -> str:
     """«20,8 %» med én desimal, avrundet halvt opp. `None` blir «mangler»."""
     if verdi is None:
         return "mangler"
-    avrundet = Decimal(repr(verdi)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
-    return f"{avrundet}".replace(".", ",") + HARDT_MELLOMROM + "%"
+    return f"{_avrundet(verdi)}".replace(".", ",") + HARDT_MELLOMROM + "%"
 
 
 def uke(verdi: Uke) -> str:
@@ -78,6 +84,46 @@ def utvalgstekst(verdi: Utvalg) -> str:
     return f"{VIRUS[verdi.virus].navn}, sesongen {verdi.sesong}, {alder[0].lower()}{alder[1:]}"
 
 
+def grafdata(serie: Dataserie) -> dict[str, Any]:
+    """Tallene grafen tegner, fra samme `Dataserie` som tabellen (AD-8).
+
+    Manglende uker (og uker med 0 tester) har `null` som andel, så linjen får
+    brudd (FR-9). `usikker` sier hvilke punkter som får åpen sirkel (FR-10).
+    """
+    return {
+        "uker": [uke(u) for u in serie.uker],
+        "andel": [
+            None if u.andel is None else float(_avrundet(u.andel)) for u in serie.uker
+        ],
+        "usikker": [u.usikker for u in serie.uker],
+        "tekster": {"x": "Uke", "y": "Andel positive (%)"},
+    }
+
+
+def alternativtekst(serie: Dataserie) -> str:
+    """Alternativtekst for grafen med utvalg og hovedtrekk (NFR-6)."""
+    tekst = (
+        f"Linjegraf over andel positive tester uke for uke. "
+        f"{utvalgstekst(serie.utvalg)}."
+    )
+    med_andel = [u for u in serie.uker if u.andel is not None]
+    if not serie.uker or not med_andel:
+        return tekst + " Ingen uker har en andel som kan vises."
+    tekst += f" Grafen viser {uke(serie.uker[0])} til {uke(serie.uker[-1])}."
+    høyest = max(med_andel, key=lambda u: u.andel)
+    siste = med_andel[-1]
+    tekst += f" Andelen var høyest i {uke(høyest)} med {andel(høyest.andel)}."
+    if siste is not høyest:
+        tekst += (
+            f" I {uke(siste)}, den siste uka med tall, var den {andel(siste.andel)}."
+        )
+    usikre = sum(u.usikker for u in serie.uker)
+    if usikre:
+        om_usikre = "uke er usikker" if usikre == 1 else "uker er usikre"
+        tekst += f" {usikre} {om_usikre} og markert med åpen sirkel."
+    return tekst
+
+
 def tidspunkt(verdi: datetime) -> str:
     """«20.11.2026 kl. 14:05» i norsk tid (AD-5)."""
     return verdi.astimezone(NORSK_TID).strftime("%d.%m.%Y kl. %H:%M")
@@ -85,7 +131,13 @@ def tidspunkt(verdi: datetime) -> str:
 
 maler = Jinja2Templates(directory=MAPPE / "templates")
 maler.env.filters.update(
-    tall=tall, andel=andel, uke=uke, tidspunkt=tidspunkt, utvalgstekst=utvalgstekst
+    tall=tall,
+    andel=andel,
+    uke=uke,
+    tidspunkt=tidspunkt,
+    utvalgstekst=utvalgstekst,
+    grafdata=grafdata,
+    alternativtekst=alternativtekst,
 )
 
 

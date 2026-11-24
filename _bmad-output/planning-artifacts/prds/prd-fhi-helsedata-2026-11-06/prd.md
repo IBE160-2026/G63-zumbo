@@ -59,7 +59,7 @@ Disse begrepene brukes likt i hele PRD-en og i stories og kode.
 - **Virus** — Influensa, RSV eller SARS-CoV-2. Hvert virus har én FHI-tabell (se kapittel 4).
 - **Sesong** — Uke 40 ett år til og med uke 20 året etter, skrevet som «2025/2026». For sesongen som pågår, slutter perioden ved siste publiserte uke.
 - **Uke** — ISO-uke, slik FHI bruker den (for eksempel `2025-w50`).
-- **Test** — Én person testet for viruset i løpet av en uke (FHIs måltall «Testede»).
+- **Test** — Én PCR-analyse for viruset, telt i uka prøven ble tatt (prøvedato) (FHIs måltall «Testede»). Tallene teller analyser, ikke personer, og samme person kan telles flere ganger. Kilde: FHIs statusrapport for luftveisinfeksjoner, metodebeskrivelsen. *Endret 24. november 2026: Irenes kontroll mot FHIs metodebeskrivelse.*
 - **Positiv prøve** — En påvisning av viruset (FHIs måltall «Påvisninger»).
 - **Andel positive** — Positive prøver delt på tester, ganget med 100, for én uke.
 - **Aldersgruppe** — Alle, 0–4, 5–14, 15–29, 30–64, 65–79 eller 80+ år.

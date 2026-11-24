@@ -40,3 +40,4 @@
 - [ ] 2026-11-24 [story-3-3](979-2026-11-24-18-33-32-story-3-3-graf-uke-for-uke.md) — story 3.7: nettlesertest (Playwright) for at grafen tegnes med åpne sirkler og brudd; grafen er ikke sjekket med øynene ennå
 - [ ] 2026-11-24 [story-3-4](978-2026-11-24-19-06-00-story-3-4-varsel-om-tynt-datagrunnlag.md) — story 3.6: lenke fra varselet til begrepsforklaringen «for tynt datagrunnlag» (FR-19), med test
 - [ ] 2026-11-24 [story-3-4](978-2026-11-24-19-06-00-story-3-4-varsel-om-tynt-datagrunnlag.md) — Irene: passer overskriften «For tynt datagrunnlag» når bare R5 slår inn? (se deferred-work.md)
+- [ ] 2026-11-24 [prd-begrepet-test](977-2026-11-24-19-57-37-prd-begrepet-test.md) — story 3.5: begrepsforklaringen «Test og positiv prøve» må si at tallene teller PCR-analyser, ikke personer

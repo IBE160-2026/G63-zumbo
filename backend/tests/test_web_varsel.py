@@ -173,6 +173,28 @@ def test_varsel_også_med_sist_lagrede_tall(
     assert _punkter(varsel) == [TEKST_R5]
 
 
+def test_varselet_lenker_til_forklaringen_av_tynt_datagrunnlag(
+    klient: TestClient,
+) -> None:
+    """Lenken peker på `<details>` med forklaringen av «For tynt datagrunnlag»
+    (story 3.6, FR-19). `app.js` åpner den når lenken følges."""
+    resultat = _r1_og_r5()
+    klient.app.state.tjeneste.svar = lambda utvalg, nå: resultat
+    html = klient.get(STI_2024).text
+    varsel = _varsel(html)
+    assert varsel is not None
+    lenker = re.findall(r'<a href="#([^"]+)"[^>]*>([^<]*)</a>', varsel)
+    assert lenker == [("begrep-tynt-datagrunnlag", "Hva betyr dette?")]
+    mål = re.search(
+        r'<details id="begrep-tynt-datagrunnlag">\s*<summary>(.*?)</summary>',
+        html,
+    )
+    assert mål and mål[1] == "For tynt datagrunnlag"
+    assert html.count('id="begrep-tynt-datagrunnlag"') == 1
+    # Skriptet som åpner forklaringen, lastes også her.
+    assert "/static/app.js" in html
+
+
 # --- Uten regelutslag (FR-19) ---
 
 
@@ -181,7 +203,9 @@ def test_ingen_varsel_uten_regelutslag(klient: TestClient, mappe: Path) -> None:
     html = klient.get(STI).text
     assert "<tbody>" in html
     assert _varsel(html) is None
-    assert "For tynt datagrunnlag" not in html
+    # Bare begrepsforklaringen nederst nevner «For tynt datagrunnlag».
+    før_begrepene = html.split('<section class="begreper"')[0]
+    assert "For tynt datagrunnlag" not in før_begrepene
 
 
 def test_ingen_varsel_uten_utvalg(klient: TestClient) -> None:

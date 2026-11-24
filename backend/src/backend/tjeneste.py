@@ -15,7 +15,7 @@ import threading
 from collections.abc import Callable
 from concurrent.futures import Future
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from backend import fhi, kontrollregler, mellomlager, sesong
@@ -33,6 +33,13 @@ logger = logging.getLogger(__name__)
 
 SESONGTABELL = 724
 """Tabellen sesonglisten lages fra. Alle tre virus har samme sesonger (AD-3)."""
+
+PAUSE_ETTER_FEIL = timedelta(seconds=60)
+"""Så lenge dimensjonslisten ikke hentes på nytt etter at FHI ikke svarte.
+
+Siden henter både sesonglisten og tallene. Uten pausen kunne én sidevisning
+vente på to tidsavbrudd (20 s) når FHI er nede (FR-8, NFR-2).
+"""
 
 KLARE_VIRUS = tuple(n for n, v in VIRUS.items() if v.tabell in fhi.FASTE_FILTRE)
 """Nøklene til virusene appen kan vise tall for. Bare influensa til epic 6 (FR-2)."""
@@ -84,6 +91,7 @@ class Tjeneste:
         self._klient = klient
         self._lås = threading.Lock()
         self._pågår: dict[str, Future[Any]] = {}
+        self._feilet: datetime | None = None
 
     # --- Én jobb per nøkkel ---
 
@@ -135,7 +143,8 @@ class Tjeneste:
     def _dimensjonsliste(self, nå: datetime) -> dict[str, Any]:
         """Fersk lagret dimensjonsliste, ellers en ny fra FHI som lagres.
 
-        Gir `FhiUtilgjengelig` når den må hentes og FHI ikke svarer. Cachen
+        Gir `FhiUtilgjengelig` når den må hentes og FHI ikke svarer, og uten
+        nytt kall i `PAUSE_ETTER_FEIL` etter at FHI ikke svarte. Cachen
         leses inne i den delte jobben, slik at et kall som kommer rett etter at
         et annet har hentet listen, bruker den lagrede listen.
         """
@@ -144,7 +153,14 @@ class Tjeneste:
             lagret = self._lagret_dimensjonsliste()
             if lagret is not None and not sesong.er_utdatert(lagret.hentet, nå):
                 return lagret.svar
-            svar = fhi.hent_dimensjoner(SESONGTABELL, klient=self._klient)
+            if self._feilet is not None and nå - self._feilet < PAUSE_ETTER_FEIL:
+                raise fhi.FhiUtilgjengelig("FHI svarte ikke nylig, prøver ikke på nytt")
+            try:
+                svar = fhi.hent_dimensjoner(SESONGTABELL, klient=self._klient)
+            except fhi.FhiUtilgjengelig:
+                self._feilet = nå
+                raise
+            self._feilet = None
             self._lagre(mellomlager.lagre_dimensjoner, SESONGTABELL, svar, nå)
             return svar
 

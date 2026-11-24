@@ -164,7 +164,13 @@ class UgyldigUtvalg(ValueError):
 
 
 _TRYGG_NØKKEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
-_SESONG = re.compile(r"[0-9]{4}/[0-9]{4}")
+_SESONG = re.compile(r"([0-9]{4})/([0-9]{4})")
+
+
+def _er_sesong(tekst: object) -> bool:
+    """Sann for en sesong skrevet «2025/2026», der andre år er første år + 1."""
+    treff = isinstance(tekst, str) and _SESONG.fullmatch(tekst)
+    return bool(treff) and int(treff[2]) == int(treff[1]) + 1
 
 
 def _liste(navn: list[str]) -> str:
@@ -180,7 +186,8 @@ class Utvalg:
 
     Feltene er nøklene i `MALER`, `VIRUS` og `ALDERSGRUPPER`, og sesongen skrevet
     som «2025/2026». Lag utvalg fra brukeren med `Utvalg.fra_parametre`, som er
-    det eneste stedet verdiene sjekkes (AD-9).
+    stedet der brukerens valg sjekkes og får en norsk melding (AD-9). `nøkkel`
+    sjekker verdiene på nytt som et sikkerhetsnett for filnavnet.
     Overvåkingstypen er alltid vanlig klinisk praksis i v1.
     """
 
@@ -202,8 +209,13 @@ class Utvalg:
         Bare de eksakte nøklene i listene godtas. Manglende eller tom `alder`
         gir «Alle aldersgrupper» (FR-4). Er noe galt, kastes `UgyldigUtvalg`
         med én setning per felt som må rettes (FR-5).
+
+        Sesonger i `gyldige_sesonger` som ikke er skrevet «2025/2026», hoppes
+        over, slik at et godkjent utvalg alltid har en gyldig `nøkkel`.
         """
-        sesonger = list(gyldige_sesonger)
+        if isinstance(gyldige_sesonger, str):
+            raise TypeError("gyldige_sesonger må være en liste, ikke én tekst")
+        sesonger = list(dict.fromkeys(s for s in gyldige_sesonger if _er_sesong(s)))
         mal = parametre.get("mal") or ""
         virus = parametre.get("virus") or ""
         sesong = parametre.get("sesong") or ""
@@ -212,7 +224,8 @@ class Utvalg:
         feil = []
         malnummer = {str(nr): nr for nr in MALER}.get(mal)
         if malnummer is None:
-            feil.append("Velg en mal.")
+            titler = _liste([f"«{m.tittel}»" for m in MALER.values()])
+            feil.append(f"Velg en mal: {titler}.")
         if virus not in VIRUS:
             navn = _liste([v.navn for v in VIRUS.values()])
             feil.append(f"Velg et virus: {navn}.")
@@ -222,7 +235,8 @@ class Utvalg:
             else:
                 feil.append("Det finnes ingen sesonger å velge nå. Prøv igjen senere.")
         if alder not in ALDERSGRUPPER:
-            feil.append("Velg en aldersgruppe fra listen, eller «Alle aldersgrupper».")
+            etiketter = _liste([g.etikett for g in ALDERSGRUPPER.values()])
+            feil.append(f"Velg en aldersgruppe: {etiketter}.")
         if feil:
             raise UgyldigUtvalg(" ".join(feil))
         return cls(mal=malnummer, virus=virus, sesong=sesong, aldersgruppe=alder)
@@ -241,8 +255,7 @@ class Utvalg:
             or self.mal not in MALER
             or self.virus not in VIRUS
             or self.aldersgruppe not in ALDERSGRUPPER
-            or not isinstance(self.sesong, str)
-            or not _SESONG.fullmatch(self.sesong)
+            or not _er_sesong(self.sesong)
         ):
             raise ValueError("utvalget gir ikke et trygt filnavn")
         deler = [f"mal{self.mal}", self.virus, self.sesong, self.aldersgruppe]

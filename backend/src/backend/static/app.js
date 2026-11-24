@@ -8,7 +8,37 @@
 //    andeler), og fargene kommer fra CSS-variablene i style.css. Uten
 //    JavaScript eller Chart.js vises alternativteksten i stedet, og tallene står
 //    i tabellen.
+// 3. Henter KI-forklaringen fra `GET /forklaring` etter at siden er vist, og
+//    setter fragmentet inn i forklaringsområdet (FR-20, AD-9). Området har
+//    `aria-live="polite"`, så skjermlesere leser forklaringen når den kommer.
+//    Ved nettverksfeil eller annen status enn 200 settes teksten fra
+//    `data-feiltekst` inn (FR-22). Tekstene står i malene, ikke her.
 "use strict";
+
+(function () {
+  const omraade = document.getElementById("forklaring");
+  if (!omraade || !omraade.dataset.adresse) {
+    return;
+  }
+  const visFeil = () => {
+    const avsnitt = document.createElement("p");
+    avsnitt.textContent = omraade.dataset.feiltekst;
+    omraade.replaceChildren(avsnitt);
+  };
+  fetch(omraade.dataset.adresse, { headers: { Accept: "text/html" } })
+    .then((svar) => {
+      if (svar.status !== 200) {
+        throw new Error("status " + svar.status);
+      }
+      return svar.text();
+    })
+    .then((html) => {
+      // Fragmentet kommer fra vår egen server, og teksten fra Claude er
+      // escapet av Jinja2.
+      omraade.innerHTML = html;
+    })
+    .catch(visFeil);
+})();
 
 (function () {
   // Åpner forklaringen med id-en `id` (#begrep-…) og flytter fokus dit.

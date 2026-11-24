@@ -21,3 +21,20 @@ Story 4.4 (#25): lagre KI-forklaringen og gjenbruke den når tallene er de samme
 ### Åpne punkter
 - Irene: prompten har «Hentet <tidspunkt>», men nøkkelen har det ikke. Siterer KI-en tidspunktet, kan en gjenbrukt forklaring vise et eldre tidspunkt enn kilden ved siden av. Valgene er å ta tidspunktet ut av prompten, eller å be KI-en ikke nevne det.
 - Nøkkelen tar ikke med `effort`, `max_tokens` eller formateringen av ukene. En endring i `ki.py` gir derfor ikke ny forklaring før `.cache/ki/` slettes (se deferred-work.md).
+
+## 2026-11-24 kl. 23:42 — Irene Zumbo
+
+### Oppgave
+Irenes beslutninger før merge av PR #67: en regel i prompten om at KI-en ikke skal nevne når tallene ble hentet, og et versjonsnummer for ukeformatet i nøkkelen. Så kommentar på PR #67, merge og oppdatert main.
+
+### Plan
+- Endre `prompts/forklaring.md` og `ki.nøkkel` på `story-4.4`, med tester. Kjøre pytest og ruff og pushe til ibe.
+- Kommentere ordrett på PR #67 og merge med `gh pr merge 67 --merge --delete-branch`.
+
+### Resultat
+- `72a3488` Prompten har regelen «Ikke nevn når tallene ble hentet. Det står ved siden av forklaringen.» `ki.UKEFORMAT = 1` er med i nøkkelen, så et nytt ukeformat gir ny forklaring når tallet økes. Nye tester i `test_ki.py` og `test_prompt.py`. README og deferred-work.md er oppdatert. pytest: 753 passed. ruff: OK.
+- Begge åpne punktene fra 4.4 er lukket i issues.md.
+- Kommentaren står på PR #67, og PR-en er merget (`a5668a6`). Branchen `story-4.4` er slettet, og main er hentet.
+
+### Åpne punkter
+Ingen.

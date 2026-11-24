@@ -137,6 +137,17 @@
   {% endfor %}
 </section>
 
+{% if resultat and resultat.serie is not none %}
+{% from "_ki_tekster.html" import ki_feil, uten_javascript %}
+<section class="forklaring" aria-labelledby="forklaringstittel">
+  <h2 id="forklaringstittel">Forklaring</h2>
+  <div id="forklaring" class="forklaringsfelt" aria-live="polite" data-adresse="{{ resultat.utvalg|forklaringsadresse }}" data-feiltekst="{{ ki_feil }}">
+    <p>Forklaringen lages …</p>
+  </div>
+  <noscript><p>{{ uten_javascript }}</p></noscript>
+</section>
+{% endif %}
+
 <section class="om-appen" aria-labelledby="chatbottittel">
   <h2 id="chatbottittel">Hvorfor ikke bare spørre en chatbot?</h2>
   <p>En chatbot kan finne på tall eller bruke gamle tall, og den sier sjelden hvor tallene kommer fra. Denne appen henter tallene direkte fra Folkehelseinstituttet, viser når de ble hentet, og sier fra når det er for lite data til å konkludere. KI brukes bare til å forklare tallene med enkle ord, aldri til å lage dem.</p>

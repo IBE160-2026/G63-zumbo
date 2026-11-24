@@ -43,6 +43,12 @@ Siden henter både sesonglisten og tallene. Uten pausen kunne én sidevisning
 vente på to tidsavbrudd (20 s) når FHI er nede (FR-8, NFR-2).
 """
 
+Forklaring = ki.Forklaring
+ManglerNøkkel = ki.ManglerNøkkel
+KiFeil = ki.KiFeil
+"""Utfallene av `Tjeneste.forklaring`, så `web` slipper å importere `ki`
+(arkitektur §2)."""
+
 KLARE_VIRUS = tuple(n for n, v in VIRUS.items() if v.tabell in fhi.FASTE_FILTRE)
 """Nøklene til virusene appen kan vise tall for. Bare influensa til epic 6 (FR-2)."""
 

@@ -110,3 +110,8 @@
   evidence: kildetekst(kilde) i lag_prompt har tidspunktet, og ki.nøkkel utelater det med vilje (AD-7). Det må Irene bestemme: ta tidspunktet ut av prompten, eller be KI-en ikke nevne det.
   status: løst 2026-11-24 før merge av PR #67 — Irenes beslutning: prompten sier «Ikke nevn når tallene ble hentet. Det står ved siden av forklaringen.»
 
+## Deferred from: code review of spec-4-5-forklaringen-pa-siden.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-5-forklaringen-pa-siden.md`
+  summary: Ingen automatisk test viser at app.js setter inn fragmentet fra /forklaring, eller at feilteksten vises ved 400 og nettverksfeil.
+  evidence: test_app_js_henter_fragmentet_og_bruker_feilteksten leser bare kildeteksten. Prosjektet har ingen nettlesertest (samme hull som grafen, story 3.7). Sjekkes for hånd med scripts/vis_forklaring.py.

@@ -39,12 +39,15 @@ def _r1(serie: Dataserie) -> Regelutslag | None:
     positive = sum(u.positive for u in serie.uker if u.positive is not None)
     if positive >= GRENSE_POSITIVE:
         return None
+    # Er noen tall skjult, sier setningen «kjente», slik at den ikke påstår at
+    # det ikke finnes flere positive prøver.
+    kjente = "kjente " if any(u.positive is None for u in serie.uker) else ""
     if positive == 0:
-        antall = "ingen positive prøver"
+        antall = f"ingen {kjente}positive prøver"
     elif positive == 1:
-        antall = "bare 1 positiv prøve"
+        antall = f"bare 1 {kjente}positiv prøve"
     else:
-        antall = f"bare {positive} positive prøver"
+        antall = f"bare {positive} {kjente}positive prøver"
     return Regelutslag(
         "R1",
         f"Utvalget har {antall}. "

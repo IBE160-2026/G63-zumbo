@@ -39,6 +39,13 @@ def utslag_for(serie: Dataserie, regel: str) -> Regelutslag | None:
     return treff[0] if treff else None
 
 
+def tekst_for(serie: Dataserie, regel: str) -> str:
+    """Teksten i utslaget. Feiler med en tydelig melding når regelen ikke slår inn."""
+    utslag = utslag_for(serie, regel)
+    assert utslag is not None, f"{regel} slo ikke inn"
+    return utslag.tekst
+
+
 # --- R1: få positive prøver (FR-14) ---
 
 
@@ -49,7 +56,8 @@ def test_r1_slår_inn_ved_19_positive() -> None:
     utslag = utslag_for(serie, "R1")
     assert utslag == Regelutslag(
         "R1",
-        "Utvalget har bare 19 positive prøver. Det trengs minst 20 for et sikkert tall.",
+        "Utvalget har bare 19 kjente positive prøver. Det trengs minst 20 for et "
+        "sikkert tall.",
     )
 
 
@@ -62,7 +70,12 @@ def test_r1_slår_ikke_inn_ved_20_positive() -> None:
 def test_r1_teller_ikke_skjulte_verdier_som_noe() -> None:
     # 19 kjente positive og én skjult verdi gir fortsatt utslag.
     serie = serie_av((100, 19), (100, None), (None, None))
-    assert "19 positive" in utslag_for(serie, "R1").tekst
+    assert "19 kjente positive" in tekst_for(serie, "R1")
+
+
+def test_r1_sier_ikke_ingen_positive_når_alle_er_skjult() -> None:
+    serie = serie_av((100, None), (100, None))
+    assert tekst_for(serie, "R1").startswith("Utvalget har ingen kjente positive")
 
 
 def test_r1_teller_kjente_positive_når_bare_testene_er_skjult() -> None:
@@ -79,8 +92,7 @@ def test_r1_teller_kjente_positive_når_bare_testene_er_skjult() -> None:
     ],
 )
 def test_r1_setningen_bruker_de_faktiske_tallene(positive: int, tekst: str) -> None:
-    utslag = utslag_for(serie_av((100, positive)), "R1")
-    assert utslag.tekst.startswith(tekst)
+    assert tekst_for(serie_av((100, positive)), "R1").startswith(tekst)
 
 
 # --- R2: mange uker med få tester (FR-15) ---
@@ -126,7 +138,7 @@ def test_r2_teller_ikke_flere_positive_enn_tester_med_minst_30_tester() -> None:
 
 def test_r2_teller_uke_med_0_tester() -> None:
     serie = serie_av((0, 3), (100, 5), (100, 5), (100, 5))
-    assert utslag_for(serie, "R2").tekst == "1 av 4 uker har færre enn 30 tester."
+    assert tekst_for(serie, "R2") == "1 av 4 uker har færre enn 30 tester."
 
 
 # --- R3: mange manglende uker (FR-16) ---
@@ -144,6 +156,9 @@ def test_r3_slår_ikke_inn_ved_2_av_10_uker() -> None:
 def test_r3_slår_inn_ved_3_av_10_uker() -> None:
     serie = serie_fra_fixtur("724-r3-3-av-10-uker.json")
     assert len(serie.uker) == 10
+    # Uke 47 mangler i svaret og blir en manglende uke.
+    (uke_47,) = [u for u in serie.uker if u.ukenummer == 47]
+    assert uke_47.tester is None and uke_47.positive is None
     assert utslag_for(serie, "R3") == Regelutslag(
         "R3", "3 av 10 uker mangler tall eller har skjulte tall."
     )
@@ -166,6 +181,7 @@ def test_r4_slår_inn_ved_2_uker_med_data() -> None:
 def test_r4_slår_ikke_inn_ved_3_uker_med_data() -> None:
     serie = serie_fra_fixtur("724-r4-3-uker-med-data.json", ALLE_2026)
     assert len(serie.uker) == 4
+    assert serie.uker[1].manglende
     assert utslag_for(serie, "R4") is None
 
 
@@ -183,8 +199,16 @@ def test_r4_slår_ikke_inn_ved_3_uker_med_data() -> None:
 def test_r4_teller_ikke_manglende_uker(
     tall: list[tuple[int | None, int | None]], tekst: str
 ) -> None:
-    utslag = utslag_for(serie_av(*tall), "R4")
-    assert utslag.tekst.startswith(tekst)
+    assert tekst_for(serie_av(*tall), "R4").startswith(tekst)
+
+
+def test_r4_uke_med_0_tester_og_positive_over_0_har_tall() -> None:
+    # FR-10 (Irenes beslutning 24.11.2026): uka er usikker og har ingen andel,
+    # men tallene er ikke skjult, så den er en uke med tall i R4.
+    serie = serie_av((0, 3), (100, 5), (100, 5))
+    assert serie.uker[0].usikker and serie.uker[0].andel is None
+    assert not serie.uker[0].manglende
+    assert utslag_for(serie, "R4") is None
 
 
 # --- R5: perioden går over 1. mars 2025 (FR-18) ---
@@ -218,6 +242,23 @@ def test_r5_gjelder_bare_sesongen_2024_2025(sesongnavn: str, utslag: bool) -> No
 def test_r5_slår_ikke_inn_for_ekte_tall_fra_2025_2026() -> None:
     serie = serie_fra_fixtur("../fhi/724-influensa-2025-2026-alle-nonstl.json")
     assert utslag_for(serie, "R5") is None
+
+
+UTVALG_2024 = Utvalg(1, "influensa", "2024/2025", "alle")
+
+
+def test_r5_slår_ikke_inn_når_serien_slutter_med_uke_8_i_2025() -> None:
+    # Uke 8 i 2025 er 17.–23. februar. Ingen uke slutter 1. mars eller senere.
+    serie = serie_fra_fixtur("724-r5-til-uke-8-2025.json", UTVALG_2024)
+    assert (serie.uker[-1].år, serie.uker[-1].ukenummer) == (2025, 8)
+    assert utslag_for(serie, "R5") is None
+
+
+def test_r5_slår_inn_når_serien_når_uke_9_i_2025() -> None:
+    # Uke 9 i 2025 er 24. februar–2. mars og slutter etter 1. mars.
+    serie = serie_fra_fixtur("724-r5-til-uke-9-2025.json", UTVALG_2024)
+    assert (serie.uker[-1].år, serie.uker[-1].ukenummer) == (2025, 9)
+    assert utslag_for(serie, "R5") is not None
 
 
 def test_r5_grensen_går_ved_uke_9_i_2025() -> None:

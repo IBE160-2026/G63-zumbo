@@ -14,5 +14,9 @@ Data vi har laget selv for å teste tilfeller som ikke finnes i de ekte svarene 
 | `724-r4-2-uker-med-data.json` | Influensa, alle aldre, 2026/2027, uke 40–42. Uke 41 har to skjulte verdier (`..`). 2 uker med data gir utslag i R4. | `test_kontrollregler.py` (story 2.8) |
 | `724-r4-3-uker-med-data.json` | Som over, men med uke 43. 3 uker med data, så R4 slår ikke inn. | `test_kontrollregler.py` (story 2.8) |
 | `724-r5-2024-2025.json` | Influensa, alle aldre, hele sesongen 2024/2025 (uke 40 i 2024 til uke 20 i 2025), 50 positive av 1 000 tester hver uke. Bare R5 slår inn. | `test_kontrollregler.py` (story 2.8) |
+| `724-r5-til-uke-8-2025.json` | Som over, men bare til og med uke 8 i 2025 (17.–23. februar). Ingen uke slutter 1. mars 2025 eller senere, så R5 slår ikke inn. | `test_kontrollregler.py` (story 2.8) |
+| `724-r5-til-uke-9-2025.json` | Som over, men til og med uke 9 i 2025 (24. februar–2. mars). Uka går over 1. mars 2025, så R5 slår inn. | `test_kontrollregler.py` (story 2.8) |
+
+Fixturene for R1–R5 (`724-r*.json`) er laget med et lite engangsskript. `pos_rate` er `positive * 100 / tester` med sju desimaler, og `null` når et av tallene er skjult eller det er 0 tester. `fhi.tolk` bruker ikke `pos_rate`, men regner andelen selv.
 
 Skjulte verdier i `json-stat2` er ikke sett i ekte data fra FHI (se `../fhi/README.md`). Svaret tar derfor med både `null` og tekstene `..`, `.`, `:` og tom verdi.

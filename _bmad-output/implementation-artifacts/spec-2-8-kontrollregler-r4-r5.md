@@ -2,7 +2,7 @@
 title: 'Story 2.8: Kontrollregler R4–R5'
 type: 'feature'
 created: '2026-11-24'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 context:
@@ -26,3 +26,7 @@ context:
 - Setningene: R4 «Utvalget har bare 2 uker med tall. Det trengs minst 3 for å se en retning.» (entall og «ingen» håndteres). R5 «Perioden går over 1. mars 2025. Fra den datoen er alle norske laboratorier med i tallene, så tall før og etter kan ikke sammenlignes direkte.»
 - Endret: `backend/src/backend/kontrollregler.py` (R4, R5, `MINSTE_ANTALL_UKER`, `ALLE_LABORATORIER_FRA`) og `backend/tests/test_kontrollregler.py`. Nye fixturer: `724-r4-2-uker-med-data.json`, `724-r4-3-uker-med-data.json` og `724-r5-2024-2025.json`, beskrevet i README-en i `konstruert/`.
 - For 2025/2026 brukes den ekte fixturen fra story 1.3. Den gir ingen varsel i det hele tatt, som PRD kapittel 6.5 sier om ekte tall for alle aldre.
+
+## Review Triage Log
+
+Se specen for story 2.7, der funnene fra den felles gjennomgangen står. **low, rettet:** grensen for R5 (uke 8/9 i 2025) var bare testet med data laget i testkoden. Den ligger nå også i `724-r5-til-uke-8-2025.json` og `724-r5-til-uke-9-2025.json`, slik AK-en krever.

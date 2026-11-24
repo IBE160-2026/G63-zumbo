@@ -21,8 +21,8 @@ context:
 
 ## Implementation Notes
 
-- **Grafdata (AD-8):** filteret `grafdata` i `web` lager `{"uker": ["uke 40", …], "andel": [0.9, …, null], "usikker": [false, …], "tekster": {"x": "Uke", "y": "Andel positive (%)"}}`. Andelen er avrundet til én desimal på samme måte som tabellen (halvt opp), så tallene er de samme. Blokken skrives med Jinja2s `tojson`, som gjør `<`, `>` og `&` trygge inne i `<script>`.
-- **Tittel og forklaring (FR-9, FR-10):** `<figure>` med tittelen fra `utvalgstekst` og en forklaring i HTML under grafen: «● Sikker uke ○ Usikker uke: færre enn 30 tester, skjult antall tester eller flere positive prøver enn tester.» Alle faste tekster står i malen, ikke i JavaScript.
+- **Grafdata (AD-8):** filteret `grafdata` i `web` lager `{"uker": ["uke 40", …], "andel": [0.9, …, null], "andel_tekst": ["0,9 %", …, "mangler"], "usikker": [false, …]}`. Andelen er avrundet til én desimal på samme måte som tabellen (halvt opp), så tallene er de samme. Blokken skrives med Jinja2s `tojson`, som gjør `<`, `>` og `&` trygge inne i `<script>`.
+- **Tittel og forklaring (FR-9, FR-10):** `<figure>` med tittelen fra `utvalgstekst` og en forklaring i HTML under grafen: «● Sikker uke ○ Usikker uke: færre enn 30 tester eller flere positive prøver enn tester. Uker uten andel (skjult antall tester eller 0 tester) gir brudd i linjen.» Alle faste tekster står i malen, ikke i JavaScript.
 - **Alternativtekst (NFR-6):** filteret `alternativtekst` lager én tekst med utvalget og hovedtrekkene: ukene grafen dekker, den høyeste andelen og andelen i siste uke med tall. Teksten står i `aria-label` på `<canvas role="img">` og som innhold i `<canvas>` (vises når grafen ikke kan tegnes).
 - **Punktform (NFR-7):** fylt sirkel for sikre uker og åpen sirkel (hvit fyll) for usikre uker, ikke bare en annen farge. `spanGaps: false`, så `null` gir brudd i linjen. Fargene er CSS-variabler i `style.css` som `app.js` leser.
 - **Skript:** Chart.js og `/static/app.js` lastes med `defer`, bare når det finnes tall. Ingen annen JavaScript på siden.

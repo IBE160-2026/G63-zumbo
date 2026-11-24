@@ -11,11 +11,12 @@ from pathlib import Path
 
 import pytest
 
-from backend import fhi, kontrollregler
+from backend import fhi, kontrollregler, sesong
 from backend.domene import Dataserie, Regelutslag, Uke, Utvalg
 
 KONSTRUERT = Path(__file__).parent / "fixtures" / "konstruert"
 ALLE_2025 = Utvalg(1, "influensa", "2025/2026", "alle")
+ALLE_2026 = Utvalg(1, "influensa", "2026/2027", "alle")
 
 
 def serie_fra_fixtur(navn: str, utvalg: Utvalg = ALLE_2025) -> Dataserie:
@@ -148,6 +149,93 @@ def test_r3_slår_inn_ved_3_av_10_uker() -> None:
     )
 
 
+# --- R4: for få uker (FR-17) ---
+
+
+def test_r4_slår_inn_ved_2_uker_med_data() -> None:
+    serie = serie_fra_fixtur("724-r4-2-uker-med-data.json", ALLE_2026)
+    # Uke 41 har to skjulte verdier. Telles den som en uke med data, blir det 3.
+    assert len(serie.uker) == 3
+    assert serie.uker[1].manglende
+    assert utslag_for(serie, "R4") == Regelutslag(
+        "R4",
+        "Utvalget har bare 2 uker med tall. Det trengs minst 3 for å se en retning.",
+    )
+
+
+def test_r4_slår_ikke_inn_ved_3_uker_med_data() -> None:
+    serie = serie_fra_fixtur("724-r4-3-uker-med-data.json", ALLE_2026)
+    assert len(serie.uker) == 4
+    assert utslag_for(serie, "R4") is None
+
+
+@pytest.mark.parametrize(
+    ("tall", "tekst"),
+    [
+        ([], "Utvalget har ingen uker med tall."),
+        (
+            [(None, None), (None, None), (None, None)],
+            "Utvalget har ingen uker med tall.",
+        ),
+        ([(100, 5), (None, 5), (100, None)], "Utvalget har bare 1 uke med tall."),
+    ],
+)
+def test_r4_teller_ikke_manglende_uker(
+    tall: list[tuple[int | None, int | None]], tekst: str
+) -> None:
+    utslag = utslag_for(serie_av(*tall), "R4")
+    assert utslag.tekst.startswith(tekst)
+
+
+# --- R5: perioden går over 1. mars 2025 (FR-18) ---
+
+
+def serie_for_uker(utvalg: Utvalg, uker: tuple[tuple[int, int], ...]) -> Dataserie:
+    return Dataserie(utvalg, tuple(Uke(år, uke, 1000, 50) for år, uke in uker))
+
+
+def test_r5_slår_inn_for_hele_sesongen_2024_2025() -> None:
+    utvalg = Utvalg(1, "influensa", "2024/2025", "alle")
+    serie = serie_fra_fixtur("724-r5-2024-2025.json", utvalg)
+    assert len(serie.uker) == 33
+    assert utslag_for(serie, "R5") == Regelutslag(
+        "R5",
+        "Perioden går over 1. mars 2025. Fra den datoen er alle norske laboratorier "
+        "med i tallene, så tall før og etter kan ikke sammenlignes direkte.",
+    )
+
+
+@pytest.mark.parametrize(
+    ("sesongnavn", "utslag"),
+    [("2024/2025", True), ("2025/2026", False), ("2026/2027", False)],
+)
+def test_r5_gjelder_bare_sesongen_2024_2025(sesongnavn: str, utslag: bool) -> None:
+    utvalg = Utvalg(1, "influensa", sesongnavn, "alle")
+    serie = serie_for_uker(utvalg, sesong.uker(sesongnavn))
+    assert (utslag_for(serie, "R5") is not None) is utslag
+
+
+def test_r5_slår_ikke_inn_for_ekte_tall_fra_2025_2026() -> None:
+    serie = serie_fra_fixtur("../fhi/724-influensa-2025-2026-alle-nonstl.json")
+    assert utslag_for(serie, "R5") is None
+
+
+def test_r5_grensen_går_ved_uke_9_i_2025() -> None:
+    # Uke 8 i 2025 er 17.–23. februar. Uke 9 er 24. februar–2. mars og går over
+    # 1. mars 2025. Uke 10 starter 3. mars.
+    utvalg = Utvalg(1, "influensa", "2024/2025", "alle")
+    assert utslag_for(serie_for_uker(utvalg, ((2025, 7), (2025, 8))), "R5") is None
+    assert utslag_for(serie_for_uker(utvalg, ((2025, 8), (2025, 9))), "R5")
+    assert utslag_for(serie_for_uker(utvalg, ((2025, 9),)), "R5")
+    assert utslag_for(serie_for_uker(utvalg, ((2025, 10), (2025, 11))), "R5") is None
+
+
+def test_r5_teller_også_manglende_uker() -> None:
+    utvalg = Utvalg(1, "influensa", "2024/2025", "alle")
+    serie = Dataserie(utvalg, (Uke(2025, 8, 1000, 50), Uke(2025, 10, None, None)))
+    assert utslag_for(serie, "R5")
+
+
 # --- Alle regler ---
 
 
@@ -156,13 +244,22 @@ def test_ingen_utslag_gir_tom_liste() -> None:
 
 
 def test_utslagene_kommer_i_rekkefølge() -> None:
-    serie = serie_av((10, 1), (None, None), (None, None))
-    assert [u.regel for u in kontrollregler.vurder(serie)] == ["R1", "R2", "R3"]
+    utvalg = Utvalg(1, "influensa", "2024/2025", "alle")
+    uker = (Uke(2025, 8, 10, 1), Uke(2025, 9, None, None), Uke(2025, 10, None, None))
+    serie = Dataserie(utvalg, uker)
+    regler = [u.regel for u in kontrollregler.vurder(serie)]
+    assert regler == ["R1", "R2", "R3", "R4", "R5"]
 
 
-def test_tom_serie_gir_bare_r1() -> None:
+def test_tom_serie_gir_r1_og_r4() -> None:
     serie = Dataserie(ALLE_2025, ())
-    assert [u.regel for u in kontrollregler.vurder(serie)] == ["R1"]
+    assert [u.regel for u in kontrollregler.vurder(serie)] == ["R1", "R4"]
+
+
+def test_ekte_tall_fra_2025_2026_gir_ingen_varsel() -> None:
+    # Ekte tall (alle aldre, 33 uker med tusenvis av tester) gir ingen varsel.
+    serie = serie_fra_fixtur("../fhi/724-influensa-2025-2026-alle-nonstl.json")
+    assert kontrollregler.vurder(serie) == []
 
 
 # --- Ren kjerne (AD-1) ---

@@ -5,6 +5,8 @@ standardbiblioteket. Reglene regnes over alle forventede uker i serien (AD-3).
 Grensene står i PRD kapittel 6.5 og skal aldri svekkes for å gi færre varsler.
 """
 
+from datetime import date, timedelta
+
 from backend.domene import GRENSE_USIKKER_UKE, Dataserie, Regelutslag
 
 GRENSE_POSITIVE = 20
@@ -12,6 +14,12 @@ GRENSE_POSITIVE = 20
 
 GRENSE_PROSENT_UKER = 20
 """R2 og R3: mer enn denne andelen av ukene (i prosent) gir utslag (FR-15, FR-16)."""
+
+MINSTE_ANTALL_UKER = 3
+"""R4: færre uker med data enn dette gir utslag (FR-17)."""
+
+ALLE_LABORATORIER_FRA = date(2025, 3, 1)
+"""R5: fra denne datoen er alle norske laboratorier med i MSIS-labdatabasen (FR-18)."""
 
 
 def _over_grensen(antall: int, uker: int) -> bool:
@@ -75,11 +83,52 @@ def _r3(serie: Dataserie) -> Regelutslag | None:
     )
 
 
+def _r4(serie: Dataserie) -> Regelutslag | None:
+    """R4: færre enn 3 uker med data (FR-17).
+
+    En uke har data når den ikke er manglende.
+    """
+    med_data = sum(1 for u in serie.uker if not u.manglende)
+    if med_data >= MINSTE_ANTALL_UKER:
+        return None
+    if med_data == 0:
+        antall = "ingen uker med tall"
+    elif med_data == 1:
+        antall = "bare 1 uke med tall"
+    else:
+        antall = f"bare {med_data} uker med tall"
+    return Regelutslag(
+        "R4",
+        f"Utvalget har {antall}. "
+        f"Det trengs minst {MINSTE_ANTALL_UKER} for å se en retning.",
+    )
+
+
+def _r5(serie: Dataserie) -> Regelutslag | None:
+    """R5: perioden går over 1. mars 2025 (FR-18).
+
+    Slår inn når minst én uke starter (mandag) før datoen og minst én uke
+    slutter (søndag) på datoen eller senere. Alle ukene i serien telles, også
+    manglende uker, fordi perioden i utvalget går over datoen uansett.
+    """
+    starter = [date.fromisocalendar(u.år, u.ukenummer, 1) for u in serie.uker]
+    før = any(s < ALLE_LABORATORIER_FRA for s in starter)
+    etter = any(s + timedelta(days=6) >= ALLE_LABORATORIER_FRA for s in starter)
+    if not (før and etter):
+        return None
+    return Regelutslag(
+        "R5",
+        "Perioden går over 1. mars 2025. Fra den datoen er alle norske "
+        "laboratorier med i tallene, så tall før og etter kan ikke "
+        "sammenlignes direkte.",
+    )
+
+
 def vurder(serie: Dataserie) -> list[Regelutslag]:
-    """Gir ett `Regelutslag` per regel som slår inn, i rekkefølgen R1, R2, R3.
+    """Gir ett `Regelutslag` per regel som slår inn, i rekkefølgen R1–R5.
 
     Tom liste betyr at ingen regel slo inn, og at det ikke skal vises varsel
     (FR-19, konvensjonen «Regelutslag»).
     """
-    utslag = (regel(serie) for regel in (_r1, _r2, _r3))
+    utslag = (regel(serie) for regel in (_r1, _r2, _r3, _r4, _r5))
     return [u for u in utslag if u is not None]

@@ -34,6 +34,9 @@ logger = logging.getLogger(__name__)
 SESONGTABELL = 724
 """Tabellen sesonglisten lages fra. Alle tre virus har samme sesonger (AD-3)."""
 
+KLARE_VIRUS = tuple(n for n, v in VIRUS.items() if v.tabell in fhi.FASTE_FILTRE)
+"""Nøklene til virusene appen kan vise tall for. Bare influensa til epic 6 (FR-2)."""
+
 IKKE_KLART = "Tall for {virus} kan ikke vises i appen ennå. Velg influensa."
 FHI_NEDE_LAGRET = (
     "Tallene kunne ikke hentes fra FHI akkurat nå. Du ser de sist lagrede tallene."

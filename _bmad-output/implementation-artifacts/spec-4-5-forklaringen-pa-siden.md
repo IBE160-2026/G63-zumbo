@@ -2,7 +2,7 @@
 title: 'Story 4.5: Forklaringen på siden'
 type: 'feature'
 created: '2026-11-24'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 context:
@@ -33,5 +33,28 @@ context:
 - **Demo uten nøkkel:** `backend/scripts/vis_forklaring.py <forklaring|uten-nokkel|feil>` starter appen på port 8001 med en falsk Claude (to sekunders pause, så ventetekst synes) og en midlertidig cache, så en falsk forklaring aldri havner i `.cache/ki/`. Port 8001 fordi den vanlige appen ofte kjører på 8000. Prøvd mot ekte FHI i alle tre utfallene.
 - **README:** forklaringen vises på siden, og hvordan demoen startes.
 - **Tester:** `test_web_forklaring.py` med `TestClient`: området på siden, at `GET /` ikke kaller `ki`, fragmentet for alle tre utfallene, kildehenvisningen, escaping, ugyldige parametre og at Claude aldri kalles uten nøkkel. `test_vis_forklaring.py` for demoskriptet. Ingen test kaller Claude.
-- pytest: 785 passed. ruff check og ruff format: OK.
+- pytest: 790 passed etter rettelsene fra kodegjennomgangen. ruff check og ruff format: OK.
 - **Ikke testet automatisk:** at `app.js` faktisk setter inn fragmentet i en nettleser (ingen nettlesertest, se story 3.7). Testene leser JavaScript-teksten.
+
+## Review Triage Log
+
+bmad-code-review med fire lag (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor). Acceptance Auditor fant ingen brudd på akseptansekriteriene. 4 rettet, 1 utsatt, 13 avvist.
+
+- low, rettet: ingen test viste at området er borte når utvalget er gyldig, men FHI ikke gir tall. Ny test med FHI 503 og tom cache.
+- low, rettet: AC5 (NFR-2) manglet en egen test for «med lagrede tall». Ny test: andre visning av siden kaller verken FHI eller `Tjeneste.forklaring`, og viser graf, tabell og ventetekst.
+- low, rettet: demoen skrev `8001` i stedet for `PORT`, og `main()` var ikke testet. Nå brukes `PORT`, `Innstillinger` får navngitte felt, og en test sjekker alle tre utfallene, porten og at den midlertidige mappen slettes og ikke er `.cache/`.
+- low, rettet: teksten i `<noscript>` sto ikke i `_ki_tekster.html` med de andre faste tekstene.
+- defer: `app.js` testes bare ved å lese kildeteksten. En nettlesertest trengs for å vise at fragmentet settes inn og at feilteksten vises (samme hull som grafen, story 3.7).
+- false: en ny ventetid på FHI i `/forklaring` når FHI er nede. `Tjeneste._dimensjonsliste` prøver ikke FHI igjen i 60 sekunder etter en feil (`PAUSE_ETTER_FEIL`), så `/forklaring` bruker de lagrede tallene med en gang.
+- false: en omdirigering kan sette inn feil side. `/forklaring` omdirigerer aldri.
+- false: fragmentet for `KiFeil` bruker ikke `data-feiltekst`. Begge kommer fra `ki_feil` i `_ki_tekster.html`, og en test viser at de er like.
+- false: demoskriptet importerer `anthropic` (AD-6). Regelen gjelder modulene i pakken `backend`. Testene gjør det samme.
+- false: sprint-status og spec står som `in-progress`. De settes til `done` i dette steget.
+- avvist (low): `/forklaring` kaller `tjeneste.svar` på nytt, så kildehenvisningen kan i sjeldne tilfeller vise et annet hentetidspunkt enn under tabellen. Det skjer bare når tallene blir utdatert akkurat mellom de to forespørslene, eller når lagringen feiler. Å sende tidspunktet i adressen ville gi en ny parameter.
+- avvist (low): ingen tidsgrense i `fetch`. Serveren svarer alltid til slutt (Claude 2 × 15 s, FHI 10 s), og nettleseren har sin egen tidsgrense.
+- avvist (low): ingen `aria-busy` mens forklaringen lages. Ventetekst står i området, og `aria-live` leser opp svaret.
+- avvist (low): feil i `fetch` logges ikke i konsollen. Brukeren ser feilteksten, og serveren logger feilen.
+- avvist (low): et tomt eller ugyldig utvalg kan hente sesonglisten fra FHI før svaret blir 400. `app.js` sender alltid et gyldig utvalg, og `GET /` gjør det samme.
+- avvist (low): et gyldig utvalg uten tall gir 200 med feilteksten, ikke 400. Siden viser ikke området da, så `app.js` spør aldri.
+- avvist (low): synkrone ruter deler trådbassenget, så mange samtidige forklaringer kan forsinke `GET /`. Appen har få brukere, og like forklaringer deler ett kall (`_én_gang`).
+- avvist (low): et 500-svar har ikke `Cache-Control: no-store`. Ingen mellomtjener ligger foran appen.

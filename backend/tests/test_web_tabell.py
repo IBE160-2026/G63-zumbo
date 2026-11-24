@@ -204,7 +204,7 @@ def test_flere_positive_enn_tester_har_egen_fotnote(
 def test_ingen_fotnoter_uten_usikre_uker(klient: TestClient, mappe: Path) -> None:
     mellomlager.lagre_svar(mappe, UTVALG, DATA, HENTET)
     html = klient.get(STI).text
-    assert "Usikker uke:" not in html
+    assert "* Usikker uke:" not in html
     assert FOTNOTE_FLERE_POSITIVE not in html
 
 

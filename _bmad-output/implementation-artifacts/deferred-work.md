@@ -70,6 +70,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-tabell-kildehenvisning-og-feilmelding.md`
   summary: Irene bør avgjøre om andelen for en uke med 0 tester skal vise «mangler» eller en annen tekst (for eksempel «kan ikke regnes ut»).
   evidence: `andel(None)` gir «mangler» både for skjulte tall og for 0 tester (FR-10: «ingen andel»). Ved siden av de kjente tallene «0» og «45» kan «mangler» leses som at FHI har skjult andelen. Ordvalg, lav alvorlighet. Kan tas med i brukertestingen (epic 5).
+  status: løst 2026-11-24 i story 3.4 — Irenes beslutning: en uke med 0 tester viser «kan ikke regnes ut». «mangler» brukes bare for skjulte tall (`web.andelstekst`, PRD FR-11).
 
 ## Deferred from: code review of spec-3-3-graf-uke-for-uke.md (2026-11-24)
 
@@ -79,3 +80,4 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-3-graf-uke-for-uke.md`
   summary: Irene bør bekrefte at uker med skjult antall tester eller 0 tester gir brudd i linjen i grafen (ingen åpen sirkel), og bare markeres som usikre i tabellen.
   evidence: Slike uker har ingen andel, så det finnes ikke noe punkt å tegne (FR-9: manglende uker gir brudd). FR-10 sier at de er usikre «i grafen og tabellen». Forklaringen under grafen og alternativteksten sier nå at uker uten andel gir brudd i linjen. Lav: skjulte verdier er ikke sett i ekte data.
+  status: løst 2026-11-24 i story 3.4 — Irenes beslutning: brudd i linjen for uker uten andel er godkjent, og forklaringen av fylt og åpen sirkel vises alltid (PRD FR-9 og FR-10).

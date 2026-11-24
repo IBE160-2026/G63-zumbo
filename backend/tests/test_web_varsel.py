@@ -115,8 +115,11 @@ def test_varsel_har_ikon_og_overskrift(klient: TestClient) -> None:
     assert 'aria-labelledby="varseltittel"' in varsel
     overskrift = re.search(r'<h2 id="varseltittel">(.*?)</h2>', varsel, re.DOTALL)
     assert overskrift
-    assert '<span class="varselikon" aria-hidden="true">⚠</span>' in overskrift[1]
-    assert re.sub(r"<[^>]+>", "", overskrift[1]).strip() == "⚠ For tynt datagrunnlag"
+    # U+FE0E ber om ⚠ som tekst, ikke som fargeemoji.
+    ikon = '<span class="varselikon" aria-hidden="true">⚠\ufe0e</span>'
+    assert ikon in overskrift[1]
+    tekst = re.sub(r"<[^>]+>", "", overskrift[1]).strip()
+    assert tekst == "⚠\ufe0e For tynt datagrunnlag"
     assert "Tallene bør tolkes med forsiktighet fordi:" in varsel
 
 
@@ -162,6 +165,9 @@ def test_varsel_også_med_sist_lagrede_tall(
     fhi_mock.routes["data"].side_effect = httpx.ConnectError("nede")
     html = klient.get(STI_2024).text
     assert "Sist lagrede tall" in html
+    # Meldingen om lagrede tall står over varselet, og varselet over grafen.
+    melding = html.index('<div class="melding"')
+    assert melding < html.index('<section class="varsel"') < html.index("<figure")
     varsel = _varsel(html)
     assert varsel is not None
     assert _punkter(varsel) == [TEKST_R5]

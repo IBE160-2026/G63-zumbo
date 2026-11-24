@@ -78,7 +78,8 @@ def andelstekst(verdi: Uke) -> str:
 
     «mangler» bare når et tall er skjult eller mangler (FR-11). En uke med
     0 tester har kjente tall, men andelen kan ikke regnes ut (Irenes beslutning
-    24.11.2026).
+    24.11.2026). Er antall tester 0 og antall positive skjult, er et tall skjult,
+    og uka viser «mangler».
     """
     if verdi.andel is not None or verdi.manglende:
         return andel(verdi.andel)

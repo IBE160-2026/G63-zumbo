@@ -81,3 +81,12 @@
   summary: Irene bør bekrefte at uker med skjult antall tester eller 0 tester gir brudd i linjen i grafen (ingen åpen sirkel), og bare markeres som usikre i tabellen.
   evidence: Slike uker har ingen andel, så det finnes ikke noe punkt å tegne (FR-9: manglende uker gir brudd). FR-10 sier at de er usikre «i grafen og tabellen». Forklaringen under grafen og alternativteksten sier nå at uker uten andel gir brudd i linjen. Lav: skjulte verdier er ikke sett i ekte data.
   status: løst 2026-11-24 i story 3.4 — Irenes beslutning: brudd i linjen for uker uten andel er godkjent, og forklaringen av fylt og åpen sirkel vises alltid (PRD FR-9 og FR-10).
+
+## Deferred from: code review of spec-3-4-varsel-om-tynt-datagrunnlag.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-varsel-om-tynt-datagrunnlag.md`
+  summary: Varselet mangler lenken til begrepsforklaringen for «for tynt datagrunnlag» (FR-19, fjerde punkt). Den skal legges til i story 3.6.
+  evidence: Begrepsforklaringene finnes ikke før 3.5 og 3.6 (epic-3-context, avhengigheter). Malen for varselet i `index.html` har ingen lenke ennå. Story 3.6 må legge til lenken og en test for den.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-4-varsel-om-tynt-datagrunnlag.md`
+  summary: Irene bør vurdere om overskriften «For tynt datagrunnlag» passer når bare R5 slår inn (perioden går over 1. mars 2025). R5 handler om sammenlignbarhet, ikke om for få tall.
+  evidence: Overskriften følger PRD-ens skisse (§6.0) og begrepet «Varsel om tynt datagrunnlag» (PRD kapittel 3), som gjelder alle fem reglene. Alle utvalg i 2024/2025 får varselet bare på grunn av R5. Ordvalg, lav alvorlighet. Passer å ta med i brukertestingen (epic 5).

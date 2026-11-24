@@ -59,7 +59,7 @@
 {% set har_flere_positive = uker|selectattr("flere_positive_enn_tester")|list|length > 0 %}
 {% if resultat.regelutslag %}
 <section class="varsel" aria-labelledby="varseltittel">
-  <h2 id="varseltittel"><span class="varselikon" aria-hidden="true">⚠</span> For tynt datagrunnlag</h2>
+  <h2 id="varseltittel"><span class="varselikon" aria-hidden="true">⚠︎</span> For tynt datagrunnlag</h2>
   <p>Tallene bør tolkes med forsiktighet fordi:</p>
   <ul>
     {% for utslag in resultat.regelutslag %}

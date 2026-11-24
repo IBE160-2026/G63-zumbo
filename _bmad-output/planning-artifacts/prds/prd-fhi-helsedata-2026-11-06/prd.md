@@ -248,7 +248,7 @@ Appen viser andel positive uke for uke som en linjegraf. Realiserer UJ-1.
 
 - Én verdi per uke i sesongen, med uker langs den vannrette aksen og andel positive (%) langs den loddrette.
 - Grafen har en tittel som gjentar utvalget, for eksempel «Influensa, sesongen 2025/2026, alle aldersgrupper».
-- Manglende uker vises som brudd i linjen, ikke som 0. Det gjelder alle uker uten andel, også uker med skjult antall tester og uker med 0 tester. De har ikke noe punkt i grafen, men er markert som usikre i tabellen. *Endret 24. november 2026: Irenes beslutning.*
+- Manglende uker vises som brudd i linjen, ikke som 0. Det gjelder alle uker uten andel, også uker med skjult antall tester og uker med 0 tester. De har ikke noe punkt i grafen. I tabellen står tallene som «skjult», «mangler» eller «kan ikke regnes ut» (FR-11). *Endret 24. november 2026: Irenes beslutning.*
 
 #### FR-10: Markere usikre uker
 
@@ -258,7 +258,7 @@ Appen markerer usikre uker (færre enn 30 tester, skjult antall tester, eller fl
 - Uker med flere positive prøver enn tester viser andelen som den er (over 100 %). De markeres som usikre og får en egen fotnote på enkel norsk: «Flere positive prøver enn tester denne uka. Det kan skyldes hvordan prøvene er registrert. Tolk tallet med forsiktighet.» De telles ikke i R2, som bare teller uker med færre enn 30 tester (FR-15). *Endret 24. november 2026: Irenes beslutning i story 2.4. Fotnoten: Endret 24. november 2026: Irenes beslutning.*
 - En uke med 0 tester og flere enn 0 positive er usikker og får fotnoten, men ingen andel, fordi andelen ikke kan regnes ut. *Endret 24. november 2026: Irenes beslutning.*
 - Usikre uker skilles fra andre uker med form (for eksempel åpen sirkel i stedet for fylt), ikke bare med farge.
-- Grafen har en forklaring som sier hva markeringen betyr. Forklaringen av fylt og åpen sirkel vises alltid under grafen, også når ingen uke er usikker. *Endret 24. november 2026: Irenes beslutning.*
+- Grafen har en forklaring som sier hva markeringen betyr. Forklaringen av fylt og åpen sirkel vises alltid under grafen, også når ingen uke er usikker. Når ingen uke har en andel, vises ingen graf og heller ingen forklaring. *Endret 24. november 2026: Irenes beslutning.*
 - I tabellen er usikre uker merket med tegn og fotnote.
 
 #### FR-11: Vise tabell

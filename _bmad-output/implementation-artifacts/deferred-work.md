@@ -43,9 +43,11 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-tolke-fhi-svar-til-en-komplett-dataserie.md`
   summary: Tabellen og grafen (story 3.2 og 3.3) må vise en egen fotnote på enkel norsk for uker med `Uke.flere_positive_enn_tester`, i tillegg til markeringen som usikker uke (FR-10).
   evidence: Irenes beslutning 24.11.2026. Bare egenskapen finnes i `domene`. Teksten står som eksempel i PRD FR-10. En uke med 0 tester og positive over 0 har ingen andel (kan ikke dele på 0), men skal likevel ha fotnoten.
+  status: oppdatert 2026-11-24 (story 2.7–2.8) — Irene har bestemt teksten: «Flere positive prøver enn tester denne uka. Det kan skyldes hvordan prøvene er registrert. Tolk tallet med forsiktighet.» Den står i PRD FR-10 og skal brukes ordrett. Fortsatt åpent: teksten finnes ikke i koden ennå.
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-tolke-fhi-svar-til-en-komplett-dataserie.md`
   summary: Story 2.7 (R2) må ha en test som viser at en uke med flere positive enn tester og minst 30 tester ikke telles i R2.
   evidence: Irenes beslutning 24.11.2026 og FR-15. `Uke.usikker` er nå sann for slike uker, så R2 må telle `tester < 30` direkte og ikke bruke `usikker`. Ingen test håndhever det ennå.
+  status: løst 2026-11-24 i story 2.7 — `test_r2_teller_ikke_flere_positive_enn_tester_med_minst_30_tester` og fixturen `724-r2-4-av-20-uker.json` (45 positive av 40 tester).
 
 ## Deferred from: code review of spec-2-5-hente-fra-fhi-med-tidsgrense.md (2026-11-24)
 

@@ -5,18 +5,20 @@ aldri Claude og trenger verken nett eller nøkkel (AD-10).
 """
 
 import ast
+import inspect
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import anthropic
 import httpx2
 import pytest
+from anthropic.resources.messages import Messages
 from anthropic.types import Message, TextBlock, Usage
 
-from backend import fhi, ki, kontrollregler
+from backend import fhi, ki
 from backend.config import Innstillinger, les_innstillinger
 from backend.domene import Regelutslag, Utvalg, kildehenvisning
 
@@ -25,7 +27,7 @@ FORKLARING = (FIXTURES / "ki" / "forklaring-influensa-2025-2026-alle.txt").read_
     encoding="utf-8"
 )
 NØKKEL = "falsk-nøkkel-123"
-NBSP = " "
+NBSP = "\u00a0"
 
 _lagret = json.loads(
     (FIXTURES / "fhi" / "724-influensa-2025-2026-alle-nonstl.json").read_text(
@@ -69,11 +71,24 @@ class FalskKlient:
         self.kall: list[dict[str, Any]] = []
         self.messages = self
 
+        self.lukket = False
+
     def __call__(self, **kwargs: Any) -> "FalskKlient":
+        # Argumentene må passe til den ekte klienten.
+        inspect.signature(anthropic.Anthropic).bind(**kwargs)
         self.laget_med = kwargs
         return self
 
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.lukket = True
+
     def create(self, **kwargs: Any) -> Any:
+        # Argumentene må passe til den ekte `messages.create`, så en feilstavet
+        # parameter ikke bare blir `KiFeil` i drift.
+        inspect.signature(Messages.create).bind(None, **kwargs)
         self.kall.append(kwargs)
         if self.feil is not None:
             raise self.feil
@@ -164,9 +179,20 @@ def test_svar_som_ikke_kan_brukes_gir_ki_feil(ubrukelig: Any) -> None:
     assert forklar(FalskKlient(svar=ubrukelig)) == ki.KiFeil()
 
 
-def test_nøkkelen_havner_ikke_i_loggen(caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.parametrize(
+    "klient",
+    [
+        FalskKlient(feil=_statusfeil(anthropic.AuthenticationError, 401)),
+        FalskKlient(feil=RuntimeError(f"feil med {NØKKEL}")),
+        FalskKlient(svar=lag_svar(stop_reason="max_tokens")),
+    ],
+    ids=["statusfeil", "uventet-feil-med-nøkkel", "ubrukelig-svar"],
+)
+def test_feilen_logges_uten_nøkkelen(
+    klient: FalskKlient, caplog: pytest.LogCaptureFixture
+) -> None:
     caplog.set_level(logging.DEBUG, logger="backend.ki")
-    forklar(FalskKlient(feil=_statusfeil(anthropic.AuthenticationError, 401)))
+    assert forklar(klient) == ki.KiFeil()
     assert caplog.records, "feilen skal logges"
     assert NØKKEL not in caplog.text
 
@@ -179,6 +205,22 @@ def test_klienten_lages_med_eksplisitt_nøkkel() -> None:
     forklar(klient)
     assert klient.laget_med is not None
     assert klient.laget_med["api_key"] == NØKKEL
+
+
+def test_klienten_har_tidsgrense_og_lukkes() -> None:
+    klient = FalskKlient()
+    forklar(klient)
+    assert klient.laget_med is not None
+    assert klient.laget_med["timeout"] == ki.TIDSGRENSE
+    assert klient.laget_med["max_retries"] == ki.FORSØK_PÅ_NYTT
+    assert klient.lukket
+
+
+def test_kallet_har_lengde_og_innsats() -> None:
+    klient = FalskKlient()
+    forklar(klient)
+    assert klient.kall[0]["max_tokens"] == ki.MAKS_TOKENS
+    assert klient.kall[0]["output_config"] == {"effort": "low"}
 
 
 def test_standardmodellen_er_haiku() -> None:
@@ -197,8 +239,6 @@ def test_modellen_kan_overstyres_med_anthropic_model() -> None:
 
 
 def test_standard_klient_er_anthropic() -> None:
-    import inspect
-
     standard = inspect.signature(ki.forklar).parameters["ny_klient"].default
     assert standard is anthropic.Anthropic
 
@@ -244,7 +284,7 @@ def test_prompten_har_regelutslag_og_kilde() -> None:
 
 
 def test_uten_regelutslag_er_feltet_tomt() -> None:
-    prompt = ki.lag_prompt(SERIE, kontrollregler.vurder(SERIE), KILDE)
+    prompt = ki.lag_prompt(SERIE, (), KILDE)
     etter = prompt.split("(tom hvis ingen slo inn):\n", 1)[1]
     assert etter.startswith("\n\nKilde:")
 

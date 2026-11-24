@@ -30,14 +30,17 @@ logger = logging.getLogger(__name__)
 
 PROMPT = Path(__file__).parent / "prompts" / "forklaring.md"
 
-MAKS_TOKENS = 2048
-"""Forklaringen er høyst 120 ord. Resten gir plass til modellens tenking."""
+MAKS_TOKENS = 4096
+"""Forklaringen er høyst 120 ord. Resten gir plass til tenkingen, som er på som
+standard i `claude-haiku-5-5`. Når grensen nås, blir utfallet `KiFeil`."""
 
 INNSATS = "low"
 """`effort` for Claude. En kort forklaring av noen tall trenger lite tenking."""
 
-TIDSGRENSE = 20.0
-"""Sekunder før kallet gis opp. Siden venter ikke på KI-en (NFR-2, AD-9)."""
+TIDSGRENSE = 15.0
+"""Sekunder per forsøk. Med ett nytt forsøk kan kallet ta drøyt 30 sekunder i
+alt. Siden venter likevel ikke på KI-en, for forklaringen hentes for seg
+(NFR-2, AD-9)."""
 
 FORSØK_PÅ_NYTT = 1
 """Antall nye forsøk SDK-en gjør ved nettverksfeil, 429 og 5xx."""
@@ -119,15 +122,16 @@ def forklar(
         return ManglerNøkkel()
     try:
         prompt = lag_prompt(serie, regelutslag, kilde)
-        klient = ny_klient(
+        # `with` lukker forbindelsene til klienten etter hvert kall.
+        with ny_klient(
             api_key=nøkkel, timeout=TIDSGRENSE, max_retries=FORSØK_PÅ_NYTT
-        )
-        svar = klient.messages.create(
-            model=innstillinger.anthropic_model,
-            max_tokens=MAKS_TOKENS,
-            output_config={"effort": INNSATS},
-            messages=[{"role": "user", "content": prompt}],
-        )
+        ) as klient:
+            svar = klient.messages.create(
+                model=innstillinger.anthropic_model,
+                max_tokens=MAKS_TOKENS,
+                output_config={"effort": INNSATS},
+                messages=[{"role": "user", "content": prompt}],
+            )
         tekst = _tekst(svar)
     except anthropic.APIStatusError as feil:
         logger.info(

@@ -14,6 +14,8 @@ beslutning på #23), men skjulte tall og andeler som mangler, er skrevet
 tydeligere for KI-en (Irenes beslutning før merge av PR #66).
 """
 
+import hashlib
+import json
 import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -45,6 +47,11 @@ alt. Siden venter likevel ikke på KI-en, for forklaringen hentes for seg
 
 FORSØK_PÅ_NYTT = 1
 """Antall nye forsøk SDK-en gjør ved nettverksfeil, 429 og 5xx."""
+
+UKEFORMAT = 1
+"""Versjonen av måten ukene skrives for KI-en (`ukelinje`). Den er med i
+nøkkelen, så øk tallet når formatet endres. Da lages det ny forklaring
+automatisk, og `.cache/ki/` trenger ikke slettes for hånd."""
 
 
 @dataclass(frozen=True)
@@ -116,6 +123,37 @@ def lag_prompt(
     )
 
 
+def nøkkel(serie: Dataserie, regelutslag: Iterable[Regelutslag], modell: str) -> str:
+    """Nøkkelen til en lagret forklaring (AD-7).
+
+    SHA-256 av kanonisk JSON (`sort_keys=True`) med utvalget, de tolkede ukene,
+    regelutslagene, innholdet i promptfila, versjonen av ukeformatet
+    (`UKEFORMAT`) og modellnavnet. Hentetidspunktet er ikke med, så de samme
+    tallene gir samme nøkkel også etter en ny henting. Prompten ber KI-en ikke
+    nevne hentetidspunktet, så en gjenbrukt forklaring viser ikke et gammelt
+    tidspunkt. Endrede tall, en endret prompt, et nytt ukeformat eller en annen
+    modell gir ny nøkkel.
+    """
+    u = serie.utvalg
+    innhold = {
+        "utvalg": {
+            "mal": u.mal,
+            "virus": u.virus,
+            "sesong": u.sesong,
+            "aldersgruppe": u.aldersgruppe,
+        },
+        "uker": [[x.år, x.ukenummer, x.tester, x.positive] for x in serie.uker],
+        "regelutslag": [[r.regel, r.tekst] for r in regelutslag],
+        "prompt": _mal(),
+        "ukeformat": UKEFORMAT,
+        "modell": modell,
+    }
+    kanonisk = json.dumps(
+        innhold, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    )
+    return hashlib.sha256(kanonisk.encode("utf-8")).hexdigest()
+
+
 def _tekst(svar: Any) -> str | None:
     """Teksten i svaret, eller `None` når svaret ikke er en hel forklaring."""
     if getattr(svar, "stop_reason", None) != "end_turn":
@@ -134,7 +172,7 @@ def forklar(
     regelutslag: Iterable[Regelutslag],
     kilde: Kildehenvisning,
     innstillinger: Innstillinger,
-    ny_klient: Callable[..., Any] = anthropic.Anthropic,
+    ny_klient: Callable[..., Any] | None = None,
 ) -> Utfall:
     """Ber Claude forklare tallene for ett utvalg (AD-6).
 
@@ -143,7 +181,8 @@ def forklar(
     andre steder, og modellen er `innstillinger.anthropic_model`. Alle feil, også
     uventede, blir `KiFeil`, og bare feiltypen logges, aldri nøkkelen.
 
-    Testene sender inn `ny_klient` og kaller aldri Claude på ekte (AD-10).
+    `ny_klient` er `anthropic.Anthropic` når den er `None`. Testene sender inn
+    en falsk klient og kaller aldri Claude på ekte (AD-10).
     """
     nøkkel = innstillinger.anthropic_api_key
     if not nøkkel:
@@ -151,7 +190,7 @@ def forklar(
     try:
         prompt = lag_prompt(serie, regelutslag, kilde)
         # `with` lukker forbindelsene til klienten etter hvert kall.
-        with ny_klient(
+        with (ny_klient or anthropic.Anthropic)(
             api_key=nøkkel, timeout=TIDSGRENSE, max_retries=FORSØK_PÅ_NYTT
         ) as klient:
             svar = klient.messages.create(

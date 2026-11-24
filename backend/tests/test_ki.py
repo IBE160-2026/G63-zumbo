@@ -8,6 +8,7 @@ import ast
 import inspect
 import json
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Self
@@ -239,9 +240,12 @@ def test_modellen_kan_overstyres_med_anthropic_model() -> None:
     assert klient.kall[0]["model"] == "claude-sonnet-5-5"
 
 
-def test_standard_klient_er_anthropic() -> None:
-    standard = inspect.signature(ki.forklar).parameters["ny_klient"].default
-    assert standard is anthropic.Anthropic
+def test_uten_ny_klient_brukes_anthropic(monkeypatch: pytest.MonkeyPatch) -> None:
+    klient = FalskKlient()
+    monkeypatch.setattr(anthropic, "Anthropic", klient)
+    utfall = ki.forklar(SERIE, (), KILDE, innstillinger())
+    assert utfall == ki.Forklaring(FORKLARING.strip())
+    assert klient.laget_med is not None
 
 
 # --- Prompten (FR-20) ---
@@ -363,3 +367,74 @@ def test_ki_importerer_bare_det_arkitekturen_tillater() -> None:
         "backend.domene",
         "backend.formatering",
     }
+
+
+# --- Nøkkelen til en lagret forklaring (story 4.4, AD-7) ---
+
+MODELL = "claude-haiku-5-5"
+
+
+def test_nøkkelen_er_sha256_av_kanonisk_json() -> None:
+    import hashlib
+
+    forventet = {
+        "utvalg": {
+            "mal": 1,
+            "virus": "influensa",
+            "sesong": "2025/2026",
+            "aldersgruppe": "alle",
+        },
+        "uker": [[u.år, u.ukenummer, u.tester, u.positive] for u in SERIE.uker],
+        "regelutslag": [["R2", UTSLAG[0].tekst]],
+        "prompt": ki.PROMPT.read_text(encoding="utf-8"),
+        "ukeformat": ki.UKEFORMAT,
+        "modell": MODELL,
+    }
+    kanonisk = json.dumps(
+        forventet, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    )
+    assert ki.nøkkel(SERIE, UTSLAG, MODELL) == (
+        hashlib.sha256(kanonisk.encode("utf-8")).hexdigest()
+    )
+
+
+def test_samme_tall_gir_samme_nøkkel_også_med_nytt_hentetidspunkt() -> None:
+    # Hentetidspunktet er ikke en del av serien eller nøkkelen.
+    kopi = Dataserie(SERIE.utvalg, tuple(SERIE.uker))
+    assert ki.nøkkel(kopi, list(UTSLAG), MODELL) == ki.nøkkel(SERIE, UTSLAG, MODELL)
+
+
+def test_endrede_tall_gir_ny_nøkkel() -> None:
+    første = SERIE.uker[0]
+    endret = Uke(første.år, første.ukenummer, første.tester, første.positive + 1)
+    serie = Dataserie(SERIE.utvalg, (endret, *SERIE.uker[1:]))
+    assert ki.nøkkel(serie, (), MODELL) != ki.nøkkel(SERIE, (), MODELL)
+
+
+def test_annet_utvalg_gir_ny_nøkkel() -> None:
+    annet = Dataserie(Utvalg(1, "influensa", "2025/2026", "80+"), SERIE.uker)
+    assert ki.nøkkel(annet, (), MODELL) != ki.nøkkel(SERIE, (), MODELL)
+
+
+def test_endrede_regelutslag_gir_ny_nøkkel() -> None:
+    assert ki.nøkkel(SERIE, UTSLAG, MODELL) != ki.nøkkel(SERIE, (), MODELL)
+
+
+def test_annen_modell_gir_ny_nøkkel() -> None:
+    assert ki.nøkkel(SERIE, (), "claude-sonnet-5-5") != ki.nøkkel(SERIE, (), MODELL)
+
+
+def test_endret_prompt_gir_ny_nøkkel(monkeypatch: pytest.MonkeyPatch) -> None:
+    før = ki.nøkkel(SERIE, (), MODELL)
+    monkeypatch.setattr(ki, "_mal", lambda: "En annen prompt. {uker}")
+    assert ki.nøkkel(SERIE, (), MODELL) != før
+
+
+def test_nytt_ukeformat_gir_ny_nøkkel(monkeypatch: pytest.MonkeyPatch) -> None:
+    før = ki.nøkkel(SERIE, (), MODELL)
+    monkeypatch.setattr(ki, "UKEFORMAT", ki.UKEFORMAT + 1)
+    assert ki.nøkkel(SERIE, (), MODELL) != før
+
+
+def test_nøkkelen_er_64_heksadesimale_tegn() -> None:
+    assert re.fullmatch(r"[0-9a-f]{64}", ki.nøkkel(SERIE, (), MODELL))

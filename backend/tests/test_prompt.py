@@ -35,3 +35,9 @@ def test_prompten_ber_om_norsk_og_høyst_120_ord() -> None:
     t = tekst()
     assert "norsk" in t
     assert "høyst 120 ord" in t
+
+
+def test_prompten_ber_ki_en_ikke_nevne_hentetidspunktet() -> None:
+    # Irenes beslutning før merge av PR #67: en gjenbrukt forklaring skal ikke
+    # vise et gammelt hentetidspunkt.
+    assert "Ikke nevn når tallene ble hentet." in PROMPT.read_text(encoding="utf-8")

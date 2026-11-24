@@ -4,6 +4,8 @@
 Den bruker lagrede tall når de er ferske, og henter ellers nye fra FHI og lagrer
 dem. Når FHI er nede, brukes lagrede tall merket «sist lagrede», ellers sier
 svaret at det ikke finnes tall. `Tjeneste.sesonger` gir sesonglisten.
+`Tjeneste.forklaring` gir KI-forklaringen for et svar, og bruker en lagret
+forklaring når tallene er de samme (AD-7).
 
 Modulen er en del av skallet: den bruker `fhi.hent`, `mellomlager` og tråder,
 og får «nå» som argument. `FhiUtilgjengelig` fanges her og logges på nivå
@@ -18,7 +20,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from backend import fhi, kontrollregler, mellomlager, sesong
+from backend import fhi, ki, kontrollregler, mellomlager, sesong
 from backend.config import Innstillinger
 from backend.domene import (
     VIRUS,
@@ -80,13 +82,19 @@ class Resultat:
 class Tjeneste:
     """Henter, lagrer og vurderer tall for utvalg.
 
-    Lages én gang av `web` med innstillingene. `klient` brukes av testene. Kall
-    som skjer samtidig for samme utvalg, deler ett kall til FHI (AD-9).
+    Lages én gang av `web` med innstillingene. `klient` og `ny_ki_klient` brukes
+    av testene. Kall som skjer samtidig for samme utvalg, deler ett kall til FHI
+    (AD-9), og kall for samme forklaring deler ett kall til Claude.
     """
 
     def __init__(
-        self, innstillinger: Innstillinger, klient: fhi.Klient | None = None
+        self,
+        innstillinger: Innstillinger,
+        klient: fhi.Klient | None = None,
+        ny_ki_klient: Callable[..., Any] | None = None,
     ) -> None:
+        self._innstillinger = innstillinger
+        self._ny_ki_klient = ny_ki_klient
         self._mappe = innstillinger.cache_dir
         self._klient = klient
         self._lås = threading.Lock()
@@ -100,9 +108,11 @@ class Tjeneste:
 
         De som venter, får samme resultat eller samme feil som den som kjørte
         jobben. Slik gir samtidige kall bare ett kall til FHI, også når FHI
-        er nede. Ventetiden er begrenset av tidsgrensen i `fhi` (10 s). De som
-        venter, får resultatet regnet ut med eierens «nå», som er noen
-        millisekunder unna.
+        er nede, og bare ett kall til Claude for samme forklaring. Ventetiden er
+        begrenset av tidsgrensen i `fhi` (10 s), og for KI-forklaringen av
+        tidsgrensen i `ki` (15 s per forsøk, drøyt 30 s i alt). De som venter,
+        får resultatet regnet ut med eierens «nå», som er noen millisekunder
+        unna.
         """
         with self._lås:
             fremtid = self._pågår.get(nøkkel)
@@ -252,6 +262,51 @@ class Tjeneste:
             sist_lagrede=sist_lagrede,
             melding=melding,
         )
+
+    # --- KI-forklaringen (AD-7) ---
+
+    def forklaring(self, resultat: Resultat, nå: datetime) -> ki.Utfall:
+        """KI-forklaringen for tallene i `resultat` (FR-20, FR-22, AD-7).
+
+        Uten nøkkel er utfallet `ManglerNøkkel`, og verken lagrede forklaringer
+        eller Claude brukes (FR-22). Finnes det en lagret forklaring for de samme
+        tallene, promptene og modellen, brukes den uten å kalle Claude. Ellers
+        kalles Claude, og bare en `Forklaring` lagres, med `nå` som tidspunktet
+        den ble laget. Uten tall er utfallet `KiFeil`. Metoden kaster ikke.
+        """
+        if not self._innstillinger.anthropic_api_key:
+            return ki.ManglerNøkkel()
+        serie, kilde = resultat.serie, resultat.kilde
+        if serie is None or kilde is None:
+            logger.info("Ingen tall å forklare for %s", resultat.utvalg.nøkkel)
+            return ki.KiFeil()
+        regelutslag = resultat.regelutslag
+        modell = self._innstillinger.anthropic_model
+        try:
+            nøkkel = ki.nøkkel(serie, regelutslag, modell)
+        except (OSError, ValueError) as feil:
+            logger.info("Prompten kunne ikke leses: %r", feil)
+            return ki.KiFeil()
+
+        def lag() -> ki.Utfall:
+            lagret = mellomlager.les_forklaring(self._mappe, nøkkel)
+            if lagret is not None:
+                logger.info("Bruker lagret KI-forklaring %s", nøkkel)
+                return ki.Forklaring(lagret.tekst)
+            utfall = ki.forklar(
+                serie, regelutslag, kilde, self._innstillinger, self._ny_ki_klient
+            )
+            if isinstance(utfall, ki.Forklaring):
+                try:
+                    mellomlager.lagre_forklaring(
+                        self._mappe, nøkkel, nå, modell, utfall.tekst
+                    )
+                except (OSError, ValueError) as feil:
+                    # Forklaringen vises likevel (AD-4).
+                    logger.info("Kunne ikke lagre KI-forklaringen: %r", feil)
+            return utfall
+
+        return self._én_gang(f"ki-{nøkkel}", lag)
 
     def _lagre(self, lagre: Callable[..., None], *argumenter: Any) -> None:
         """Lagrer i cachen. En feil logges, og tallene vises likevel (AD-4)."""

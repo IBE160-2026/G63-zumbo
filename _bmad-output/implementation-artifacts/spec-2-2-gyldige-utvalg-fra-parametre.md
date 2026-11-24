@@ -21,10 +21,12 @@ context:
 
 ## Implementation Notes
 
-- Endrede filer: `backend/src/backend/domene.py` og `backend/tests/test_domene.py`.
+- Endrede filer: `backend/src/backend/domene.py` og ny `backend/tests/test_utvalg.py` (egen fil, fordi `test_domene.py` allerede er lang).
 - `parametre` er en `Mapping[str, str]` (for eksempel `request.query_params` i `web`). Verdiene er nøklene i `MALER` (`"1"`), `VIRUS` (`influensa`, `rsv`, `sars-cov-2`) og `ALDERSGRUPPER` (`alle`, `0-4` …), og sesongen skrevet «2025/2026».
 - Mellomrom rundt verdiene fjernes ikke. Bare de eksakte nøklene godtas, slik at ingen variant av en verdi kan gi et annet filnavn.
 - Manglende eller tom `alder` gir `alle` (et skjema kan sende et tomt felt). Manglende eller tom `mal`, `virus` og `sesong` er feil.
 - Alle feil samles i én `UgyldigUtvalg` med én setning per felt, i rekkefølgen mal, virus, sesong, alder. Meldingen nevner aldri verdien brukeren sendte (en manipulert verdi skal ikke vises på siden) og aldri FHI-koder. Den sier hva som kan velges, for eksempel «Velg et virus: influensa, RSV eller SARS-CoV-2.».
 - `mal` tolkes bare som et heltall når teksten er en nøkkel i `MALER` skrevet som tall (`"1"`). `"01"`, `"1.0"` og `" 1"` avvises.
 - `nøkkel` er `mal<nr>-<virus>-<sesong>-<alder>` med `/` i sesongen byttet til `-` og `+` byttet til `pluss`, for eksempel `mal1-influensa-2025-2026-80pluss`. Til slutt sjekkes at nøkkelen bare har `[a-z0-9-]`, ellers `ValueError`. Dermed kan heller ikke et `Utvalg` laget direkte med en ugyldig verdi gi et farlig filnavn.
+- `nøkkel` sjekker også at `mal`, `virus` og `aldersgruppe` finnes i listene og at sesongen er skrevet `ÅÅÅÅ/ÅÅÅÅ`. Da er nøkkelen ulik for ulike utvalg (for eksempel kan ikke sesongen `2025-2026` gi samme filnavn som `2025/2026`).
+- Overraskelse: «Alle» er både FHIs kode og en del av den norske etiketten «Alle aldersgrupper». Testen for FHI-koder i meldingen sjekker derfor bare koder som ikke er vanlige ord.

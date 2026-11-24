@@ -66,6 +66,7 @@
     <li>{{ utslag.tekst }}</li>
     {% endfor %}
   </ul>
+  <p><a href="#{{ tynt_datagrunnlag }}" class="begrepslenke">Hva betyr dette?</a></p>
 </section>
 {% endif %}
 {% if resultat.serie|har_andel %}
@@ -124,11 +125,21 @@
   {% endif %}
 </section>
 {% endif %}
+
+<section class="begreper" aria-labelledby="begrepstittel">
+  <h2 id="begrepstittel">Hva betyr ordene?</h2>
+  {% for begrep in begreper %}
+  <details id="{{ begrep.html_id }}">
+    <summary>{{ begrep.navn }}</summary>
+    <p>{{ begrep.tekst }}</p>
+  </details>
+  {% endfor %}
+</section>
 {% endblock %}
 
 {% block skript %}
 {% if resultat and resultat.serie is not none and resultat.serie|har_andel %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous" defer></script>
-<script src="{{ url_for('static', path='app.js') }}" defer></script>
 {% endif %}
+<script src="{{ url_for('static', path='app.js') }}" defer></script>
 {% endblock %}

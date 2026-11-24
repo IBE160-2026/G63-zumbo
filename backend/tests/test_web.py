@@ -4,17 +4,19 @@ FHI mockes med `respx`, og cachen ligger i `tmp_path`. Ingen test når nettet
 eller laster `.env`.
 """
 
+import inspect
 import json
 import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 import respx
 from fastapi.testclient import TestClient
 
-from backend import config, web
+from backend import config, tjeneste, web
 from backend.config import Innstillinger
 from backend.domene import ALDERSGRUPPER, MALER
 
@@ -46,7 +48,9 @@ def innstillinger(tmp_path: Path) -> Innstillinger:
 
 
 @pytest.fixture
-def klient(innstillinger: Innstillinger, fhi_mock: respx.MockRouter) -> Iterator:
+def klient(
+    innstillinger: Innstillinger, fhi_mock: respx.MockRouter
+) -> Iterator[TestClient]:
     with TestClient(web.lag_app(lambda: innstillinger)) as testklient:
         yield testklient
 
@@ -169,6 +173,70 @@ def test_gyldig_utvalg_henter_tall(
     assert _valgt(svar.text, "sesong") == ["2025/2026"]
 
 
+@pytest.mark.parametrize("sti", ["/?mal=&virus=&sesong=&alder=", "/?mal=%20&alder="])
+def test_tomme_parametre_gir_bare_skjemaet(
+    klient: TestClient, fhi_mock: respx.MockRouter, sti: str
+) -> None:
+    svar = klient.get(sti)
+    assert svar.status_code == 200
+    assert 'role="alert"' not in svar.text
+    assert not fhi_mock.routes["data"].called
+
+
+def test_parametre_med_mellomrom_avvises_av_domene(klient: TestClient) -> None:
+    html = klient.get("/?mal=1&virus=influensa%20&sesong=2025/2026").text
+    assert "Velg et virus:" in html
+
+
+def test_valgene_er_forhåndsvalgt_etter_innsending(klient: TestClient) -> None:
+    html = klient.get("/?mal=1&virus=influensa&sesong=2024/2025&alder=0-4").text
+    assert _valgt(html, "mal") == ["1"]
+    assert _valgt(html, "virus") == ["influensa"]
+    assert _valgt(html, "sesong") == ["2024/2025"]
+    assert _valgt(html, "alder") == ["0-4"]
+
+
+@pytest.mark.parametrize(
+    "sti",
+    [
+        "/?mal=9&virus=ebola&sesong=1999/2000&alder=99",
+        "/?mal=1&virus=rsv&sesong=2025/2026",
+    ],
+)
+def test_ukjente_valg_viser_standardvalget(klient: TestClient, sti: str) -> None:
+    html = klient.get(sti).text
+    assert _valgt(html, "mal") == ["1"]
+    assert _valgt(html, "virus") == ["influensa"]
+    assert _valgt(html, "alder") == ["alle"]
+    if "1999" in sti:
+        assert _valgt(html, "sesong") == ["2026/2027"]
+
+
+# --- FHI nede (FR-8) ---
+
+
+def test_skjemaet_vises_når_fhi_er_nede(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    fhi_mock.routes["dimensjoner"].mock(side_effect=httpx.ConnectError("nede"))
+    svar = klient.get("/")
+    assert svar.status_code == 200
+    assert _verdier(svar.text, "sesong")
+    assert 'role="alert"' not in svar.text
+
+
+def test_fhi_nede_gir_melding_og_ett_kall_per_side(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    fhi_mock.routes["dimensjoner"].mock(side_effect=httpx.ConnectError("nede"))
+    svar = klient.get("/?mal=1&virus=influensa&sesong=2025/2026")
+    assert svar.status_code == 200
+    assert tjeneste.FHI_NEDE_INGEN_TALL in svar.text
+    # Sesonglisten og tallene venter ikke hver sin tidsgrense.
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+    assert not fhi_mock.routes["data"].called
+
+
 def test_rsv_gir_melding_fra_tjeneste_uten_henting(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
@@ -202,7 +270,7 @@ def test_bare_web_kaller_les_innstillinger() -> None:
     kilde = Path(config.__file__).parent
     brukere = [
         fil.name
-        for fil in kilde.glob("*.py")
+        for fil in kilde.rglob("*.py")
         if fil.name != "config.py"
         and "les_innstillinger" in fil.read_text(encoding="utf-8")
     ]
@@ -210,7 +278,5 @@ def test_bare_web_kaller_les_innstillinger() -> None:
 
 
 def test_appen_bruker_les_innstillinger_fra_config() -> None:
-    import inspect
-
     standard = inspect.signature(web.lag_app).parameters["les_innstillinger"].default
     assert standard is config.les_innstillinger

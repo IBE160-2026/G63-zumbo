@@ -238,3 +238,95 @@ def test_bare_mellomlager_skriver_filer() -> None:
         )
     ]
     assert treff == ["mellomlager.py"]
+
+
+# --- KI-forklaringer (story 4.4, AD-7) ---
+
+NØKKEL = "a" * 64
+LAGET = datetime(2026, 11, 24, 12, 30, tzinfo=timezone(timedelta(hours=1)))
+
+
+def test_lagre_og_lese_forklaring(tmp_path: Path) -> None:
+    mellomlager.lagre_forklaring(tmp_path, NØKKEL, LAGET, "claude-haiku-5-5", "Tæxt.")
+    lagret = mellomlager.les_forklaring(tmp_path, NØKKEL)
+    assert lagret == mellomlager.LagretForklaring(
+        LAGET.astimezone(UTC), "claude-haiku-5-5", "Tæxt."
+    )
+    assert lagret is not None and lagret.laget.tzinfo is UTC
+
+
+def test_forklaringen_ligger_i_ki_mappen_med_tre_felt(tmp_path: Path) -> None:
+    mellomlager.lagre_forklaring(tmp_path, NØKKEL, LAGET, "m", "Tekst.")
+    fil = tmp_path / "ki" / f"{NØKKEL}.json"
+    assert mellomlager.forklaringsfil(tmp_path, NØKKEL) == fil
+    assert json.loads(fil.read_text(encoding="utf-8")) == {
+        "laget": "2026-11-24T11:30:00Z",
+        "modell": "m",
+        "tekst": "Tekst.",
+    }
+
+
+def test_forklaring_som_mangler_gir_none(tmp_path: Path) -> None:
+    assert mellomlager.les_forklaring(tmp_path, NØKKEL) is None
+
+
+@pytest.mark.parametrize(
+    "innhold",
+    [
+        "ikke json",
+        "[]",
+        '{"laget": "2026-11-24T11:30:00Z", "modell": "m"}',
+        '{"laget": "2026-11-24T11:30:00Z", "modell": "m", "tekst": "", "x": 1}',
+        '{"laget": "2026-11-24T11:30:00", "modell": "m", "tekst": "T"}',
+        '{"laget": "i går", "modell": "m", "tekst": "T"}',
+        '{"laget": "2026-11-24T11:30:00Z", "modell": 1, "tekst": "T"}',
+        '{"laget": "2026-11-24T11:30:00Z", "modell": "m", "tekst": null}',
+        '{"laget": "2026-11-24T11:30:00Z", "modell": "m", "tekst": "  "}',
+    ],
+)
+def test_ødelagt_forklaring_regnes_som_ikke_funnet(
+    tmp_path: Path, innhold: str
+) -> None:
+    fil = mellomlager.forklaringsfil(tmp_path, NØKKEL)
+    fil.parent.mkdir(parents=True)
+    fil.write_text(innhold, encoding="utf-8")
+    assert mellomlager.les_forklaring(tmp_path, NØKKEL) is None
+
+
+@pytest.mark.parametrize(
+    "nøkkel", ["", "A" * 64, "a" * 63, "a" * 65, "../" + "a" * 61, None, 123]
+)
+def test_ugyldig_forklaringsnøkkel_avvises(tmp_path: Path, nøkkel: object) -> None:
+    with pytest.raises(ValueError):
+        mellomlager.forklaringsfil(tmp_path, nøkkel)  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        mellomlager.les_forklaring(tmp_path, nøkkel)  # type: ignore[arg-type]
+
+
+def test_tom_forklaring_lagres_ikke(tmp_path: Path) -> None:
+    with pytest.raises(ValueError):
+        mellomlager.lagre_forklaring(tmp_path, NØKKEL, LAGET, "m", " ")
+    assert not (tmp_path / "ki").exists()
+
+
+def test_laget_uten_tidssone_avvises(tmp_path: Path) -> None:
+    with pytest.raises(ValueError):
+        mellomlager.lagre_forklaring(
+            tmp_path, NØKKEL, datetime(2026, 11, 24, 12, 0), "m", "T"
+        )
+
+
+def test_forklaringen_skrives_atomisk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mellomlager.lagre_forklaring(tmp_path, NØKKEL, LAGET, "m", "Gammel.")
+
+    def feiler(fra: str, til: str) -> None:
+        raise OSError("disken er full")
+
+    monkeypatch.setattr(mellomlager.os, "replace", feiler)
+    with pytest.raises(OSError):
+        mellomlager.lagre_forklaring(tmp_path, NØKKEL, LAGET, "m", "Ny.")
+    lagret = mellomlager.les_forklaring(tmp_path, NØKKEL)
+    assert lagret is not None and lagret.tekst == "Gammel."
+    assert [p.name for p in (tmp_path / "ki").iterdir()] == [f"{NØKKEL}.json"]

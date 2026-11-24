@@ -278,7 +278,7 @@ def test_varselet_er_rosa_med_ramme_og_ikon_i_rød_1() -> None:
     assert "border: 2px solid var(--varselfarge)" in varsel
     assert "color: var(--varselfarge)" in _blokk(".varselikon")
     # Hovedfargen har for lav kontrast mot rosa, så lenken har Blå 1
-    # (Irenes beslutning 25.11.2026) og er understreket.
+    # (Irenes beslutning 24.11.2026) og er understreket.
     v = variabler()
     assert kontrast(v["--hovedfarge"], v["--varselbakgrunn"]) < 4.5
     lenke = _blokk(".varsel a")

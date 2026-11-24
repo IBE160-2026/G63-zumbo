@@ -25,9 +25,9 @@ context:
 - **`web.lag_app`:** får `ny_ki_klient` og sender den til `Tjeneste`, slik at testene og demoen kan bruke en falsk Claude.
 - **`GET /forklaring`:** samme parametre som `/`, sjekket i `Utvalg.fra_parametre`. Ugyldig eller tomt utvalg gir `400` («Ugyldig utvalg.»), og `app.js` viser da `data-feiltekst`. Ellers `tjeneste.svar` og så `tjeneste.forklaring`, og fragmentet `_forklaring.html` med status `200`. Svaret har `Cache-Control: no-store`.
 - **Tekstene** står i malene (AD-6, AD-9): `templates/_ki_tekster.html` har `ki_feil` og `mangler_nøkkel`, og både `index.html` (`data-feiltekst`) og `_forklaring.html` importerer dem, så feilteksten er den samme.
-- **`web` importerer ikke `ki`** (diagrammet i arkitektur §2). `tjeneste` gir videre `Forklaring`, `ManglerNøkkel` og `KiFeil`, og `web` bruker dem derfra.
   - Uten nøkkel: «KI-forklaringen krever en KI-nøkkel. Graf, tabell og varsel er komplette uten den.»
   - Feil: «Forklaringen kunne ikke lages akkurat nå.»
+- **`web` importerer ikke `ki`** (diagrammet i arkitektur §2). `tjeneste` gir videre `Forklaring`, `ManglerNøkkel` og `KiFeil`, og `web` bruker dem derfra.
 - **Forklaringen:** avsnitt delt på tomme linjer, Jinja2 escaper teksten. Kildehenvisningen er `kildetekst(resultat.kilde)`, den samme som under tabellen (FR-12).
 - **`app.js`:** finner `#forklaring[data-adresse]`, henter med `fetch`, og setter inn fragmentet bare ved status 200. Nettverksfeil eller annen status gir `data-feiltekst`. Uten JavaScript sier en `<noscript>` at forklaringen krever JavaScript.
 - **Demo uten nøkkel:** `backend/scripts/vis_forklaring.py <forklaring|uten-nokkel|feil>` starter appen på port 8001 med en falsk Claude (to sekunders pause, så ventetekst synes) og en midlertidig cache, så en falsk forklaring aldri havner i `.cache/ki/`. Port 8001 fordi den vanlige appen ofte kjører på 8000. Prøvd mot ekte FHI i alle tre utfallene.
@@ -35,7 +35,3 @@ context:
 - **Tester:** `test_web_forklaring.py` med `TestClient`: området på siden, at `GET /` ikke kaller `ki`, fragmentet for alle tre utfallene, kildehenvisningen, escaping, ugyldige parametre og at Claude aldri kalles uten nøkkel. `test_vis_forklaring.py` for demoskriptet. Ingen test kaller Claude.
 - pytest: 785 passed. ruff check og ruff format: OK.
 - **Ikke testet automatisk:** at `app.js` faktisk setter inn fragmentet i en nettleser (ingen nettlesertest, se story 3.7). Testene leser JavaScript-teksten.
-</content>
-</invoke>
-<invoke name="Bash">
-<parameter name="command">cat /Users/irenezumbo/fhi-helsedata/_bmad/render/bmad-build/fhi-helsedata-649fa7292272/9c01d9d21cfc49029950/step-oneshot.md

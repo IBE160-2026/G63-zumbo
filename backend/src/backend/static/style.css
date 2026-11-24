@@ -1,4 +1,12 @@
 /* Stilen for siden. Bygges ut i story 3.7 (kontrast, fokus og mobil). */
+
+:root {
+  /* Fargene i grafen. app.js leser dem herfra. */
+  --graf-linje: #1f5fa8;
+  --graf-bakgrunn: #ffffff;
+  --graf-tekst: #1a1a1a;
+  --graf-rutenett: #d0d0d0;
+}
 body {
   font-family: system-ui, sans-serif;
   line-height: 1.5;
@@ -39,4 +47,13 @@ tbody th {
   position: absolute;
   white-space: nowrap;
   width: 1px;
+}
+
+.graf {
+  margin: 1.5rem 0;
+}
+
+.grafboks {
+  position: relative;
+  height: 20rem;
 }

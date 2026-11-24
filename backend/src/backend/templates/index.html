@@ -57,6 +57,15 @@
 {% set uker = resultat.serie.uker %}
 {% set har_usikker = uker|selectattr("usikker")|list|length > 0 %}
 {% set har_flere_positive = uker|selectattr("flere_positive_enn_tester")|list|length > 0 %}
+<figure class="graf">
+  <figcaption><h2 id="graftittel">{{ resultat.utvalg|utvalgstekst }}</h2></figcaption>
+  <div class="grafboks">
+    <canvas id="graf" role="img" aria-label="{{ resultat.serie|alternativtekst }}">{{ resultat.serie|alternativtekst }}</canvas>
+  </div>
+  <p class="grafforklaring"><span aria-hidden="true">●</span> Sikker uke <span aria-hidden="true">○</span> Usikker uke: færre enn 30 tester, skjult antall tester eller flere positive prøver enn tester.</p>
+  <script type="application/json" id="grafdata">{{ resultat.serie|grafdata|tojson }}</script>
+</figure>
+
 <section class="tall" aria-labelledby="tabelltittel">
   <h2 id="tabelltittel">Tallene uke for uke</h2>
   <div class="tabellboks" role="region" aria-labelledby="tabelltekst" tabindex="0">
@@ -99,5 +108,12 @@
   <p class="kilde">{{ resultat.kilde.kildetekst }} Tabell {{ resultat.kilde.tabell }} «{{ resultat.kilde.tabellnavn }}». Hentet {{ resultat.kilde.hentet|tidspunkt }}.</p>
   {% endif %}
 </section>
+{% endif %}
+{% endblock %}
+
+{% block skript %}
+{% if resultat and resultat.serie is not none %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" crossorigin="anonymous" defer></script>
+<script src="{{ url_for('static', path='app.js') }}" defer></script>
 {% endif %}
 {% endblock %}

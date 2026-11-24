@@ -92,3 +92,10 @@
   summary: Irene bør vurdere om overskriften «For tynt datagrunnlag» passer når bare R5 slår inn (perioden går over 1. mars 2025). R5 handler om sammenlignbarhet, ikke om for få tall.
   evidence: Overskriften følger PRD-ens skisse (§6.0) og begrepet «Varsel om tynt datagrunnlag» (PRD kapittel 3), som gjelder alle fem reglene. Alle utvalg i 2024/2025 får varselet bare på grunn av R5. Ordvalg, lav alvorlighet. Passer å ta med i brukertestingen (epic 5).
   status: løst 2026-11-24 i story 3.7 — Irenes beslutning: overskriften beholdes som «For tynt datagrunnlag».
+
+## Deferred from: code review of spec-4-3-ki-forklaring-med-tre-utfall.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-3-ki-forklaring-med-tre-utfall.md`
+  summary: Ingen test sammenligner den ferdige HTML-tabellen med `formatering.ukelinje`.
+  evidence: I dag sikres likheten ved at Jinja2-filtrene er de samme funksjonene (`test_tabellen_bruker_de_samme_funksjonene_som_prompten`). Får tabellen egne tekster i `index.html`, bør testen sammenligne den ferdige tabellen.
+

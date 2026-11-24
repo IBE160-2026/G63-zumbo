@@ -16,7 +16,7 @@ from backend.domene import ALDERSGRUPPER, VIRUS, Kildehenvisning, Uke, Utvalg
 NORSK_TID = ZoneInfo("Europe/Oslo")
 """Hentetidspunktet vises i norsk tid (AD-5). Lagret tid er UTC."""
 
-HARDT_MELLOMROM = " "
+HARDT_MELLOMROM = "\u00a0"
 """Mellomrom som ikke brytes, i tall og foran «%» (arkitektur §4)."""
 
 

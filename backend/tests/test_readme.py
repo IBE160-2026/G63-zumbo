@@ -47,3 +47,6 @@ def test_readme_forklarer_hvordan_nøkkelen_settes_i_env(readme: str) -> None:
     assert "cp .env.example .env" in seksjon
     assert "ANTHROPIC_API_KEY=" in seksjon
     assert "claude-haiku-5-5" in seksjon
+    assert "Start appen på nytt" in seksjon
+    assert "vinner over" in seksjon
+    assert "tom verdi regnes som ikke satt" in seksjon.lower()

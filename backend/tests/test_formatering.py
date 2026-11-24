@@ -14,7 +14,7 @@ import pytest
 from backend import formatering, web
 from backend.domene import Uke, kildehenvisning
 
-NBSP = " "
+NBSP = "\u00a0"
 
 
 @pytest.mark.parametrize(
@@ -33,12 +33,13 @@ def test_ukelinje_viser_uka_slik_tabellen_gjør(verdi: Uke, tekst: str) -> None:
     assert formatering.ukelinje(verdi) == tekst
 
 
-def test_ukelinje_bruker_de_samme_tekstene_som_tabellen() -> None:
-    u = Uke(2025, 50, 12345, 678)
-    assert formatering.ukelinje(u) == (
-        f"{web.uke(u)}: {web.tall(u.tester)} tester, "
-        f"{web.tall(u.positive)} positive, {web.andelstekst(u)}"
-    )
+@pytest.mark.parametrize(
+    "navn", ["tall", "andelstekst", "uke", "kildetekst", "utvalgstekst"]
+)
+def test_tabellen_bruker_de_samme_funksjonene_som_prompten(navn: str) -> None:
+    # Tabellen og kilden på siden lages med Jinja2-filtrene i `web`. Er filtrene
+    # de samme funksjonene som `ukelinje` og `ki` bruker, står tallene likt.
+    assert web.maler.env.filters[navn] is getattr(formatering, navn)
 
 
 def test_kildetekst_er_den_samme_som_under_grafen() -> None:

@@ -167,7 +167,7 @@ _TRYGG_NØKKEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 _SESONG = re.compile(r"([0-9]{4})/([0-9]{4})")
 
 
-def _er_sesong(tekst: object) -> bool:
+def er_sesong(tekst: object) -> bool:
     """Sann for en sesong skrevet «2025/2026», der andre år er første år + 1."""
     treff = isinstance(tekst, str) and _SESONG.fullmatch(tekst)
     return bool(treff) and int(treff[2]) == int(treff[1]) + 1
@@ -215,7 +215,7 @@ class Utvalg:
         """
         if isinstance(gyldige_sesonger, str):
             raise TypeError("gyldige_sesonger må være en liste, ikke én tekst")
-        sesonger = list(dict.fromkeys(s for s in gyldige_sesonger if _er_sesong(s)))
+        sesonger = list(dict.fromkeys(s for s in gyldige_sesonger if er_sesong(s)))
         mal = parametre.get("mal") or ""
         virus = parametre.get("virus") or ""
         sesong = parametre.get("sesong") or ""
@@ -255,7 +255,7 @@ class Utvalg:
             or self.mal not in MALER
             or self.virus not in VIRUS
             or self.aldersgruppe not in ALDERSGRUPPER
-            or not _er_sesong(self.sesong)
+            or not er_sesong(self.sesong)
         ):
             raise ValueError("utvalget gir ikke et trygt filnavn")
         deler = [f"mal{self.mal}", self.virus, self.sesong, self.aldersgruppe]

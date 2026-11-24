@@ -5,9 +5,10 @@ eller filer, og får «nå» som argument. En uke er en tuple `(år, ukenummer)`
 ISO-kalenderen, så uker kan sammenlignes og sorteres direkte.
 """
 
-import re
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
+
+from backend.domene import er_sesong
 
 FØRSTE_UKE = 40
 """Sesongen starter i uke 40 (PRD kapittel 3)."""
@@ -21,19 +22,24 @@ FØRSTE_SESONG = 2024
 LEVETID = timedelta(hours=24)
 """Lagrede tall som er så gamle eller eldre, er utdaterte (FR-7, AD-5)."""
 
+TOLERANSE = timedelta(minutes=5)
+"""Så langt frem i tid kan `hentet` ligge og likevel regnes som ferskt."""
+
 NORSK_TID = ZoneInfo("Europe/Oslo")
 
-_SESONG = re.compile(r"([0-9]{4})/([0-9]{4})")
-
-Uke = tuple[int, int]
+IsoUke = tuple[int, int]
+"""En ISO-uke som `(år, ukenummer)`. Ikke det samme som `domene.Uke`, som har tall."""
 
 
 def startår(sesong: str) -> int:
-    """Første år i en sesong skrevet «2025/2026». Gir `ValueError` ellers."""
-    treff = _SESONG.fullmatch(sesong) if isinstance(sesong, str) else None
-    if not treff or int(treff[2]) != int(treff[1]) + 1:
+    """Første år i en sesong skrevet «2025/2026». Gir `ValueError` ellers.
+
+    Formatet sjekkes med `domene.er_sesong`, slik at `Utvalg` og `sesong` godtar
+    de samme sesongene.
+    """
+    if not er_sesong(sesong):
         raise ValueError(f"ugyldig sesong: {sesong!r}")
-    return int(treff[1])
+    return int(sesong[:4])
 
 
 def navn(år: int) -> str:
@@ -41,15 +47,19 @@ def navn(år: int) -> str:
     return f"{år}/{år + 1}"
 
 
-def _sjekk_uke(uke: Uke) -> None:
-    år, ukenummer = uke
+def _sjekk_uke(uke: IsoUke) -> IsoUke:
+    """Gir uka som en tuple, eller `ValueError` hvis den ikke finnes."""
     try:
+        år, ukenummer = uke
+        if type(år) is not int or type(ukenummer) is not int:
+            raise TypeError
         date.fromisocalendar(år, ukenummer, 1)
     except (TypeError, ValueError):
         raise ValueError(f"uka finnes ikke: {uke!r}") from None
+    return (år, ukenummer)
 
 
-def uker(sesong: str, siste_publiserte_uke: Uke | None = None) -> tuple[Uke, ...]:
+def uker(sesong: str, siste_publiserte_uke: IsoUke | None = None) -> tuple[IsoUke, ...]:
     """Ukene i sesongen i rekkefølge: uke 40 til og med uke 20 året etter.
 
     Uke 53 er med når startåret har den (FR-3). Er `siste_publiserte_uke` gitt,
@@ -58,7 +68,7 @@ def uker(sesong: str, siste_publiserte_uke: Uke | None = None) -> tuple[Uke, ...
     """
     år = startår(sesong)
     if siste_publiserte_uke is not None:
-        _sjekk_uke(siste_publiserte_uke)
+        siste_publiserte_uke = _sjekk_uke(siste_publiserte_uke)
     dag = date.fromisocalendar(år, FØRSTE_UKE, 1)
     slutt = date.fromisocalendar(år + 1, SISTE_UKE, 1)
     resultat = []
@@ -94,8 +104,12 @@ def sesonger_fra_dato(nå: datetime) -> tuple[str, ...]:
 def er_utdatert(hentet: datetime, nå: datetime) -> bool:
     """Sann når tallene er hentet for 24 timer siden eller mer (FR-7, AD-5).
 
-    Begge tidspunktene må ha tidssone. Et `hentet` frem i tid regnes som ferskt.
+    Begge tidspunktene må ha tidssone. Tiden regnes i UTC, slik at skiftet til og
+    fra sommertid ikke gjør en time for mye eller for lite. Ligger `hentet` mer
+    enn fem minutter frem i tid, har klokka vært feil, og tallene regnes som
+    utdaterte, slik at de hentes på nytt.
     """
     _må_ha_tidssone("hentet", hentet)
     _må_ha_tidssone("nå", nå)
-    return nå - hentet >= LEVETID
+    alder = nå.astimezone(UTC) - hentet.astimezone(UTC)
+    return alder >= LEVETID or alder < -TOLERANSE

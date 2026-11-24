@@ -1,7 +1,6 @@
 """Tester for sesonger, ISO-uker og utdaterte tall (story 2.3, FR-3, FR-7, AD-5)."""
 
 import ast
-import sys
 from datetime import UTC, date, datetime, timedelta, timezone
 from itertools import pairwise
 from pathlib import Path
@@ -19,6 +18,17 @@ def test_sesong_2026_2027_har_uke_53_som_vanlig_uke() -> None:
     assert uker[-1] == (2027, 20)
     assert uker[12:15] == ((2026, 52), (2026, 53), (2027, 1))
     assert len(uker) == 34
+
+
+def test_sesong_2020_2021_har_også_uke_53() -> None:
+    uker = sesong.uker("2020/2021")
+    assert (2020, 53) in uker
+    assert len(uker) == 34
+
+
+def test_første_sesong_2024_2025() -> None:
+    uker = sesong.uker("2024/2025")
+    assert (uker[0], uker[-1], len(uker)) == ((2024, 40), (2025, 20), 33)
 
 
 def test_sesong_uten_uke_53() -> None:
@@ -66,16 +76,54 @@ def test_siste_publiserte_uke_før_sesongstart_gir_ingen_uker() -> None:
 
 
 @pytest.mark.parametrize(
-    "navn", ["2026-2027", "2026/2028", "2027/2026", "26/27", "", " 2026/2027"]
+    "navn",
+    [
+        "2026-2027",
+        "2026/2028",
+        "2027/2026",
+        "26/27",
+        "",
+        " 2026/2027",
+        "2026/2027\n",
+        "２０２６/２０２７",
+        None,
+        2026,
+    ],
 )
-def test_ugyldig_sesong_avvises(navn: str) -> None:
+def test_ugyldig_sesong_avvises(navn: object) -> None:
     with pytest.raises(ValueError):
         sesong.uker(navn)
 
 
-def test_uke_som_ikke_finnes_avvises() -> None:
+@pytest.mark.parametrize(
+    "uke",
+    [(2025, 53), (2026, 0), (2026, 54), (2026,), (2026, 47, 1), 2026, (None, 47)],
+)
+def test_uke_som_ikke_finnes_avvises(uke: object) -> None:
+    with pytest.raises(ValueError, match="uka finnes ikke"):
+        sesong.uker("2025/2026", uke)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("uke", [(True, 40), (2026.0, 47)])
+def test_uke_må_være_heltall(uke: object) -> None:
     with pytest.raises(ValueError):
-        sesong.uker("2025/2026", (2025, 53))
+        sesong.uker("2026/2027", uke)  # type: ignore[arg-type]
+
+
+def test_siste_publiserte_uke_kan_være_en_liste() -> None:
+    assert sesong.uker("2026/2027", [2026, 41]) == ((2026, 40), (2026, 41))  # type: ignore[arg-type]
+
+
+def test_samme_sesongregel_som_utvalg() -> None:
+    from backend import domene
+
+    for tekst in ["2025/2026", "2025/2027", "2025-2026", "2025/2026\n"]:
+        try:
+            sesong.startår(tekst)
+            godtatt = True
+        except ValueError:
+            godtatt = False
+        assert godtatt is domene.er_sesong(tekst)
 
 
 def test_startår_og_navn() -> None:
@@ -96,6 +144,9 @@ def norsk(år: int, måned: int, dag: int, time: int = 12, minutt: int = 0) -> d
         (norsk(2026, 11, 24), "2026/2027"),
         (norsk(2027, 3, 1), "2026/2027"),
         (norsk(2027, 5, 20), "2026/2027"),
+        (norsk(2027, 5, 24, 0, 0), "2026/2027"),
+        (norsk(2027, 1, 1), "2026/2027"),
+        (norsk(2026, 1, 1), "2025/2026"),
         (norsk(2026, 7, 1), "2025/2026"),
         (norsk(2025, 10, 1), "2025/2026"),
         (norsk(2025, 9, 28), "2024/2025"),
@@ -156,8 +207,36 @@ def test_tidssonen_spiller_ingen_rolle_for_grensen() -> None:
     assert sesong.er_utdatert(HENTET, nå) is False
 
 
-def test_hentet_frem_i_tid_er_ferskt() -> None:
-    assert sesong.er_utdatert(HENTET, HENTET - timedelta(hours=1)) is False
+@pytest.mark.parametrize(
+    ("hentet", "nå", "utdatert"),
+    [
+        # Vintertid starter 25.10.2026: 24 ekte timer er bare 23 på veggklokka.
+        (datetime(2026, 10, 24, 12, 0), datetime(2026, 10, 25, 11, 0), True),
+        (datetime(2026, 10, 24, 12, 0), datetime(2026, 10, 25, 10, 59), False),
+        # Sommertid starter 28.3.2027: 24 ekte timer er 25 på veggklokka.
+        (datetime(2027, 3, 27, 12, 0), datetime(2027, 3, 28, 12, 30), False),
+        (datetime(2027, 3, 27, 12, 0), datetime(2027, 3, 28, 13, 0), True),
+    ],
+)
+def test_grensen_over_skifte_til_og_fra_sommertid(
+    hentet: datetime, nå: datetime, utdatert: bool
+) -> None:
+    hentet = hentet.replace(tzinfo=sesong.NORSK_TID)
+    nå = nå.replace(tzinfo=sesong.NORSK_TID)
+    assert sesong.er_utdatert(hentet, nå) is utdatert
+
+
+@pytest.mark.parametrize(
+    ("frem_i_tid", "utdatert"),
+    [
+        (timedelta(minutes=5), False),
+        (timedelta(minutes=5, microseconds=1), True),
+        (timedelta(hours=1), True),
+        (timedelta(days=30), True),
+    ],
+)
+def test_hentet_frem_i_tid(frem_i_tid: timedelta, utdatert: bool) -> None:
+    assert sesong.er_utdatert(HENTET + frem_i_tid, HENTET) is utdatert
 
 
 @pytest.mark.parametrize(
@@ -179,7 +258,7 @@ def _tre() -> ast.Module:
     return ast.parse(Path(sesong.__file__).read_text(encoding="utf-8"))
 
 
-def test_sesong_importerer_bare_standardbiblioteket_og_domene() -> None:
+def test_sesong_importerer_bare_det_den_trenger() -> None:
     moduler: set[str] = set()
     for node in ast.walk(_tre()):
         if isinstance(node, ast.Import):
@@ -187,17 +266,19 @@ def test_sesong_importerer_bare_standardbiblioteket_og_domene() -> None:
         elif isinstance(node, ast.ImportFrom):
             assert node.level == 0, "sesong skal ikke ha relative importer"
             moduler.add(node.module or "")
-    fra_backend = {m for m in moduler if m.split(".")[0] == "backend"}
-    assert fra_backend <= {"backend.domene"}, fra_backend
-    andre = {m.split(".")[0] for m in moduler - fra_backend}
-    assert andre <= set(sys.stdlib_module_names), andre
+    assert moduler <= {"datetime", "zoneinfo", "backend.domene"}, moduler
 
 
-def test_sesong_bruker_ikke_klokka() -> None:
-    kall = {
-        node.attr
-        for node in ast.walk(_tre())
-        if isinstance(node, ast.Attribute)
-        and node.attr in {"now", "today", "utcnow", "time", "monotonic"}
-    }
-    assert kall == set()
+KLOKKE_OG_FILER = {"now", "today", "utcnow", "time", "monotonic", "open", "environ"}
+
+
+def test_sesong_bruker_ikke_klokka_eller_filer() -> None:
+    navn = set()
+    for node in ast.walk(_tre()):
+        if isinstance(node, ast.Attribute):
+            navn.add(node.attr)
+        elif isinstance(node, ast.Name):
+            navn.add(node.id)
+        elif isinstance(node, ast.alias):
+            navn.add(node.name)
+    assert navn & KLOKKE_OG_FILER == set()

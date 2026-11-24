@@ -64,3 +64,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-velge-mal-og-utvalg-pa-siden.md`
   summary: Meldingen for ukjent mal bruker malens tittel («Andel positive tester uke for uke»), mens skjemaet viser malen som spørsmål (FR-1).
   evidence: `fra_parametre` bygger `Velg en mal: «{m.tittel}»`. Gjelder bare en manipulert URL. Kan vurderes når mal 2 kommer (epic 8). Lav alvorlighet.
+
+## Deferred from: code review of spec-3-2-tabell-kildehenvisning-og-feilmelding.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-2-tabell-kildehenvisning-og-feilmelding.md`
+  summary: Irene bør avgjøre om andelen for en uke med 0 tester skal vise «mangler» eller en annen tekst (for eksempel «kan ikke regnes ut»).
+  evidence: `andel(None)` gir «mangler» både for skjulte tall og for 0 tester (FR-10: «ingen andel»). Ved siden av de kjente tallene «0» og «45» kan «mangler» leses som at FHI har skjult andelen. Ordvalg, lav alvorlighet. Kan tas med i brukertestingen (epic 5).

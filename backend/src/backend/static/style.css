@@ -11,3 +11,32 @@ label {
   display: block;
   font-weight: 600;
 }
+
+.tabellboks {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.25rem 0.75rem;
+  text-align: right;
+}
+
+thead th,
+tbody th {
+  text-align: left;
+}
+
+/* Tekst bare for skjermlesere. */
+.for-skjermleser {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

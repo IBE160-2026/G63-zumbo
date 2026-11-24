@@ -48,6 +48,10 @@ Web-appen finnes ikke ennå. Kommandoen for å starte den lokalt skrives inn her
 
 `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
 
+### Mellomlager
+
+Appen lagrer svar fra FHI i `.cache/` i reporoten, slik at tall du har sett før, vises uten nytt kall, også når FHI er nede. Tall som er 24 timer eller eldre, hentes på nytt. Vil du ha mellomlageret et annet sted, setter du `CACHE_DIR` i `.env` eller i miljøet. Mappen kan slettes når som helst; alt hentes på nytt.
+
 ## Struktur
 
 - backend/: Python-prosjekt (uv)

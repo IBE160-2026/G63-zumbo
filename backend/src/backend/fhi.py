@@ -1,15 +1,21 @@
-"""Tolking av svar fra FHIs åpne API, formatet `json-stat2` (AD-3).
+"""Henting og tolking av svar fra FHIs åpne API, formatet `json-stat2` (AD-3).
 
-Tolkefunksjonene her er rene (AD-1): de bruker ikke nettet, filer eller klokka,
-og importerer bare standardbiblioteket, `domene` og `sesong`. Formatet og
-særhetene står i `tests/fixtures/fhi/README.md`. Bare denne modulen og `domene`
-kjenner FHIs koder (AD-2).
+`hent` og `hent_dimensjoner` er den eneste koden som kaller
+`statistikk-data.fhi.no`. Alle feil derfra blir `FhiUtilgjengelig`.
+
+Tolkefunksjonene (`tolk`, `siste_publiserte_uke`, `sesonger`, `les_ukekode`) er
+rene (AD-1): de bruker ikke nettet, filer eller klokka, og bruker bare
+standardbiblioteket, `domene` og `sesong`. Formatet og særhetene står i
+`tests/fixtures/fhi/README.md`. Bare denne modulen og `domene` kjenner FHIs koder
+(AD-2).
 """
 
 import math
 import re
 from collections.abc import Mapping, Sequence
 from typing import Any
+
+import httpx
 
 from backend import sesong
 from backend.domene import ALDERSGRUPPER, Dataserie, Uke, Utvalg
@@ -19,6 +25,7 @@ UKEDIMENSJON = "dateusedforstatistics"
 MÅLTALL = "MEASURE_TYPE"
 POSITIVE = "Detections"
 TESTER = "Tests"
+ANDEL = "pos_rate"
 ALDERSDIMENSJON = "aldersgruppe"
 
 FASTE_FILTRE: Mapping[int, Mapping[str, str]] = {
@@ -212,3 +219,109 @@ def _tolk(svar: Mapping[str, Any], utvalg: Utvalg, siste: IsoUke | None) -> Data
             tester = _tall(verdi(plass + måltall[TESTER] * steg[MÅLTALL]))
         uker.append(Uke(uke[0], uke[1], tester, positive))
     return Dataserie(utvalg=utvalg, uker=tuple(uker))
+
+
+# --- Henting fra FHI (skallet, AD-3) ---
+
+BASE_URL = "https://statistikk-data.fhi.no/api/open/v1/msis"
+TIDSGRENSE = httpx.Timeout(10.0)
+"""Gir opp etter 10 sekunder (FR-8). Gjelder hvert steg: tilkobling, sending og
+hver lesing."""
+
+
+class FhiUtilgjengelig(Exception):
+    """FHI svarte ikke, svarte med feil, eller sendte et ugyldig svar (FR-8).
+
+    Den opprinnelige feilen ligger i `__cause__`, slik at `tjeneste` kan logge
+    den. Meldingen er teknisk og skal ikke vises til brukeren.
+    """
+
+
+def ukekode(uke: IsoUke) -> str:
+    """`(2025, 40)` → `"2025-w40"`, slik FHI skriver uker."""
+    år, ukenummer = sesong.sjekk_uke(uke)
+    return f"{år}-w{ukenummer:02d}"
+
+
+def forespørsel(utvalg: Utvalg, siste_publiserte_uke: IsoUke) -> dict[str, Any]:
+    """Kroppen i `POST …/Table/<tabell>/data` for utvalget (FR-2, FR-6).
+
+    Ukene er sesongens uker frem til siste publiserte uke. Gir `ValueError` for
+    en tabell som ikke kan hentes ennå, eller en sesong uten publiserte uker.
+    """
+    if utvalg.tabell not in FASTE_FILTRE:
+        raise ValueError(f"tabell {utvalg.tabell} kan ikke hentes ennå")
+    uker = sesong.uker(utvalg.sesong, siste_publiserte_uke)
+    if not uker:
+        raise ValueError(f"sesongen {utvalg.sesong} har ingen publiserte uker")
+    filtre = {
+        UKEDIMENSJON: [ukekode(u) for u in uker],
+        ALDERSDIMENSJON: [ALDERSGRUPPER[utvalg.aldersgruppe].fhi_kode],
+        **{kode: [verdi] for kode, verdi in FASTE_FILTRE[utvalg.tabell].items()},
+        MÅLTALL: [POSITIVE, TESTER, ANDEL],
+    }
+    return {
+        "dimensions": [
+            {"code": kode, "filter": "item", "values": verdier}
+            for kode, verdier in filtre.items()
+        ],
+        "response": {"format": "json-stat2"},
+    }
+
+
+def _kall(
+    metode: str, url: str, klient: httpx.Client | None, **kwargs: Any
+) -> dict[str, Any]:
+    """Ett kall til FHI. Alle feil, også ugyldig JSON, blir `FhiUtilgjengelig`."""
+    try:
+        if klient is None:
+            with httpx.Client(timeout=TIDSGRENSE) as ny_klient:
+                svar = ny_klient.request(metode, url, **kwargs)
+        else:
+            svar = klient.request(metode, url, timeout=TIDSGRENSE, **kwargs)
+        svar.raise_for_status()
+        innhold = svar.json()
+    except (httpx.HTTPError, ValueError) as feil:
+        raise FhiUtilgjengelig(f"{metode} {url}: {feil!r}") from feil
+    if not isinstance(innhold, dict):
+        raise FhiUtilgjengelig(f"{metode} {url}: svaret er ikke et JSON-objekt")
+    return innhold
+
+
+def hent_dimensjoner(
+    tabell: int, *, klient: httpx.Client | None = None
+) -> dict[str, Any]:
+    """Henter dimensjonslisten for tabellen, rått (AD-3, AD-4).
+
+    Svaret sjekkes med `siste_publiserte_uke` og `sesonger` før det returneres.
+    """
+    url = f"{BASE_URL}/Table/{tabell}/dimension"
+    svar = _kall("GET", url, klient)
+    try:
+        siste_publiserte_uke(svar)
+        sesonger(svar)
+    except ValueError as feil:
+        raise FhiUtilgjengelig(f"GET {url}: ugyldig dimensjonsliste") from feil
+    return svar
+
+
+def hent(
+    utvalg: Utvalg,
+    siste_publiserte_uke: IsoUke,
+    *,
+    klient: httpx.Client | None = None,
+) -> dict[str, Any]:
+    """Henter tallene for utvalget fra FHI, rått (FR-6, FR-8, AD-3).
+
+    Svaret sjekkes med `tolk` før det returneres, slik at bare svar som kan
+    tolkes havner i cachen. Gir `FhiUtilgjengelig` ved tidsavbrudd etter
+    10 sekunder, nettverksfeil, HTTP-feil og ugyldig svar.
+    """
+    kropp = forespørsel(utvalg, siste_publiserte_uke)
+    url = f"{BASE_URL}/Table/{utvalg.tabell}/data"
+    svar = _kall("POST", url, klient, json=kropp)
+    try:
+        tolk(svar, utvalg, siste_publiserte_uke)
+    except ValueError as feil:
+        raise FhiUtilgjengelig(f"POST {url}: ugyldig svar") from feil
+    return svar

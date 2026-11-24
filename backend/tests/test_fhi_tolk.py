@@ -365,8 +365,20 @@ def test_andre_tabeller_kan_ikke_tolkes_ennå() -> None:
 
 # --- Ren kjerne (AD-1) ---
 
+TOLKEFUNKSJONER = {
+    "les_ukekode",
+    "_ukekoder_i_dimensjonslisten",
+    "siste_publiserte_uke",
+    "sesonger",
+    "_kategorier",
+    "_tall",
+    "_sjekk_filtre",
+    "tolk",
+    "_tolk",
+}
 
-def test_tolkingen_importerer_ikke_skallmoduler() -> None:
+
+def test_fhi_importerer_ikke_andre_skallmoduler() -> None:
     tre = ast.parse(Path(fhi.__file__).read_text(encoding="utf-8"))
     moduler: set[str] = set()
     for node in ast.walk(tre):
@@ -374,16 +386,22 @@ def test_tolkingen_importerer_ikke_skallmoduler() -> None:
             moduler |= {a.name for a in node.names}
         elif isinstance(node, ast.ImportFrom):
             moduler.add(node.module or "")
-    forbudt = {
-        "httpx",
-        "anthropic",
-        "backend.mellomlager",
-        "backend.config",
-        "backend.web",
-    }
+    forbudt = {"anthropic", "backend.mellomlager", "backend.config", "backend.web"}
     assert moduler & forbudt == set()
     assert {m for m in moduler if m.startswith("backend")} <= {
         "backend",
         "backend.domene",
         "backend.sesong",
     }
+
+
+def test_tolkefunksjonene_bruker_ikke_httpx_eller_nettet() -> None:
+    tre = ast.parse(Path(fhi.__file__).read_text(encoding="utf-8"))
+    funksjoner = {
+        node.name: node for node in tre.body if isinstance(node, ast.FunctionDef)
+    }
+    assert TOLKEFUNKSJONER <= set(funksjoner)
+    skall = {"httpx", "_kall", "hent", "hent_dimensjoner", "open"}
+    for navn in TOLKEFUNKSJONER:
+        brukt = {n.id for n in ast.walk(funksjoner[navn]) if isinstance(n, ast.Name)}
+        assert brukt & skall == set(), (navn, brukt & skall)

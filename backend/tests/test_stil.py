@@ -100,6 +100,7 @@ def test_fargene_er_fhis_palett() -> None:
     assert v["--varselfarge"].upper() == "#D14641"
     assert v["--bakgrunn"].upper() == "#FFFFFF"
     assert v["--tekst"].upper() == "#222222"
+    assert v["--varselbakgrunn"].upper() == "#FBD1CD"  # Rød 3
 
 
 @pytest.mark.parametrize(
@@ -111,6 +112,8 @@ def test_fargene_er_fhis_palett() -> None:
         ("--varselfarge", "--bakgrunn", 4.5),  # ikonet og rammen i varselet
         ("--graf-tekst", "--graf-bakgrunn", 4.5),  # akser og etiketter i grafen
         ("--graf-linje", "--graf-bakgrunn", 3.0),  # linje og punkter i grafen
+        ("--tekst", "--varselbakgrunn", 4.5),  # tekst og lenke i varselet
+        ("--varselfarge", "--varselbakgrunn", 3.0),  # ikonet i varselet
     ],
 )
 def test_kontrasten_holder_grensene(
@@ -264,3 +267,22 @@ def test_chatbotteksten_står_nederst_på_siden(klient: TestClient, sti: str) ->
     etter = html[html.index('<section class="om-appen"') :]
     assert "<section" not in etter[1:]
     assert etter.index("</main>") < etter.index('<footer class="avsender">')
+
+
+def test_varselet_er_rosa_med_ramme_og_ikon_i_rød_1() -> None:
+    """Irenes beslutning 24.11.2026 (FR-19)."""
+    varsel = _blokk(".varsel")
+    assert "background: var(--varselbakgrunn)" in varsel
+    assert "border: 2px solid var(--varselfarge)" in varsel
+    assert "color: var(--varselfarge)" in _blokk(".varselikon")
+    # Hovedfargen har for lav kontrast mot rosa, så lenken har tekstfargen.
+    v = variabler()
+    assert kontrast(v["--hovedfarge"], v["--varselbakgrunn"]) < 4.5
+    assert "color: var(--tekst)" in _blokk(".varsel a")
+
+
+def test_markert_rad_er_ikke_bare_farge() -> None:
+    markert = _blokk("tbody tr.markert th,\ntbody tr.markert td")
+    assert "font-weight: 600" in markert
+    assert "border-top: 2px solid" in markert
+    assert "border-bottom: 2px solid" in markert

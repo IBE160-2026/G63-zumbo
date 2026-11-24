@@ -1,18 +1,116 @@
-/* Stilen for siden. Bygges ut i story 3.7 (kontrast, fokus og mobil). */
+/* Stilen for siden (story 3.7, NFR-4, NFR-5, NFR-7, NFR-11).
+
+   Alle farger står som variabler i :root og ingen andre steder. app.js leser
+   graffargene herfra, og testene i tests/test_stil.py regner ut kontrasten.
+   Fargene er fra FHIs palett (Irenes valg 24.11.2026). Siden bruker ikke FHIs
+   logo. */
+
+/* Skriftene ligger i static/fonts/ og hentes ikke fra Google. Begge har
+   lisensen SIL Open Font License 1.1 (OFL-fraunces.txt og OFL-poppins.txt).
+   Bare tegnsettet «latin» er med, og det dekker æ, ø, å og «». */
+@font-face {
+  font-family: "Fraunces";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/fraunces.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/poppins-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/poppins-600.woff2") format("woff2");
+}
 
 :root {
+  /* FHIs palett. */
+  --hovedfarge: #386E84;
+  --varselfarge: #D14641;
+  --bakgrunn: #FFFFFF;
+  --tekst: #222222;
+  /* Tekst på knapper med hovedfargen som bakgrunn. */
+  --knappetekst: #FFFFFF;
+  /* Bare pynt: rutenett i grafen og tynne skillelinjer. Bærer ingen
+     informasjon, så kravet om 3:1 gjelder ikke. */
+  --skillelinje: #D0D0D0;
+
   /* Fargene i grafen. app.js leser dem herfra. */
-  --graf-linje: #1f5fa8;
-  --graf-bakgrunn: #ffffff;
-  --graf-tekst: #1a1a1a;
-  --graf-rutenett: #d0d0d0;
+  --graf-linje: var(--hovedfarge);
+  --graf-bakgrunn: var(--bakgrunn);
+  --graf-tekst: var(--tekst);
+  --graf-rutenett: var(--skillelinje);
+
+  --skrift-overskrift: "Fraunces", Georgia, serif;
+  --skrift-tekst: "Poppins", system-ui, sans-serif;
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
+  background: var(--bakgrunn);
+  color: var(--tekst);
+  font-family: var(--skrift-tekst);
+  line-height: 1.6;
   margin: 0 auto;
   max-width: 60rem;
+  overflow-wrap: break-word;
   padding: 1rem;
+}
+
+h1,
+h2 {
+  font-family: var(--skrift-overskrift);
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0.5rem 0 1rem;
+}
+
+h2 {
+  font-size: 1.35rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+a {
+  color: var(--hovedfarge);
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.15em;
+}
+
+/* Synlig fokusmarkering på alt som kan nås med Tab (NFR-5). Hovedfargen har
+   over 3:1 mot bakgrunnen. */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--hovedfarge);
+  outline-offset: 2px;
+}
+
+/* --- Skjemaet --- */
+
+.skjema p {
+  margin: 0 0 0.75rem;
 }
 
 label {
@@ -20,48 +118,45 @@ label {
   font-weight: 600;
 }
 
-.tabellboks {
-  overflow-x: auto;
+/* Valgene er aldri bredere enn skjermen. Spørsmålet i mallisten er langt. */
+select,
+button {
+  font: inherit;
+  max-width: 100%;
 }
 
-table {
-  border-collapse: collapse;
+select {
+  background: var(--bakgrunn);
+  border: 1px solid var(--tekst);
+  border-radius: 0.25rem;
+  color: var(--tekst);
+  padding: 0.4rem 0.5rem;
+  width: 32rem;
 }
 
-th,
-td {
-  padding: 0.25rem 0.75rem;
-  text-align: right;
+button {
+  background: var(--hovedfarge);
+  border: 2px solid var(--hovedfarge);
+  border-radius: 0.25rem;
+  color: var(--knappetekst);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
 }
 
-thead th,
-tbody th {
-  text-align: left;
-}
+/* --- Meldinger og varsel --- */
 
-/* Tekst bare for skjermlesere. */
-.for-skjermleser {
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  white-space: nowrap;
-  width: 1px;
-}
-
-.graf {
+.feilmelding,
+.melding {
+  border: 2px solid var(--tekst);
   margin: 1.5rem 0;
-}
-
-.grafboks {
-  position: relative;
-  height: 20rem;
+  padding: 0.25rem 1rem;
 }
 
 /* Varselet skilles fra resten med ramme, ikon og overskrift, ikke bare farge
    (FR-19, NFR-7). */
 .varsel {
-  border: 2px solid #8a5a00;
+  border: 2px solid var(--varselfarge);
   border-left-width: 0.5rem;
   margin: 1.5rem 0;
   padding: 0.5rem 1rem;
@@ -72,6 +167,114 @@ tbody th {
   margin: 0.25rem 0;
 }
 
+.varselikon {
+  color: var(--varselfarge);
+}
+
 .varsel ul {
   margin: 0.25rem 0 0.5rem;
+}
+
+/* --- Graf --- */
+
+.graf {
+  margin: 1.5rem 0;
+}
+
+.grafboks {
+  height: 20rem;
+  position: relative;
+}
+
+.grafboks canvas {
+  max-width: 100%;
+}
+
+/* --- Tabell --- */
+
+/* Tabellen ruller inni sin egen boks på smale skjermer, så siden ikke ruller
+   vannrett (NFR-11). */
+.tabellboks {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+caption {
+  text-align: left;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--skillelinje);
+  font-variant-numeric: tabular-nums;
+  padding: 0.25rem 0.75rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+thead th,
+tbody th {
+  text-align: left;
+}
+
+thead th {
+  border-bottom: 2px solid var(--tekst);
+  font-weight: 600;
+}
+
+tbody th {
+  font-weight: 400;
+}
+
+.fotnoter,
+.kilde,
+.justering {
+  font-size: 0.9rem;
+}
+
+.kilde {
+  margin-bottom: 0;
+}
+
+.justering {
+  margin-top: 0.25rem;
+}
+
+/* --- Begrepsforklaringer --- */
+
+.begreper details {
+  border-bottom: 1px solid var(--skillelinje);
+}
+
+.begreper summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5rem 0;
+}
+
+.begreper details p {
+  margin: 0 0 0.75rem;
+}
+
+/* --- Bunnen av siden --- */
+
+.avsender {
+  border-top: 1px solid var(--skillelinje);
+  font-size: 0.9rem;
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+}
+
+/* Tekst bare for skjermlesere. */
+.for-skjermleser {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }

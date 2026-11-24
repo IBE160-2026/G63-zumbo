@@ -56,60 +56,64 @@
     reserve.hidden = true;
   }
 
-  new Chart(lerret, {
-    type: "line",
-    data: {
-      labels: graf.uker,
-      datasets: [
-        {
-          label: tekster.tekstY,
-          data: graf.andel,
-          borderColor: linje,
-          borderWidth: 2,
-          spanGaps: false,
-          pointStyle: "circle",
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBorderWidth: 2,
-          pointBorderColor: linje,
-          // Usikre uker: åpen sirkel (hvit fyll), ikke bare en annen farge (NFR-7).
-          pointBackgroundColor: graf.usikker.map((u) => (u ? bakgrunn : linje)),
-        },
-      ],
-    },
-    options: {
-      maintainAspectRatio: false,
-      animation: false,
-      color: tekst,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            // Samme tekst som i tabellen, og om uka er usikker.
-            label: (punkt) => {
-              const i = punkt.dataIndex;
-              const usikker = graf.usikker[i] ? ", " + tekster.tekstUsikker : "";
-              return graf.andel_tekst[i] + usikker;
+  // Grafen bruker samme skrift som teksten og tegnes når skriften er lastet.
+  Chart.defaults.font.family = farge("--skrift-tekst");
+  const tegn = () =>
+    new Chart(lerret, {
+      type: "line",
+      data: {
+        labels: graf.uker,
+        datasets: [
+          {
+            label: tekster.tekstY,
+            data: graf.andel,
+            borderColor: linje,
+            borderWidth: 2,
+            spanGaps: false,
+            pointStyle: "circle",
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointBorderWidth: 2,
+            pointBorderColor: linje,
+            // Usikre uker: åpen sirkel (hvit fyll), ikke bare en annen farge (NFR-7).
+            pointBackgroundColor: graf.usikker.map((u) => (u ? bakgrunn : linje)),
+          },
+        ],
+      },
+      options: {
+        maintainAspectRatio: false,
+        animation: false,
+        color: tekst,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              // Samme tekst som i tabellen, og om uka er usikker.
+              label: (punkt) => {
+                const i = punkt.dataIndex;
+                const usikker = graf.usikker[i] ? ", " + tekster.tekstUsikker : "";
+                return graf.andel_tekst[i] + usikker;
+              },
             },
           },
         },
-      },
-      scales: {
-        x: {
-          title: { display: true, text: tekster.tekstX, color: tekst },
-          ticks: { color: tekst },
-          grid: { color: rutenett },
-        },
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: tekster.tekstY, color: tekst },
-          ticks: {
-            color: tekst,
-            callback: (verdi) => verdi.toLocaleString("nb-NO") + " %",
+        scales: {
+          x: {
+            title: { display: true, text: tekster.tekstX, color: tekst },
+            ticks: { color: tekst },
+            grid: { color: rutenett },
           },
-          grid: { color: rutenett },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: tekster.tekstY, color: tekst },
+            ticks: {
+              color: tekst,
+              callback: (verdi) => verdi.toLocaleString("nb-NO") + " %",
+            },
+            grid: { color: rutenett },
+          },
         },
       },
-    },
-  });
+    });
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(tegn);
 })();

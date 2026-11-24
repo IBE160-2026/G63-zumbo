@@ -234,6 +234,10 @@ opp, også stopper av seg selv."""
 
 HODER = {"Accept": "application/json", "User-Agent": "fhi-helsedata/0.1"}
 
+Klient = httpx.Client
+"""Klienten `hent` kan få. Andre moduler bruker dette navnet, slik at bare
+`fhi.py` importerer `httpx` (AD-3)."""
+
 
 class FhiUtilgjengelig(Exception):
     """FHI svarte ikke, svarte med feil, eller sendte et ugyldig svar (FR-8).

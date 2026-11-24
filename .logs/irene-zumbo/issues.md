@@ -26,3 +26,4 @@
 - [ ] 2026-11-23 [story-1-5](991-2026-11-23-22-35-37-story-1-5-enkel-readme.md) — story 3.1: skrive oppstartskommandoen inn i README og endre `test_readme_har_plass_for_oppstart`
 - [ ] 2026-11-23 [story-2-1](990-2026-11-23-22-47-51-story-2-1-domenemodellen.md) — story 2.4: avgjøre om `Uke` skal avvise flere positive enn tester (andel over 100 %), etter å ha sjekket om FHI kan sende slike tall (se deferred-work.md)
 - [ ] 2026-11-23 [story-2-1](990-2026-11-23-22-47-51-story-2-1-domenemodellen.md) — epic 6: sjekke tabellnavnene for 729 og 731 mot FHIs metadata
+- [ ] 2026-11-24 [story-2-3](988-2026-11-24-15-04-16-story-2-3-sesonger-og-uker.md) — story 2.9: `tjeneste.sesonger` må la FHIs dimensjonsliste vinne over reserven `sesonger_fra_dato` (uke 40 kan vise en sesong uten tall)

@@ -29,3 +29,20 @@ Story 4.5 (#26): vise KI-forklaringen på siden uten at graf, tabell og varsel v
 
 ### Åpne punkter
 - Ingen automatisk test viser at `app.js` setter inn fragmentet, eller at feilteksten vises ved 400 og nettverksfeil. Det må sjekkes for hånd med demoen, og en nettlesertest bør komme sammen med den for grafen (se deferred-work.md).
+
+## 2026-11-24 kl. 23:52 — Irene Zumbo
+
+### Oppgave
+Kommentere ordrett på PR #68, merge den og hente main. Føre opp tre punkter i issues.md.
+
+### Plan
+- `gh pr comment 68`, `gh pr merge 68 --merge --delete-branch` og `git pull` på main.
+
+### Resultat
+- Kommentaren står på PR #68, og PR-en er merget (`3c84073`). Branchen `story-4.5` er slettet både på ibe og lokalt, og main er hentet.
+- Punktet om nettlesertest for `app.js` fra forrige økt står fortsatt åpent. Det nye punktet om å sjekke utfallene for hånd kommer i tillegg.
+
+### Åpne punkter
+- Irene: sjekke de tre utfallene av KI-forklaringen i nettleseren med `scripts/vis_forklaring.py`. Eventuelle funn rettes i en egen PR.
+- Vurdere teksten «[virus]» og «[sesong]» i spørsmålsfeltet.
+- Vurdere om forklaringen skal stå nederst på siden.

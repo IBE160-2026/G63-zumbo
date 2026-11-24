@@ -406,6 +406,19 @@ Kontrollreglene R1–R5 beregnes for hver sesong for seg. Varselet vises hvis mi
 - Tidlig i sesongen som pågår kan R1 og R4 slå inn for «denne sesongen».
 - En uke 53 som bare finnes i den ene sesongen, telles ikke som manglende uke i R3 for den andre sesongen.
 
+### 6.8 Om appen
+
+#### FR-26: Hvorfor ikke bare spørre en chatbot?
+
+*Lagt til 24. november 2026: Irenes beslutning.*
+
+Nederst på siden står en kort tekst med overskriften «Hvorfor ikke bare spørre en chatbot?» og denne teksten:
+
+«En chatbot kan finne på tall eller bruke gamle tall, og den sier sjelden hvor tallene kommer fra. Denne appen henter tallene direkte fra Folkehelseinstituttet, viser når de ble hentet, og sier fra når det er for lite data til å konkludere. KI brukes bare til å forklare tallene med enkle ord, aldri til å lage dem.»
+
+- Teksten er fast og står i koden, ikke laget av KI.
+- Den vises på hele siden, også uten valgt utvalg og uten KI-nøkkel.
+
 ## 7. Ikke-funksjonelle krav
 
 #### NFR-1: Virker uten KI-nøkkel
@@ -483,6 +496,7 @@ Hentet fra `docs/sjekkliste.md` og bekreftet av gruppen 20. november 2026. Hoved
 - Graf, tabell, usikre uker, begrepsforklaringer, kildehenvisning, varsel (R1–R5) og KI-forklaring.
 - Mellomlagring og feilmelding når FHI-API-et ikke svarer.
 - Knappen «Hent nyeste tall nå» (FR-25, lagt til 20. november 2026).
+- Teksten «Hvorfor ikke bare spørre en chatbot?» nederst på siden (FR-26, lagt til 24. november 2026).
 
 **Strekkmål**
 - Mal 2, sammenligning av sesonger (FR-23, FR-24).
@@ -522,6 +536,8 @@ Fem personer uten medisinsk bakgrunn, for eksempel medstudenter, prøver appen �
 PRD-en skulle vært ferdig 8. november 2026. Den ble skrevet 20. november, fordi økten med `bmad-prd` 6. november stoppet etter at bare et tomt skjelett var laget (commit `353556c`). I mellomtiden ble product brief endret med ny retning: beredskap og helseregister, og en hovedbruker uten medisinsk bakgrunn. PRD-en bygger derfor på den nye briefen, og noen tidligere notater gjelder ikke lenger, blant annet at tabell 733 var strekkmål.
 
 FR-25 («Hente nyeste tall nå») ble lagt til 20. november 2026, etter at PRD-en var ferdig, og før arkitekturen ble skrevet.
+
+FR-26 («Hvorfor ikke bare spørre en chatbot?») ble lagt til 24. november 2026 etter Irenes beslutning, under arbeidet med story 3.7.
 
 ## 12. Åpne spørsmål
 

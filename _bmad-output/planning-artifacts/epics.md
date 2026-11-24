@@ -42,6 +42,7 @@ Dette dokumentet deler kravene i PRD-en (med addendum) og beslutningene i arkite
 - FR-23 (strekkmål): Mal 2 viser denne og forrige sesong i samme graf, uke for uke fra uke 40, med hel og stiplet linje og etiketter, og en tabell med begge sesongene side om side. Uke 53 vises bare for sesongen som har den.
 - FR-24 (strekkmål): For mal 2 beregnes R1–R5 per sesong, og varselet sier hvilken sesong det gjelder. Uke 53 som bare finnes i den ene sesongen, teller ikke som manglende i den andre.
 - FR-25: Siden viser hentetidspunkt og at FHI publiserer hver torsdag. Knappen «Hent nyeste tall nå» henter på nytt uten mellomlagring, er deaktivert mens hentingen pågår, faller tilbake til FR-8 ved feil, gjenbruker KI-forklaringen når tallene er uendret og kan brukes med tastatur.
+- FR-26: Nederst på siden står den faste teksten «Hvorfor ikke bare spørre en chatbot?» (lagt til 24. november 2026: Irenes beslutning).
 
 ### Ikke-funksjonelle krav
 
@@ -121,6 +122,7 @@ Det finnes ikke noe eget UX-dokument. Kravene til utseende og oppførsel står i
 | FR-20–FR-22 | 4 | Prompt, `ki.forklar`, `GET /forklaring` |
 | FR-23, FR-24 | 8 | Mal 2 (strekkmål) |
 | FR-25 | 4 | «Hent nyeste tall nå» |
+| FR-26 | 3 | Teksten «Hvorfor ikke bare spørre en chatbot?» (story 3.7) |
 | NFR-1, NFR-2 | 4 | Uten nøkkel, forklaringen lastes etter siden |
 | NFR-3 | 3, 5 | Norske tekster, retting etter brukertesting |
 | NFR-4–NFR-7, NFR-11 | 3 | Tilgjengelighet og mobil |
@@ -143,7 +145,7 @@ Appen kan hente, mellomlagre og tolke influensatall for et utvalg, og avgjør me
 
 ### Epic 3: Influensa på skjermen
 Brukeren kan velge utvalg og se graf, tabell, varsel, kildehenvisning og begrepsforklaringer, også på mobil og med tastatur. Veiledende: 26.–28. november.
-**Dekker:** FR-1, FR-3–FR-5, FR-8 (melding), FR-9–FR-13, FR-19, NFR-3–NFR-7, NFR-11, AD-8, AD-9
+**Dekker:** FR-1, FR-3–FR-5, FR-8 (melding), FR-9–FR-13, FR-19, FR-26, NFR-3–NFR-7, NFR-11, AD-8, AD-9
 
 ### Epic 4: KI-forklaring og nyeste tall
 Brukeren får en kort KI-forklaring med kilde, og kan hente nyeste tall fra FHI. Appen virker uten KI-nøkkel. Etter denne epicen er mal 1 for influensa ferdig. **Fast frist: 2. desember.** Veiledende: 29. november–2. desember.

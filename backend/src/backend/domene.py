@@ -150,9 +150,33 @@ class Uke:
         return self.tester is None or self.positive is None
 
     @property
+    def flere_positive_enn_tester(self) -> bool:
+        """Sann når uka har flere positive prøver enn tester (andel over 100 %).
+
+        Endret 24. november 2026: Irenes beslutning i story 2.4: andelen vises
+        som den er, og uka er usikker med en fotnote. Med 0 tester kan andelen
+        ikke regnes ut (`andel` er `None`), men uka er likevel usikker.
+        """
+        return (
+            self.tester is not None
+            and self.positive is not None
+            and self.positive > self.tester
+        )
+
+    @property
     def usikker(self) -> bool:
-        """Sann ved færre enn 30 tester eller skjult antall tester (FR-10)."""
-        return self.tester is None or self.tester < GRENSE_USIKKER_UKE
+        """Sann ved færre enn 30 tester, skjult antall tester, eller flere
+        positive enn tester (FR-10).
+
+        Endret 24. november 2026: Irenes beslutning i story 2.4: en uke med flere positive enn tester er også usikker.
+        Kontrollregel R2 bruker ikke denne egenskapen. Den teller bare uker med
+        et kjent antall tester under 30 (FR-15).
+        """
+        return (
+            self.tester is None
+            or self.tester < GRENSE_USIKKER_UKE
+            or self.flere_positive_enn_tester
+        )
 
 
 class UgyldigUtvalg(ValueError):

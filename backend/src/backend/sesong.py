@@ -47,7 +47,7 @@ def navn(år: int) -> str:
     return f"{år}/{år + 1}"
 
 
-def _sjekk_uke(uke: IsoUke) -> IsoUke:
+def sjekk_uke(uke: IsoUke) -> IsoUke:
     """Gir uka som en tuple, eller `ValueError` hvis den ikke finnes."""
     try:
         år, ukenummer = uke
@@ -68,7 +68,7 @@ def uker(sesong: str, siste_publiserte_uke: IsoUke | None = None) -> tuple[IsoUk
     """
     år = startår(sesong)
     if siste_publiserte_uke is not None:
-        siste_publiserte_uke = _sjekk_uke(siste_publiserte_uke)
+        siste_publiserte_uke = sjekk_uke(siste_publiserte_uke)
     dag = date.fromisocalendar(år, FØRSTE_UKE, 1)
     slutt = date.fromisocalendar(år + 1, SISTE_UKE, 1)
     resultat = []

@@ -127,6 +127,40 @@ def test_negative_tall_avvises(tester: int, positive: int) -> None:
         Uke(2025, 40, tester, positive)
 
 
+# Endret 24. november 2026: Irenes beslutning i story 2.4.
+
+
+def test_flere_positive_enn_tester_gir_andel_over_100_og_usikker_uke() -> None:
+    uke = Uke(2025, 40, 100, 200)
+    assert uke.andel == 200.0
+    assert uke.flere_positive_enn_tester
+    assert uke.usikker
+    assert not uke.manglende
+
+
+def test_like_mange_positive_som_tester_er_ikke_usikker() -> None:
+    uke = Uke(2025, 40, 100, 100)
+    assert uke.andel == 100.0
+    assert not uke.flere_positive_enn_tester
+    assert not uke.usikker
+
+
+@pytest.mark.parametrize(
+    ("tester", "positive"), [(None, 5), (5, None), (None, None), (0, 0)]
+)
+def test_flere_positive_enn_tester_er_usann_uten_tall(
+    tester: int | None, positive: int | None
+) -> None:
+    assert not Uke(2025, 40, tester, positive).flere_positive_enn_tester
+
+
+def test_null_tester_og_positive_over_null_er_flere_positive_enn_tester() -> None:
+    uke = Uke(2025, 40, 0, 3)
+    assert uke.flere_positive_enn_tester
+    assert uke.usikker
+    assert uke.andel is None
+
+
 # --- Utvalg, Dataserie og Regelutslag ---
 
 

@@ -67,7 +67,7 @@ Disse begrepene brukes likt i hele PRD-en og i stories og kode.
 - **MSIS** — Meldingssystem for smittsomme sykdommer. Laboratoriedatabasen i MSIS er kilden til alle tallene.
 - **Skjult verdi** — En verdi FHI har skjult eller som mangler. I API-et vises den som `..`, `.` eller `:`, eller som tom verdi.
 - **Manglende uke** — En uke der antall tester eller antall positive prøver er en skjult verdi, slik at andelen positive ikke kan regnes ut.
-- **Usikker uke** — En uke med færre enn 30 tester, eller der antall tester er en skjult verdi.
+- **Usikker uke** — En uke med færre enn 30 tester, der antall tester er en skjult verdi, eller der antall positive prøver er større enn antall tester (Endret 24. november 2026: Irenes beslutning i story 2.4).
 - **Kontrollregel** — En av de fem faste reglene R1–R5 i kapittel 6.5.
 - **Varsel om tynt datagrunnlag** — Melding som vises når minst én kontrollregel slår inn.
 - **KI-forklaring** — Kort tekst skrevet av en språkmodell ut fra de hentede tallene.
@@ -252,9 +252,10 @@ Appen viser andel positive uke for uke som en linjegraf. Realiserer UJ-1.
 
 #### FR-10: Markere usikre uker
 
-Appen markerer usikre uker (færre enn 30 tester, eller skjult antall tester) i grafen og tabellen.
+Appen markerer usikre uker (færre enn 30 tester, skjult antall tester, eller flere positive prøver enn tester) i grafen og tabellen.
 
 - Uker der antall tester er skjult, markeres som usikre selv om de ikke telles i R2 (se FR-15).
+- Uker med flere positive prøver enn tester viser andelen som den er (over 100 %). De markeres som usikre og får en egen fotnote på enkel norsk, for eksempel «Flere positive prøver enn tester denne uka. Tallet kan være feil hos FHI.». De telles ikke i R2, som bare teller uker med færre enn 30 tester (FR-15). *Endret 24. november 2026: Irenes beslutning i story 2.4.*
 - Usikre uker skilles fra andre uker med form (for eksempel åpen sirkel i stedet for fylt), ikke bare med farge.
 - Grafen har en forklaring som sier hva markeringen betyr.
 - I tabellen er usikre uker merket med tegn og fotnote.

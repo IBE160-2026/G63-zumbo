@@ -38,6 +38,8 @@
   --varselfarge: #D14641;
   /* FHIs Rød 3, bakgrunnen i varselet (Irenes beslutning 24.11.2026). */
   --varselbakgrunn: #FBD1CD;
+  /* FHIs Blå 1, lenken i varselet (Irenes beslutning 25.11.2026). */
+  --varsellenke: #393C61;
   --bakgrunn: #FFFFFF;
   --tekst: #222222;
   /* Tekst på knapper med hovedfargen som bakgrunn. */
@@ -175,9 +177,11 @@ button {
 }
 
 /* Hovedfargen har for lav kontrast mot den rosa bakgrunnen (4,05:1), så
-   lenken i varselet har tekstfargen. Understreken viser at det er en lenke. */
+   lenken i varselet har FHIs Blå 1 (7,58:1). Understreken viser at det er
+   en lenke. */
 .varsel a {
-  color: var(--tekst);
+  color: var(--varsellenke);
+  text-decoration: underline;
 }
 
 .varsel ul {

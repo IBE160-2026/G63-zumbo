@@ -53,15 +53,20 @@ def les_innstillinger(
     at `.env` vinner over skallet, og så leses `os.environ`. Med `miljø` brukes
     bare den, og `.env` lastes ikke.
 
-    Tomme verdier regnes som ikke satt. Cachemappen er `CACHE_DIR`, ellers
-    `/tmp/fhi-helsedata-cache` når `VERCEL` finnes, ellers `.cache/` i reporoten
-    (AD-4).
+    Tomme verdier regnes som ikke satt. Cachemappen er `CACHE_DIR` (en relativ
+    sti regnes fra reporoten), ellers `/tmp/fhi-helsedata-cache` når `VERCEL`
+    finnes, ellers `.cache/` i reporoten (AD-4). `REPOROT` forutsetter at appen
+    kjøres fra en klone av repoet (`uv sync` installerer den redigerbart).
+
+    En tom verdi i `.env` overskriver en verdi fra skallet, fordi `.env` vinner
+    (AD-6). En nøkkel i skallet brukes altså ikke når `.env` har `ANTHROPIC_API_KEY=`.
     """
     if miljø is None:
         load_dotenv(env_fil, override=True)
         miljø = os.environ
     if (cache := _verdi(miljø, "CACHE_DIR")) is not None:
-        cache_dir = Path(cache).expanduser()
+        # En relativ sti leses fra reporoten, ikke fra mappen appen startes i.
+        cache_dir = REPOROT / Path(cache).expanduser()
     elif "VERCEL" in miljø:
         cache_dir = VERCEL_CACHE
     else:

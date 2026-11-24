@@ -154,6 +154,7 @@ def test_fil_som_mangler_gir_none(tmp_path: Path) -> None:
     "svar-er-liste": b'{"hentet": "2026-11-23T21:20:15Z", "svar": [1]}',
     "hentet-er-tall": b'{"hentet": 1, "svar": {}}',
     "hentet-uten-tidssone": b'{"hentet": "2026-11-23T21:20:15", "svar": {}}',
+    "hentet-utenfor-grensene": b'{"hentet": "0001-01-01T00:30:00+01:00", "svar": {}}',
     "hentet-ugyldig": '{"hentet": "i går", "svar": {}}'.encode(),
     "dypt-nøstet": b'{"hentet": "2026-11-23T21:20:15Z", "svar": {"a": '
     + b"[" * 100_000
@@ -175,7 +176,10 @@ def test_mappe_i_stedet_for_fil_regnes_som_ikke_funnet(tmp_path: Path) -> None:
     assert mellomlager.les_svar(tmp_path, UTVALG) is None
 
 
-@pytest.mark.skipif(os.geteuid() == 0, reason="root kan lese alt")
+@pytest.mark.skipif(
+    not hasattr(os, "geteuid") or os.geteuid() == 0,
+    reason="root kan lese alt, og Windows har ikke chmod 0",
+)
 def test_fil_uten_lesetilgang_regnes_som_ikke_funnet(tmp_path: Path) -> None:
     mellomlager.lagre_svar(tmp_path, UTVALG, SVAR, HENTET)
     fil = mellomlager.svarfil(tmp_path, UTVALG)
@@ -221,7 +225,16 @@ def test_bare_mellomlager_skriver_filer() -> None:
         for fil in src.rglob("*.py")
         if any(
             ord_ in fil.read_text(encoding="utf-8")
-            for ord_ in ("os.replace", "write_text", "write_bytes", "mkstemp")
+            for ord_ in (
+                "os.replace",
+                "os.rename",
+                "write_text",
+                "write_bytes",
+                "mkstemp",
+                "mkdir(",
+                "open(",
+                "shutil",
+            )
         )
     ]
     assert treff == ["mellomlager.py"]

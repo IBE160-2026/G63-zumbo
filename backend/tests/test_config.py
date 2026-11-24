@@ -4,8 +4,9 @@ Testene sender alltid inn `miljø` og laster aldri den ekte `.env`.
 """
 
 import ast
-import importlib
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -44,6 +45,12 @@ def test_lokalt_gir_cache_i_reporoten() -> None:
 
 def test_tom_cache_dir_regnes_som_ikke_satt() -> None:
     assert les_innstillinger({"CACHE_DIR": "  "}).cache_dir == REPOROT / ".cache"
+
+
+def test_relativ_cache_dir_regnes_fra_reporoten() -> None:
+    assert les_innstillinger({"CACHE_DIR": "min-cache"}).cache_dir == (
+        REPOROT / "min-cache"
+    )
 
 
 def test_cache_dir_med_tilde() -> None:
@@ -110,32 +117,77 @@ def test_env_fil_lastes_bare_uten_miljø(
     assert innstillinger.cache_dir == Path("/fra/env")
 
 
-def test_import_av_config_laster_ikke_env(
+def test_uten_env_fil_brukes_standardverdiene(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
-    monkeypatch.delenv("ANTHROPIC_API_KEY")
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / ".env").write_text("ANTHROPIC_API_KEY=skal-ikke-lastes\n")
-    importlib.reload(config)
-    assert "ANTHROPIC_API_KEY" not in os.environ
+    for navn in ("ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "CACHE_DIR", "VERCEL"):
+        monkeypatch.delenv(navn, raising=False)
+    innstillinger = les_innstillinger(env_fil=tmp_path / "finnes-ikke")
+    assert innstillinger == Innstillinger(None, "claude-haiku-5-5", REPOROT / ".cache")
 
 
-def test_ingen_kode_kjøres_ved_import() -> None:
+IMPORT_SJEKK = """
+import sys, types
+kall = []
+falsk = types.ModuleType("dotenv")
+for navn in ("load_dotenv", "find_dotenv", "dotenv_values"):
+    setattr(falsk, navn, lambda *a, _n=navn, **k: kall.append(_n))
+sys.modules["dotenv"] = falsk
+import backend.config
+assert kall == [], kall
+backend.config.les_innstillinger({})
+assert kall == [], kall
+backend.config.les_innstillinger()
+assert kall == ["load_dotenv"], kall
+"""
+
+
+def test_import_av_config_laster_ikke_env() -> None:
+    # Egen prosess med en falsk dotenv, slik at et kall ved import faktisk
+    # synes, uansett hvilken .env som ville blitt lest.
+    resultat = subprocess.run(
+        [sys.executable, "-c", IMPORT_SJEKK],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"},
+    )
+    assert resultat.returncode == 0, resultat.stderr
+
+
+def test_ingen_dotenv_kall_utenfor_funksjoner() -> None:
     tre = ast.parse(Path(config.__file__).read_text(encoding="utf-8"))
-    for node in tre.body:
-        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
-            pytest.fail(f"kall ved import på linje {node.lineno}")
+    i_funksjoner = {
+        id(n)
+        for f in ast.walk(tre)
+        if isinstance(f, ast.FunctionDef | ast.AsyncFunctionDef)
+        for n in ast.walk(f)
+    }
+    for node in ast.walk(tre):
+        if isinstance(node, ast.Call) and id(node) not in i_funksjoner:
+            navn = ast.unparse(node.func)
+            assert "dotenv" not in navn, f"{navn} kalles ved import"
+
+
+def _bruker(fil: Path, navn: set[str]) -> bool:
+    tre = ast.parse(fil.read_text(encoding="utf-8"))
+    for node in ast.walk(tre):
+        if (
+            isinstance(node, ast.Name | ast.alias)
+            and (getattr(node, "id", None) or getattr(node, "name", None)) in navn
+        ):
+            return True
+        if isinstance(node, ast.Attribute) and node.attr in navn:
+            return True
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+            "dotenv"
+        ):
+            return True
+    return False
 
 
 def test_bare_config_leser_miljøvariabler() -> None:
     src = Path(config.__file__).parent
-    treff = [
-        str(fil.relative_to(src))
-        for fil in src.rglob("*.py")
-        if any(
-            ord_ in fil.read_text(encoding="utf-8")
-            for ord_ in ("os.environ", "os.getenv", "load_dotenv")
-        )
-    ]
+    navn = {"environ", "getenv", "load_dotenv", "dotenv_values", "find_dotenv"}
+    treff = [str(f.relative_to(src)) for f in src.rglob("*.py") if _bruker(f, navn)]
     assert treff == ["config.py"]

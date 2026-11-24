@@ -46,7 +46,12 @@ def _som_tekst(hentet: datetime) -> str:
 
 
 def _skriv(fil: Path, svar: dict[str, Any], hentet: datetime) -> None:
-    """Skriver via en midlertidig fil og `os.replace`, så ingen ser en halv fil."""
+    """Skriver via en midlertidig fil og `os.replace`, så ingen ser en halv fil.
+
+    Filene får tilgang bare for eieren (0600 fra `mkstemp`). Stopper prosessen
+    mellom `mkstemp` og `os.replace`, kan en `.tmp`-fil bli liggende. Den leses
+    aldri og kan slettes. Cachen kan alltid slettes og hentes på nytt.
+    """
     if not isinstance(svar, dict):
         raise TypeError("svar må være et JSON-objekt")
     innhold = json.dumps(
@@ -80,11 +85,12 @@ def _les(fil: Path) -> Lagret | None:
         return None
     try:
         hentet = datetime.fromisoformat(tekst)
-    except ValueError:
+        if hentet.utcoffset() is None:
+            return None
+        hentet = hentet.astimezone(UTC)
+    except (ValueError, OverflowError):
         return None
-    if hentet.utcoffset() is None:
-        return None
-    return Lagret(hentet=hentet.astimezone(UTC), svar=svar)
+    return Lagret(hentet=hentet, svar=svar)
 
 
 def lagre_svar(
@@ -95,7 +101,8 @@ def lagre_svar(
 
 
 def les_svar(mappe: Path, utvalg: Utvalg) -> Lagret | None:
-    """Det lagrede svaret for et utvalg, eller `None`."""
+    """Det lagrede svaret for et utvalg, eller `None` når fila mangler eller ikke
+    kan leses. Gir `ValueError` for et utvalg som ikke gir et trygt filnavn."""
     return _les(svarfil(mappe, utvalg))
 
 
@@ -107,5 +114,6 @@ def lagre_dimensjoner(
 
 
 def les_dimensjoner(mappe: Path, tabell: int) -> Lagret | None:
-    """Den lagrede dimensjonslisten for en tabell, eller `None`."""
+    """Den lagrede dimensjonslisten for en tabell, eller `None` når fila mangler
+    eller ikke kan leses. Gir `ValueError` for en ukjent tabell."""
     return _les(dimensjonsfil(mappe, tabell))

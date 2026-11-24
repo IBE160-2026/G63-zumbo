@@ -2,7 +2,7 @@
 title: 'Story 2.9: Sette sammen svaret for et utvalg'
 type: 'feature'
 created: '2026-11-24'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 context:
@@ -29,4 +29,22 @@ context:
 - **Samtidighet:** én pågående jobb per nøkkel (`Utvalg.nøkkel` og en egen nøkkel for dimensjonslisten). Andre kall venter på samme resultat, også ved feil, slik at to kall gir ett kall til FHI. Tråder, fordi `fhi.hent` er synkron.
 - **Logging:** `FhiUtilgjengelig` og lagringsfeil logges på nivå INFO med årsaken (AD-9, kapittel 5).
 - Ikke med: tvungen henting for `POST /hent-nyeste` (story 4.6).
-- Endret: `backend/src/backend/tjeneste.py` (ny), `backend/tests/test_tjeneste.py` (ny).
+- Feiler dimensjonslisten, prøves ikke datakallet i tillegg, slik at brukeren venter høyst én tidsgrense (10 s) før lagrede tall vises. `sesonger` bruker en gammel lagret liste når FHI er nede.
+- Endret: `backend/src/backend/tjeneste.py` (ny), `backend/tests/test_tjeneste.py` (ny), `backend/src/backend/fhi.py` (typenavnet `fhi.Klient = httpx.Client`, fordi en test krever at bare `fhi.py` importerer `httpx`, AD-3) og `README.md` (avsnittet om mellomlageret).
+
+## Review Triage Log
+
+Gjennomgang med `bmad-code-review` (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor). Alle akseptansekriteriene i #14 er oppfylt. Ingen alvorlige funn, og ingenting som krever endring i PRD eller arkitektur.
+
+- **medium, rettet:** loggen skrev bare `feil.__cause__`, som er `None` for «svaret er ikke et JSON-objekt» og en tom `TimeoutError` ved tidsavbrudd. Nå logges hele `FhiUtilgjengelig` med metode, URL og årsak.
+- **medium, rettet:** sjekken av om den lagrede dimensjonslisten er fersk lå utenfor den delte jobben, så to samtidige `sesonger`-kall (eller kall for ulike utvalg) kunne gi to kall til FHI. Sjekken ligger nå inne i jobben. Testet med samtidige sesongkall, både med FHI oppe og nede.
+- **medium, rettet:** samtidighetstesten viste ikke at det andre kallet ventet. Det kunne ha lest den ferske cachen i stedet. Testen bruker nå en `Future` som sier fra når noen venter, sjekker at trådene er ferdige og har en variant med FHI nede. Begge testene feiler når delingen fjernes.
+- **medium, rettet:** ingen test viste at en gammel dimensjonsliste hentes på nytt når FHI svarer, og valideringen i `_lagret_dimensjonsliste` ble aldri nådd. Nye tester for begge.
+- **low, rettet:** docstringen til `Resultat` sa at `melding` betyr ingen tall (gjelder ikke «sist lagrede»), meldingstesten sjekket malene og ikke ferdig tekst, en lagret dimensjonsliste som ikke kunne brukes ble forkastet uten logg, og testen for lagringsfeil sjekket ikke loggen.
+- **low, avvist:** når bare dimensjonslisten feiler, kunne en gammel lagret liste brukes til å prøve datakallet. Det kan doble ventetiden til 20 s når FHI er helt nede (FR-8, NFR-2). Valget står i Implementation Notes.
+- **low, avvist:** `nå` uten tidssone gir `ValueError` etter et vellykket kall til FHI. Feilen er høylytt, og `sesong` krever allerede tidssone, så `web` (epic 3) må lage `nå` med tidssone.
+- **low, avvist:** de som venter, har ingen egen tidsgrense, får eierens «nå» og deler samme unntaksobjekt. Ventetiden er begrenset av `fhi` (10 s), «nå» er millisekunder unna, og delt unntak er vanlig oppførsel for `concurrent.futures`. Står i docstringen.
+- **low, avvist:** et vellykket svar tolkes to ganger (`fhi.hent` sjekker med `tolk`). Å endre det krever ny returtype i `fhi.hent`.
+- **low, avvist:** README sier ikke noe om sesongliste og RSV-melding. README beskriver oppsett, ikke oppførsel i appen.
+- **false:** `ValueError` fra `fhi.hent` eller `Utvalg.nøkkel` og `KeyError` for ukjent virus. Tabellen og ukene sjekkes før `fhi.hent`, og utvalg fra brukeren lages bare med `Utvalg.fra_parametre`.
+- **false:** spec og sprint-status står som `in-progress`. De settes til `done` etter gjennomgangen.

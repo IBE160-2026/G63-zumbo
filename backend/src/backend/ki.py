@@ -14,6 +14,8 @@ beslutning på #23), men skjulte tall og andeler som mangler, er skrevet
 tydeligere for KI-en (Irenes beslutning før merge av PR #66).
 """
 
+import hashlib
+import json
 import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -114,6 +116,33 @@ def lag_prompt(
         regelutslag="\n".join(f"- {r.tekst}" for r in regelutslag),
         kildehenvisning=kildetekst(kilde),
     )
+
+
+def nøkkel(serie: Dataserie, regelutslag: Iterable[Regelutslag], modell: str) -> str:
+    """Nøkkelen til en lagret forklaring (AD-7).
+
+    SHA-256 av kanonisk JSON (`sort_keys=True`) med utvalget, de tolkede ukene,
+    regelutslagene, innholdet i promptfila og modellnavnet. Hentetidspunktet er
+    ikke med, så de samme tallene gir samme nøkkel også etter en ny henting.
+    Endrede tall, en endret prompt eller en annen modell gir ny nøkkel.
+    """
+    u = serie.utvalg
+    innhold = {
+        "utvalg": {
+            "mal": u.mal,
+            "virus": u.virus,
+            "sesong": u.sesong,
+            "aldersgruppe": u.aldersgruppe,
+        },
+        "uker": [[x.år, x.ukenummer, x.tester, x.positive] for x in serie.uker],
+        "regelutslag": [[r.regel, r.tekst] for r in regelutslag],
+        "prompt": _mal(),
+        "modell": modell,
+    }
+    kanonisk = json.dumps(
+        innhold, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    )
+    return hashlib.sha256(kanonisk.encode("utf-8")).hexdigest()
 
 
 def _tekst(svar: Any) -> str | None:

@@ -30,3 +30,4 @@
 - [ ] 2026-11-24 [story-2-4](987-2026-11-24-15-25-35-story-2-4-tolke-fhi-svar.md) — Irene bekrefter: uke med 0 tester og positive over 0 viser ingen andel, men er usikker og får fotnoten
 - [ ] 2026-11-24 [story-2-4](987-2026-11-24-15-25-35-story-2-4-tolke-fhi-svar.md) — story 3.2/3.3: egen fotnote på enkel norsk for uker med flere positive enn tester (se deferred-work.md)
 - [ ] 2026-11-24 [story-2-4](987-2026-11-24-15-25-35-story-2-4-tolke-fhi-svar.md) — story 2.7: test som viser at R2 ikke teller uker med flere positive enn tester og minst 30 tester (se deferred-work.md)
+- [ ] 2026-11-24 [story-2-5](986-2026-11-24-15-31-20-story-2-5-hente-fra-fhi.md) — story 2.9: `tjeneste` må stoppe RSV/SARS-CoV-2 (før epic 6) og sesonger uten publiserte uker før `fhi.hent`, med norsk melding (se deferred-work.md)

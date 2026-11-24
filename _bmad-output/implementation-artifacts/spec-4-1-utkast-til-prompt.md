@@ -2,7 +2,7 @@
 title: 'Story 4.1: Utkast til prompt'
 type: 'feature'
 created: '2026-11-24'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 context:
@@ -20,4 +20,15 @@ context:
 </frozen-after-approval>
 
 ## Implementation Notes
+
+- Prompten ligger i `backend/src/backend/prompts/forklaring.md`, slik arkitekturen viser filstrukturen (under pakken, ved siden av `templates/`). Fila kommer med i wheelen (sjekket med `uv build --wheel`).
+- Plassholderne er `{utvalg}`, `{uker}`, `{regelutslag}` og `{kildehenvisning}`, slik at story 4.3 kan bruke `str.format`. Derfor står det ingen andre krøllparenteser i teksten, og testen sjekker at utfylling med `format` virker.
+- Utkastet har to regler utover akseptansekriteriene, som Irene kan beholde eller stryke i 4.2: tallene teller tester, ikke personer (som i begrepsforklaringen), og kildehenvisningen trenger ikke gjentas fordi den vises ved siden av.
+- `backend/tests/test_prompt.py`: nøyaktig de fire plassholderne, én gang hver; utfylling med `format`; «norsk» og «høyst 120 ord» står i teksten.
+- pytest: 642 passed. ruff check og ruff format: OK.
+
+## Review Triage Log
+
+- Kort gjennomgang mot akseptansekriteriene i #22 (etter brukerens ønske i stedet for Blind Hunter-underagent): norsk, høyst 120 ord og enkle ord – OK; bare tall fra dataene, ingen gjetting på årsaker, faguttrykk forklares, usikkerhet og hvorfor ved regelutslag – OK; bare de fire plassholderne – OK; test – OK.
+- low (ikke rettet, hører til 4.3): hvordan `{uker}` formateres (prosent med komma, «skjult»/«mangler») avgjør om modellen kan sitere tallene riktig. Avgjøres når `ki.py` bygges.
 

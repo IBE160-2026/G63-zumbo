@@ -53,8 +53,10 @@ class Resultat:
 
     `serie` er `None` når det ikke finnes tall å vise. Da sier `melding` hvorfor.
     `kilde.hentet` er tidspunktet tallene ble hentet fra FHI. `sist_lagrede` er
-    sann når FHI ikke svarte og tallene er de sist lagrede (FR-8). `melding` er
-    en ferdig norsk setning som kan vises som den er.
+    sann når FHI ikke svarte og tallene er de sist lagrede (FR-8). Da har både
+    `serie` og `melding` en verdi, så bruk `serie is None`, ikke `melding`, for å
+    se om det finnes tall. `melding` er en ferdig norsk setning som kan vises som
+    den er.
     """
 
     utvalg: Utvalg
@@ -87,7 +89,9 @@ class Tjeneste:
 
         De som venter, får samme resultat eller samme feil som den som kjørte
         jobben. Slik gir samtidige kall bare ett kall til FHI, også når FHI
-        er nede.
+        er nede. Ventetiden er begrenset av tidsgrensen i `fhi` (10 s). De som
+        venter, får resultatet regnet ut med eierens «nå», som er noen
+        millisekunder unna.
         """
         with self._lås:
             fremtid = self._pågår.get(nøkkel)
@@ -120,20 +124,23 @@ class Tjeneste:
         try:
             fhi.siste_publiserte_uke(lagret.svar)
             fhi.sesonger(lagret.svar)
-        except (ValueError, RecursionError):
+        except (ValueError, RecursionError) as feil:
+            logger.info("Lagret dimensjonsliste kan ikke brukes: %r", feil)
             return None
         return lagret
 
     def _dimensjonsliste(self, nå: datetime) -> dict[str, Any]:
         """Fersk lagret dimensjonsliste, ellers en ny fra FHI som lagres.
 
-        Gir `FhiUtilgjengelig` når den må hentes og FHI ikke svarer.
+        Gir `FhiUtilgjengelig` når den må hentes og FHI ikke svarer. Cachen
+        leses inne i den delte jobben, slik at et kall som kommer rett etter at
+        et annet har hentet listen, bruker den lagrede listen.
         """
-        lagret = self._lagret_dimensjonsliste()
-        if lagret is not None and not sesong.er_utdatert(lagret.hentet, nå):
-            return lagret.svar
 
         def hent() -> dict[str, Any]:
+            lagret = self._lagret_dimensjonsliste()
+            if lagret is not None and not sesong.er_utdatert(lagret.hentet, nå):
+                return lagret.svar
             svar = fhi.hent_dimensjoner(SESONGTABELL, klient=self._klient)
             self._lagre(mellomlager.lagre_dimensjoner, SESONGTABELL, svar, nå)
             return svar
@@ -151,7 +158,7 @@ class Tjeneste:
         try:
             return fhi.sesonger(self._dimensjonsliste(nå))
         except fhi.FhiUtilgjengelig as feil:
-            logger.info("Sesonglisten kunne ikke hentes fra FHI: %r", feil.__cause__)
+            logger.info("Sesonglisten kunne ikke hentes fra FHI: %r", feil)
         lagret = self._lagret_dimensjonsliste()
         if lagret is not None:
             return fhi.sesonger(lagret.svar)
@@ -178,6 +185,8 @@ class Tjeneste:
         lagret = self._lagret_svar(utvalg)
         if lagret is not None and not sesong.er_utdatert(lagret[0], nå):
             return self._resultat(utvalg, lagret[1], lagret[0])
+        # Feiler dimensjonslisten, prøver vi ikke datakallet i tillegg. Da venter
+        # brukeren høyst én tidsgrense (10 s) før de lagrede tallene vises (FR-8).
         try:
             siste = fhi.siste_publiserte_uke(self._dimensjonsliste(nå))
             if not sesong.uker(utvalg.sesong, siste):
@@ -186,7 +195,7 @@ class Tjeneste:
                 )
             rått = fhi.hent(utvalg, siste, klient=self._klient)
         except fhi.FhiUtilgjengelig as feil:
-            logger.info("Tallene kunne ikke hentes fra FHI: %r", feil.__cause__)
+            logger.info("Tallene kunne ikke hentes fra FHI: %r", feil)
             if lagret is None:
                 return Resultat(utvalg, melding=FHI_NEDE_INGEN_TALL)
             return self._resultat(

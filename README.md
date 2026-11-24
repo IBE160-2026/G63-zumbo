@@ -50,7 +50,7 @@ Web-appen finnes ikke ennå. Kommandoen for å starte den lokalt skrives inn her
 
 ### Mellomlager
 
-Svar fra FHI lagres i `.cache/` i reporoten. Når appen er ferdig (story 2.9), skal tall du har sett før vises uten nytt kall, også når FHI er nede, og tall som er 24 timer eller eldre, hentes på nytt. Vil du ha mellomlageret et annet sted, setter du `CACHE_DIR` i `.env` eller i miljøet. En relativ sti regnes fra reporoten. På Vercel (miljøvariabelen `VERCEL` finnes) brukes `/tmp/fhi-helsedata-cache` når `CACHE_DIR` ikke er satt. Mappen kan slettes når som helst; alt hentes på nytt.
+Svar fra FHI lagres i `.cache/` i reporoten. Tall du har sett før, brukes uten nytt kall, også når FHI er nede (da merket «sist lagrede»), og tall som er 24 timer eller eldre, hentes på nytt (`tjeneste.py`, story 2.9). Siden som viser tallene, kommer i epic 3. Vil du ha mellomlageret et annet sted, setter du `CACHE_DIR` i `.env` eller i miljøet. En relativ sti regnes fra reporoten. På Vercel (miljøvariabelen `VERCEL` finnes) brukes `/tmp/fhi-helsedata-cache` når `CACHE_DIR` ikke er satt. Mappen kan slettes når som helst; alt hentes på nytt.
 
 ## Struktur
 

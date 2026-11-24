@@ -58,7 +58,17 @@ Start appen på nytt etterpå, fordi `.env` bare leses når appen starter. Verdi
 
 `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen `claude-haiku-5-5`. `.env` og mellomlageret i `.cache/` holdes utenfor git.
 
-Forklaringen lages i `backend/src/backend/ki.py` med prompten i `backend/src/backend/prompts/forklaring.md` (story 4.3). Uten nøkkel kalles ikke Claude. Feiler kallet, blir det ingen forklaring, men resten av siden virker som før. Forklaringen vises på siden fra story 4.5.
+Forklaringen lages i `backend/src/backend/ki.py` med prompten i `backend/src/backend/prompts/forklaring.md` (story 4.3). Uten nøkkel kalles ikke Claude. Feiler kallet, blir det ingen forklaring, men resten av siden virker som før.
+
+Forklaringen står nederst på siden, under «Forklaring» (story 4.5). Siden viser graf, tabell og varsel med en gang, og `app.js` henter forklaringen fra `GET /forklaring` etterpå. Mens den lages, står det «Forklaringen lages …». Uten nøkkel står det at forklaringen krever en KI-nøkkel, og feiler noe, står det at forklaringen ikke kunne lages akkurat nå.
+
+Vil du se de tre utfallene uten en ekte nøkkel, starter du appen med en falsk Claude. Fra `backend/`:
+
+    uv run python scripts/vis_forklaring.py forklaring
+    uv run python scripts/vis_forklaring.py uten-nokkel
+    uv run python scripts/vis_forklaring.py feil
+
+Åpne så http://127.0.0.1:8001 (port 8001, så den ikke kolliderer med den vanlige appen), velg et utvalg og trykk «Vis tallene». Tallene hentes fra FHI som vanlig, men Claude kalles aldri, og mellomlageret er en midlertidig mappe, så den falske forklaringen havner ikke i `.cache/ki/`. Stopp med Ctrl+C.
 
 ### Mellomlager
 

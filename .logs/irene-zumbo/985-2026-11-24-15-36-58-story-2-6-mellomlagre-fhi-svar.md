@@ -3,7 +3,7 @@
 ## 2026-11-24 kl. 15:36 — Irene Zumbo
 
 ### Oppgave
-Bygge story 2.6 (issue #11): `config.les_innstillinger()` med valg av cachemappe, og `mellomlager` som lagrer og leser rå FHI-svar atomisk (FR-7, FR-8, AD-4, AD-6). Storyen merges selv etter grønne tester og en kodegjennomgang uten alvorlige funn. Kjørt etter [story 2.5](986-2026-11-24-15-43-10-story-2-5-hente-fra-fhi.md).
+Bygge story 2.6 (issue #11): `config.les_innstillinger()` med valg av cachemappe, og `mellomlager` som lagrer og leser rå FHI-svar atomisk (FR-7, FR-8, AD-4, AD-6). Storyen merges selv etter grønne tester og en kodegjennomgang uten alvorlige funn. Kjørt etter [story 2.5](986-2026-11-24-15-31-20-story-2-5-hente-fra-fhi.md).
 
 ### Plan
 - Oneshot-spec: [spec-2-6-mellomlagre-fhi-svar.md](../../_bmad-output/implementation-artifacts/spec-2-6-mellomlagre-fhi-svar.md).

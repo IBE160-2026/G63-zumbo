@@ -5,6 +5,8 @@ den importerer bare standardbiblioteket og bruker aldri klokka, nettet eller fil
 Skjulte og manglende verdier er `None`, aldri `0`.
 """
 
+import re
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from types import MappingProxyType
@@ -153,12 +155,32 @@ class Uke:
         return self.tester is None or self.tester < GRENSE_USIKKER_UKE
 
 
+class UgyldigUtvalg(ValueError):
+    """Parametrene gir ikke et gyldig utvalg (FR-5).
+
+    Meldingen er på norsk, sier hva som må rettes og kan vises til brukeren som
+    den er. Den inneholder aldri verdien brukeren sendte eller FHI-koder (NFR-3).
+    """
+
+
+_TRYGG_NØKKEL = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
+_SESONG = re.compile(r"[0-9]{4}/[0-9]{4}")
+
+
+def _liste(navn: list[str]) -> str:
+    """«a», «a eller b», «a, b eller c»."""
+    if len(navn) == 1:
+        return navn[0]
+    return ", ".join(navn[:-1]) + " eller " + navn[-1]
+
+
 @dataclass(frozen=True)
 class Utvalg:
     """Kombinasjonen brukeren har valgt (PRD kapittel 3).
 
     Feltene er nøklene i `MALER`, `VIRUS` og `ALDERSGRUPPER`, og sesongen skrevet
-    som «2025/2026». Gyldige verdier sjekkes i `Utvalg.fra_parametre` (story 2.2).
+    som «2025/2026». Lag utvalg fra brukeren med `Utvalg.fra_parametre`, som er
+    det eneste stedet verdiene sjekkes (AD-9).
     Overvåkingstypen er alltid vanlig klinisk praksis i v1.
     """
 
@@ -170,6 +192,64 @@ class Utvalg:
     @property
     def tabell(self) -> int:
         return VIRUS[self.virus].tabell
+
+    @classmethod
+    def fra_parametre(
+        cls, parametre: Mapping[str, str], gyldige_sesonger: Iterable[str]
+    ) -> "Utvalg":
+        """Lager et utvalg fra query-parametrene `mal`, `virus`, `sesong`, `alder`.
+
+        Bare de eksakte nøklene i listene godtas. Manglende eller tom `alder`
+        gir «Alle aldersgrupper» (FR-4). Er noe galt, kastes `UgyldigUtvalg`
+        med én setning per felt som må rettes (FR-5).
+        """
+        sesonger = list(gyldige_sesonger)
+        mal = parametre.get("mal") or ""
+        virus = parametre.get("virus") or ""
+        sesong = parametre.get("sesong") or ""
+        alder = parametre.get("alder") or STANDARD_ALDERSGRUPPE
+
+        feil = []
+        malnummer = {str(nr): nr for nr in MALER}.get(mal)
+        if malnummer is None:
+            feil.append("Velg en mal.")
+        if virus not in VIRUS:
+            navn = _liste([v.navn for v in VIRUS.values()])
+            feil.append(f"Velg et virus: {navn}.")
+        if sesong not in sesonger:
+            if sesonger:
+                feil.append(f"Velg en sesong: {_liste(sesonger)}.")
+            else:
+                feil.append("Det finnes ingen sesonger å velge nå. Prøv igjen senere.")
+        if alder not in ALDERSGRUPPER:
+            feil.append("Velg en aldersgruppe fra listen, eller «Alle aldersgrupper».")
+        if feil:
+            raise UgyldigUtvalg(" ".join(feil))
+        return cls(mal=malnummer, virus=virus, sesong=sesong, aldersgruppe=alder)
+
+    @property
+    def nøkkel(self) -> str:
+        """Filnavnet for utvalget i cachen, uten filendelse (AD-4).
+
+        Bare `a-z`, `0-9` og `-`, likt for like utvalg og ulikt for ulike. For
+        eksempel `mal1-influensa-2025-2026-80pluss`. Gir `ValueError` for et
+        utvalg med verdier som ikke finnes i listene, også når det er laget uten
+        `fra_parametre`, slik at ingen verdi kan bli et farlig filnavn.
+        """
+        if (
+            type(self.mal) is not int
+            or self.mal not in MALER
+            or self.virus not in VIRUS
+            or self.aldersgruppe not in ALDERSGRUPPER
+            or not isinstance(self.sesong, str)
+            or not _SESONG.fullmatch(self.sesong)
+        ):
+            raise ValueError("utvalget gir ikke et trygt filnavn")
+        deler = [f"mal{self.mal}", self.virus, self.sesong, self.aldersgruppe]
+        nøkkel = "-".join(deler).replace("/", "-").replace("+", "pluss")
+        if not _TRYGG_NØKKEL.fullmatch(nøkkel):
+            raise ValueError("utvalget gir ikke et trygt filnavn")
+        return nøkkel
 
 
 @dataclass(frozen=True)

@@ -46,7 +46,7 @@ Gjennomgang med `bmad-code-review` (Blind Hunter, Edge Case Hunter, Verification
 - **low, rettet:** `nøkkel` godtok sesonger som ikke finnes, som `2026/2025`.
 - **low, rettet:** spec-eksempelet skrev «influensa» med liten forbokstav. Koden bruker navnene fra `VIRUS`. Notatet er rettet.
 - **low, rettet:** testen for FHI-koder sjekket bare tre meldinger. Den sjekker nå meldingen for hvert felt.
-- **avvist (low):** en `str` som `gyldige_sesonger` ble delt opp i tegn. Rettet likevel med en `TypeError`, fordi rettingen er én linje.
+- **low, rettet:** en `str` som `gyldige_sesonger` ble delt opp i tegn. Gir nå `TypeError`.
 - **false:** verdier som ikke er tekst (en liste i `parametre`) gir `TypeError`. `parametre` er `request.query_params`, der `get` alltid gir tekst eller `None`. Ingen kode kan sende noe annet.
 - **false:** et `Utvalg` laget direkte med en liste som virus gir `TypeError` i `nøkkel`. Det feiler høyt, og ingen kode lager slike utvalg.
 - **avvist (low):** `80+ år` er ikke med i listen over FHI-koder i testen. Det er også den norske etiketten som skal vises, så den kan ikke forbys i meldingen.

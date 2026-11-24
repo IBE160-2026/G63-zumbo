@@ -122,6 +122,7 @@
   {% endif %}
   {% if resultat.kilde %}
   <p class="kilde">{{ resultat.kilde.kildetekst }} Tabell {{ resultat.kilde.tabell }} «{{ resultat.kilde.tabellnavn }}». Hentet {{ resultat.kilde.hentet|tidspunkt }}.</p>
+  <p class="justering">Tallene for den siste uka kan bli justert når flere prøvesvar kommer inn.</p>
   {% endif %}
 </section>
 {% endif %}
@@ -134,6 +135,11 @@
     <p>{{ begrep.tekst }}</p>
   </details>
   {% endfor %}
+</section>
+
+<section class="om-appen" aria-labelledby="chatbottittel">
+  <h2 id="chatbottittel">Hvorfor ikke bare spørre en chatbot?</h2>
+  <p>En chatbot kan finne på tall eller bruke gamle tall, og den sier sjelden hvor tallene kommer fra. Denne appen henter tallene direkte fra Folkehelseinstituttet, viser når de ble hentet, og sier fra når det er for lite data til å konkludere. KI brukes bare til å forklare tallene med enkle ord, aldri til å lage dem.</p>
 </section>
 {% endblock %}
 

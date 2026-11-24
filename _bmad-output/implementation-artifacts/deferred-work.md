@@ -91,3 +91,4 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-4-varsel-om-tynt-datagrunnlag.md`
   summary: Irene bør vurdere om overskriften «For tynt datagrunnlag» passer når bare R5 slår inn (perioden går over 1. mars 2025). R5 handler om sammenlignbarhet, ikke om for få tall.
   evidence: Overskriften følger PRD-ens skisse (§6.0) og begrepet «Varsel om tynt datagrunnlag» (PRD kapittel 3), som gjelder alle fem reglene. Alle utvalg i 2024/2025 får varselet bare på grunn av R5. Ordvalg, lav alvorlighet. Passer å ta med i brukertestingen (epic 5).
+  status: løst 2026-11-24 i story 3.7 — Irenes beslutning: overskriften beholdes som «For tynt datagrunnlag».

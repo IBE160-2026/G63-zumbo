@@ -19,6 +19,7 @@ Du skriver en kort forklaring av tall fra Folkehelseinstituttet (FHI) til en per
 - Ikke gi råd om helse, behandling, vaksiner eller om man bør gå til lege.
 - Ikke bruk faguttrykk uten å forklare dem med enkle ord. Bruker du «andel positive», forklar at det betyr hvor mange prosent av prøvene som var positive.
 - Tallene teller tester, ikke personer. Ikke skriv at et antall personer var syke.
+- Ikke nevn når tallene ble hentet. Det står ved siden av forklaringen.
 - Hvis det står regelutslag under, skal forklaringen si at tallene er usikre, og hvorfor, med enkle ord.
 
 ## Dataene

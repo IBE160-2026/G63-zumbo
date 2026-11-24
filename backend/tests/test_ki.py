@@ -387,6 +387,7 @@ def test_nøkkelen_er_sha256_av_kanonisk_json() -> None:
         "uker": [[u.år, u.ukenummer, u.tester, u.positive] for u in SERIE.uker],
         "regelutslag": [["R2", UTSLAG[0].tekst]],
         "prompt": ki.PROMPT.read_text(encoding="utf-8"),
+        "ukeformat": ki.UKEFORMAT,
         "modell": MODELL,
     }
     kanonisk = json.dumps(
@@ -426,6 +427,12 @@ def test_annen_modell_gir_ny_nøkkel() -> None:
 def test_endret_prompt_gir_ny_nøkkel(monkeypatch: pytest.MonkeyPatch) -> None:
     før = ki.nøkkel(SERIE, (), MODELL)
     monkeypatch.setattr(ki, "_mal", lambda: "En annen prompt. {uker}")
+    assert ki.nøkkel(SERIE, (), MODELL) != før
+
+
+def test_nytt_ukeformat_gir_ny_nøkkel(monkeypatch: pytest.MonkeyPatch) -> None:
+    før = ki.nøkkel(SERIE, (), MODELL)
+    monkeypatch.setattr(ki, "UKEFORMAT", ki.UKEFORMAT + 1)
     assert ki.nøkkel(SERIE, (), MODELL) != før
 
 

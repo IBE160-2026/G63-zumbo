@@ -48,6 +48,11 @@ alt. Siden venter likevel ikke på KI-en, for forklaringen hentes for seg
 FORSØK_PÅ_NYTT = 1
 """Antall nye forsøk SDK-en gjør ved nettverksfeil, 429 og 5xx."""
 
+UKEFORMAT = 1
+"""Versjonen av måten ukene skrives for KI-en (`ukelinje`). Den er med i
+nøkkelen, så øk tallet når formatet endres. Da lages det ny forklaring
+automatisk, og `.cache/ki/` trenger ikke slettes for hånd."""
+
 
 @dataclass(frozen=True)
 class Forklaring:
@@ -122,9 +127,12 @@ def nøkkel(serie: Dataserie, regelutslag: Iterable[Regelutslag], modell: str) -
     """Nøkkelen til en lagret forklaring (AD-7).
 
     SHA-256 av kanonisk JSON (`sort_keys=True`) med utvalget, de tolkede ukene,
-    regelutslagene, innholdet i promptfila og modellnavnet. Hentetidspunktet er
-    ikke med, så de samme tallene gir samme nøkkel også etter en ny henting.
-    Endrede tall, en endret prompt eller en annen modell gir ny nøkkel.
+    regelutslagene, innholdet i promptfila, versjonen av ukeformatet
+    (`UKEFORMAT`) og modellnavnet. Hentetidspunktet er ikke med, så de samme
+    tallene gir samme nøkkel også etter en ny henting. Prompten ber KI-en ikke
+    nevne hentetidspunktet, så en gjenbrukt forklaring viser ikke et gammelt
+    tidspunkt. Endrede tall, en endret prompt, et nytt ukeformat eller en annen
+    modell gir ny nøkkel.
     """
     u = serie.utvalg
     innhold = {
@@ -137,6 +145,7 @@ def nøkkel(serie: Dataserie, regelutslag: Iterable[Regelutslag], modell: str) -
         "uker": [[x.år, x.ukenummer, x.tester, x.positive] for x in serie.uker],
         "regelutslag": [[r.regel, r.tekst] for r in regelutslag],
         "prompt": _mal(),
+        "ukeformat": UKEFORMAT,
         "modell": modell,
     }
     kanonisk = json.dumps(

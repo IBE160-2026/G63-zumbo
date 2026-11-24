@@ -62,7 +62,7 @@ Forklaringen lages i `backend/src/backend/ki.py` med prompten i `backend/src/bac
 
 ### Mellomlager
 
-Svar fra FHI lagres i `.cache/` i reporoten. Tall du har sett før, brukes uten nytt kall, også når FHI er nede (da merket «sist lagrede»), og tall som er 24 timer eller eldre, hentes på nytt (`tjeneste.py`, story 2.9). Siden som viser tallene, kommer i epic 3. Vil du ha mellomlageret et annet sted, setter du `CACHE_DIR` i `.env` eller i miljøet. En relativ sti regnes fra reporoten. På Vercel (miljøvariabelen `VERCEL` finnes) brukes `/tmp/fhi-helsedata-cache` når `CACHE_DIR` ikke er satt. KI-forklaringer lagres i `ki/` i den samme mappen, og de samme tallene gir den samme forklaringen uten nytt kall til Claude (story 4.4). En ny prompt eller en annen modell gir en ny forklaring. Mappen kan slettes når som helst; alt hentes på nytt.
+Svar fra FHI lagres i `.cache/` i reporoten. Tall du har sett før, brukes uten nytt kall, også når FHI er nede (da merket «sist lagrede»), og tall som er 24 timer eller eldre, hentes på nytt (`tjeneste.py`, story 2.9). Siden som viser tallene, kommer i epic 3. Vil du ha mellomlageret et annet sted, setter du `CACHE_DIR` i `.env` eller i miljøet. En relativ sti regnes fra reporoten. På Vercel (miljøvariabelen `VERCEL` finnes) brukes `/tmp/fhi-helsedata-cache` når `CACHE_DIR` ikke er satt. KI-forklaringer lagres i `ki/` i den samme mappen, og de samme tallene gir den samme forklaringen uten nytt kall til Claude (story 4.4). En ny prompt, et nytt ukeformat (`UKEFORMAT` i `ki.py`) eller en annen modell gir en ny forklaring. Mappen kan slettes når som helst; alt hentes på nytt.
 
 ## Struktur
 

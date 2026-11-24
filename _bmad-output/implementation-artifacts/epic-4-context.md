@@ -29,6 +29,7 @@ Brukeren får en kort KI-forklaring av tallene med kilde, og kan hente nyeste ta
 
 - **Claude via Anthropics SDK:** bare `ki.py` importerer `anthropic`. Modellen er `claude-haiku-5-5` og kan overstyres med `ANTHROPIC_MODEL`. Klienten lages med eksplisitt `api_key=` og bare når nøkkelen finnes. `ki.forklar(...)` gir alltid `Forklaring(tekst)`, `ManglerNøkkel` eller `KiFeil` og kaster aldri videre.
 - **Konfigurasjon:** `config.les_innstillinger()` laster `.env` fra reporoten med `override=True` og returnerer en `Innstillinger`-dataklasse. Bare `web` kaller den, én gang ved oppstart. Ingen modul laster `.env` ved import. `.env.example` viser `ANTHROPIC_API_KEY=` og `ANTHROPIC_MODEL=`.
+- **Formatering:** ukene, utvalget og kilden skrives inn i prompten med de samme funksjonene som tabellen bruker, fra `formatering.py` (story 4.3, Irenes beslutning på #23).
 - **Prompten** ligger i `backend/src/backend/prompts/forklaring.md` og er en fast tekst. Faste tekster for `ManglerNøkkel` og `KiFeil` står i malene, ikke i JavaScript.
 - **Mellomlagring av forklaringen:** `ki/<nøkkel>.json` med `laget`, `modell` og `tekst`. Nøkkelen er SHA-256 av kanonisk JSON (`sort_keys=True`) med utvalg, tolkede uker, regelutslag, promptinnholdet og modellnavnet, men uten hentetidspunkt. Bare `Forklaring` lagres.
 - **Ruter:** `GET /forklaring` med samme parametre som siden gir et HTML-fragment (`_forklaring.html`) som `app.js` setter inn. Feil eller annen status enn 200 gir teksten fra `data-feiltekst`. `POST /hent-nyeste` svarer `303` til `GET /` for samme utvalg.

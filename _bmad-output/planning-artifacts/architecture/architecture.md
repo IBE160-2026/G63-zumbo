@@ -40,7 +40,7 @@ Dette dokumentet fastsetter beslutningene som gjør at moduler og stories som by
 
 **Funksjonell kjerne, imperativt skall**, i én Python-pakke (`backend`).
 
-- **Kjernen** er rene funksjoner uten nettverk, filer, klokke eller KI: `domene`, `sesong`, tolkingen i `fhi`, `kontrollregler` og `begreper`. Alt kravet om «faste regler i koden» (FR-6, FR-14–FR-19, FR-13) ligger her og testes med vanlige verdier inn og ut.
+- **Kjernen** er rene funksjoner uten nettverk, filer, klokke eller KI: `domene`, `sesong`, tolkingen i `fhi`, `kontrollregler`, `begreper` og `formatering`. Alt kravet om «faste regler i koden» (FR-6, FR-14–FR-19, FR-13) ligger her og testes med vanlige verdier inn og ut.
 - **Skallet** gjør I/O: henting i `fhi`, `mellomlager`, `ki`, `tjeneste` og `web`. `tjeneste` setter sammen ett svar for et utvalg. `web` gjør bare HTTP og HTML.
 
 ```mermaid

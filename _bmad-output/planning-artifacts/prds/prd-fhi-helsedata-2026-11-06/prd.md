@@ -352,7 +352,7 @@ Når minst én kontrollregel slår inn, viser appen varselet over grafen. Varsel
 - Når ingen regel slår inn, vises ikke varselet.
 - Varselet skilles fra resten av siden med ikon og overskrift, ikke bare med farge.
 - Varselet har FHIs Rød 3 (#FBD1CD) som bakgrunn, slik at det er tydelig rosa. Rammen og ikonet har Rød 1 (#D14641), og ikonet har minst 3:1 kontrast mot bakgrunnen. *Endret 24. november 2026: Irenes beslutning.*
-- Varselet har en lenke til begrepsforklaringen for «for tynt datagrunnlag». Lenken har FHIs Blå 1 (#393C61) og er understreket. Kontrasten mot den rosa bakgrunnen er 7,6:1, over kravet på 4,5:1. *Endret 25. november 2026: Irenes beslutning.*
+- Varselet har en lenke til begrepsforklaringen for «for tynt datagrunnlag». Lenken har FHIs Blå 1 (#393C61) og er understreket. Kontrasten mot den rosa bakgrunnen er 7,6:1, over kravet på 4,5:1. *Endret 24. november 2026: Irenes beslutning.*
 - For hvert tilfelle i testsettet (SM-3) gir R1–R5 riktig resultat og riktig begrunnelse.
 
 ### 6.6 KI-forklaring

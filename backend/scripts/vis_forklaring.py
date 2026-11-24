@@ -78,11 +78,13 @@ def main() -> None:
     utfall = sys.argv[1]
     nøkkel = None if utfall == "uten-nokkel" else "falsk-nøkkel"
     with tempfile.TemporaryDirectory(prefix="fhi-demo-") as mappe:
-        innstillinger = Innstillinger(nøkkel, MODELL, Path(mappe))
+        innstillinger = Innstillinger(
+            anthropic_api_key=nøkkel, anthropic_model=MODELL, cache_dir=Path(mappe)
+        )
         app = web.lag_app(
             lambda: innstillinger, ny_ki_klient=FalskClaude(feil=utfall == "feil")
         )
-        print(f"Utfall: {utfall}. Åpne http://127.0.0.1:8001. Stopp med Ctrl+C.")
+        print(f"Utfall: {utfall}. Åpne http://127.0.0.1:{PORT}. Stopp med Ctrl+C.")
         uvicorn.run(app, host="127.0.0.1", port=PORT)
 
 

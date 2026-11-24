@@ -138,13 +138,13 @@
 </section>
 
 {% if resultat and resultat.serie is not none %}
-{% from "_ki_tekster.html" import ki_feil %}
+{% from "_ki_tekster.html" import ki_feil, uten_javascript %}
 <section class="forklaring" aria-labelledby="forklaringstittel">
   <h2 id="forklaringstittel">Forklaring</h2>
   <div id="forklaring" class="forklaringsfelt" aria-live="polite" data-adresse="{{ resultat.utvalg|forklaringsadresse }}" data-feiltekst="{{ ki_feil }}">
     <p>Forklaringen lages …</p>
   </div>
-  <noscript><p>KI-forklaringen krever JavaScript. Graf, tabell og varsel er komplette uten den.</p></noscript>
+  <noscript><p>{{ uten_javascript }}</p></noscript>
 </section>
 {% endif %}
 

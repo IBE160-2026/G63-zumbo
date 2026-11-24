@@ -171,7 +171,11 @@ def test_områdets_overskrift_og_plass_etter_begrepene(klient: TestClient) -> No
 
 def test_uten_javascript_sier_siden_det(klient: TestClient) -> None:
     html = klient.get(SIDE).text
-    assert re.search(r"<noscript>.*KI-forklaringen krever JavaScript", html)
+    assert re.search(
+        r"<noscript><p>KI-forklaringen krever JavaScript\. Graf, tabell og varsel "
+        r"er komplette uten den\.</p></noscript>",
+        html,
+    )
 
 
 def test_siden_kaller_ikke_claude(klient: TestClient, claude: FalskClaude) -> None:
@@ -197,6 +201,40 @@ def test_uten_tall_vises_ikke_området(klient: TestClient, sti: str) -> None:
     html = klient.get(sti).text
     assert 'id="forklaring"' not in html
     assert "Forklaringen lages" not in html
+
+
+def test_uten_tall_fra_fhi_vises_ikke_området(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    # Gyldig utvalg, men FHI svarer ikke og ingen tall er lagret.
+    fhi_mock.routes["data"].respond(status_code=503)
+    html = klient.get(SIDE).text
+    assert 'role="status"' in html
+    assert 'id="forklaring"' not in html
+    assert "Forklaringen lages" not in html
+
+
+def test_med_lagrede_tall_vises_siden_uten_fhi_og_uten_ki(
+    klient: TestClient,
+    claude: FalskClaude,
+    fhi_mock: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # NFR-2: med lagrede tall vises graf, tabell og varsel uten å vente på
+    # FHI eller KI-en.
+    assert klient.get(SIDE).status_code == 200
+    kall_til_fhi = fhi_mock.routes["data"].call_count
+
+    def stopp(*_: Any, **__: Any) -> None:
+        raise AssertionError("GET / skal ikke kalle ki")
+
+    monkeypatch.setattr(tjeneste.Tjeneste, "forklaring", stopp)
+    html = klient.get(SIDE).text
+    assert fhi_mock.routes["data"].call_count == kall_til_fhi
+    assert 'id="graf"' in html
+    assert "<tbody>" in html
+    assert "Forklaringen lages …" in html
+    assert claude.kall == 0
 
 
 def test_app_js_henter_fragmentet_og_bruker_feilteksten() -> None:

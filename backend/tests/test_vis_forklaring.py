@@ -6,9 +6,11 @@ kalles aldri (AD-10).
 
 import importlib.util
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 
@@ -68,3 +70,41 @@ def test_ukjent_utfall_stopper_skriptet(
 
 def test_demoen_bruker_ikke_den_vanlige_porten(demo: ModuleType) -> None:
     assert demo.PORT != 8000
+
+
+@pytest.mark.parametrize(
+    ("utfall", "nøkkel", "feil"),
+    [("forklaring", True, False), ("uten-nokkel", False, False), ("feil", True, True)],
+)
+def test_main_starter_appen_med_riktig_utfall(
+    demo: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+    utfall: str,
+    nøkkel: bool,
+    feil: bool,
+) -> None:
+    fanget: dict[str, Any] = {}
+
+    def lag_app(
+        les_innstillinger: Callable[[], Innstillinger], ny_ki_klient: Any
+    ) -> str:
+        fanget["innstillinger"] = les_innstillinger()
+        fanget["claude"] = ny_ki_klient
+        return "app"
+
+    def kjør(app: str, host: str, port: int) -> None:
+        fanget["kjørt"] = (app, host, port)
+        # Den midlertidige mappen finnes mens appen kjører.
+        assert fanget["innstillinger"].cache_dir.is_dir()
+
+    monkeypatch.setattr(demo.web, "lag_app", lag_app)
+    monkeypatch.setattr(demo.uvicorn, "run", kjør)
+    monkeypatch.setattr(demo.sys, "argv", ["vis_forklaring.py", utfall])
+    demo.main()
+    innstillinger: Innstillinger = fanget["innstillinger"]
+    assert bool(innstillinger.anthropic_api_key) is nøkkel
+    assert fanget["claude"].feil is feil
+    assert fanget["kjørt"] == ("app", "127.0.0.1", demo.PORT)
+    # Mappen er slettet etterpå, og `.cache/` er aldri brukt.
+    assert not innstillinger.cache_dir.exists()
+    assert ".cache" not in innstillinger.cache_dir.parts

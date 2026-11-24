@@ -283,6 +283,19 @@ tbody tr.markert td {
   margin: 0 0 0.75rem;
 }
 
+/* --- KI-forklaringen --- */
+
+/* Merket «Skrevet av KI» er tekst, ikke bare farge (FR-20, NFR-7). */
+.ki-merke {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.forklaringsfelt p:first-child {
+  margin-top: 0;
+}
+
 /* --- Bunnen av siden --- */
 
 .avsender {

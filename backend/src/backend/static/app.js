@@ -56,10 +56,31 @@
     reserve.hidden = true;
   }
 
+  // Punktene blir mindre jo smalere grafen er, så de ikke overlapper på
+  // smale skjermer: radius er en tredel av plassen per uke, mellom 2 og 5
+  // piksler (Irenes beslutning 24.11.2026).
+  const radius = (ctx) => {
+    const omraade = ctx.chart.chartArea;
+    const bredde = omraade ? omraade.width : ctx.chart.width;
+    const plass = bredde / Math.max(graf.uker.length, 1);
+    return Math.min(5, Math.max(2, plass / 3));
+  };
+
+  // Radene i tabellen, i samme rekkefølge som ukene i grafen.
+  const rader = [...document.querySelectorAll("tbody tr[data-indeks]")];
+
+  // Markerer raden for uke nummer `indeks` i tabellen, eller ingen rad.
+  // Markeringen er fet skrift og strek (style.css), ikke bare farge.
+  function markerRad(indeks) {
+    rader.forEach((rad) => {
+      rad.classList.toggle("markert", Number(rad.dataset.indeks) === indeks);
+    });
+  }
+
   // Grafen bruker samme skrift som teksten og tegnes når skriften er lastet.
   Chart.defaults.font.family = farge("--skrift-tekst");
-  const tegn = () =>
-    new Chart(lerret, {
+  const tegn = () => {
+    const diagram = new Chart(lerret, {
       type: "line",
       data: {
         labels: graf.uker,
@@ -71,28 +92,53 @@
             borderWidth: 2,
             spanGaps: false,
             pointStyle: "circle",
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointBorderWidth: 2,
+            pointRadius: radius,
+            pointHoverRadius: (ctx) => radius(ctx) + 3,
+            pointBorderWidth: (ctx) => (radius(ctx) < 3 ? 1.5 : 2),
+            pointHoverBorderWidth: 3,
             pointBorderColor: linje,
             // Usikre uker: åpen sirkel (hvit fyll), ikke bare en annen farge (NFR-7).
             pointBackgroundColor: graf.usikker.map((u) => (u ? bakgrunn : linje)),
           },
         ],
       },
+      // Peker brukeren på en uke i grafen, markeres samme rad i tabellen.
+      // Kjøres etter hver hendelse i grafen, også når musa forlater den, så
+      // markeringen forsvinner igjen (`onHover` kalles ikke utenfor grafen).
+      plugins: [
+        {
+          id: "markerRad",
+          afterEvent: (diagrammet) => {
+            const aktive = diagrammet.getActiveElements();
+            markerRad(aktive.length ? aktive[0].index : null);
+          },
+        },
+      ],
       options: {
         maintainAspectRatio: false,
         animation: false,
         color: tekst,
+        // Uka nærmest musa langs den vannrette aksen, så små punkter er lette
+        // å treffe.
+        interaction: { mode: "index", intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
+            // Ingen fargerute: den sto bare ved første linje.
+            displayColors: false,
             callbacks: {
-              // Samme tekst som i tabellen, og om uka er usikker.
+              // Samme tall som i tabellen, og om uka er usikker.
               label: (punkt) => {
                 const i = punkt.dataIndex;
-                const usikker = graf.usikker[i] ? ", " + tekster.tekstUsikker : "";
-                return graf.andel_tekst[i] + usikker;
+                const linjer = [
+                  tekster.tekstTester + ": " + graf.tester_tekst[i],
+                  tekster.tekstPositive + ": " + graf.positive_tekst[i],
+                  tekster.tekstAndel + ": " + graf.andel_tekst[i],
+                ];
+                if (graf.usikker[i]) {
+                  linjer.push("(" + tekster.tekstUsikker + ")");
+                }
+                return linjer;
               },
             },
           },
@@ -108,12 +154,47 @@
             title: { display: true, text: tekster.tekstY, color: tekst },
             ticks: {
               color: tekst,
-              callback: (verdi) => verdi.toLocaleString("nb-NO") + " %",
+              callback: (verdi) => verdi.toLocaleString("nb-NO") + " %",
             },
             grid: { color: rutenett },
           },
         },
       },
     });
+
+    // Markerer punktet for uke nummer `indeks` i grafen, med større punkt og
+    // verktøytips, eller fjerner markeringen. Uker uten andel har ikke noe punkt.
+    function markerPunkt(indeks) {
+      const punkt =
+        indeks === null || graf.andel[indeks] === null
+          ? null
+          : diagram.getDatasetMeta(0).data[indeks];
+      const aktive = punkt ? [{ datasetIndex: 0, index: indeks }] : [];
+      diagram.setActiveElements(aktive);
+      const sted = punkt ? { x: punkt.x, y: punkt.y } : { x: 0, y: 0 };
+      diagram.tooltip.setActiveElements(aktive, sted);
+      diagram.update();
+    }
+
+    // Peker brukeren på eller går med tastaturet til en rad i tabellen,
+    // markeres punktet i grafen og raden selv. Radene kan nås med Tab bare
+    // når grafen finnes.
+    rader.forEach((rad) => {
+      const indeks = Number(rad.dataset.indeks);
+      rad.tabIndex = 0;
+      const vis = () => {
+        markerRad(indeks);
+        markerPunkt(indeks);
+      };
+      const skjul = () => {
+        markerRad(null);
+        markerPunkt(null);
+      };
+      rad.addEventListener("mouseenter", vis);
+      rad.addEventListener("focus", vis);
+      rad.addEventListener("mouseleave", skjul);
+      rad.addEventListener("blur", skjul);
+    });
+  };
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(tegn);
 })();

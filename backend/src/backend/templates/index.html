@@ -123,6 +123,14 @@
   {% if resultat.kilde %}
   <p class="kilde">{{ resultat.kilde|kildetekst }}</p>
   <p class="justering">Tallene for den siste uka kan bli justert når flere prøvesvar kommer inn.</p>
+  <form method="post" action="/hent-nyeste" class="hent-nyeste">
+    <p class="publisering">FHI publiserer nye tall hver torsdag.</p>
+    <input type="hidden" name="mal" value="{{ resultat.utvalg.mal }}">
+    <input type="hidden" name="virus" value="{{ resultat.utvalg.virus }}">
+    <input type="hidden" name="sesong" value="{{ resultat.utvalg.sesong }}">
+    <input type="hidden" name="alder" value="{{ resultat.utvalg.aldersgruppe }}">
+    <p><button type="submit" data-ventetekst="Henter nyeste tall …">Hent nyeste tall nå</button></p>
+  </form>
   {% endif %}
 </section>
 {% endif %}

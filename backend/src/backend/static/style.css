@@ -267,6 +267,21 @@ tbody tr.markert td {
   margin-top: 0.25rem;
 }
 
+/* «Hent nyeste tall nå» står under kilden, med teksten om torsdag (FR-25). */
+.hent-nyeste p {
+  margin: 0.5rem 0;
+}
+
+.publisering {
+  font-size: 0.9rem;
+}
+
+/* Deaktivert knapp: samme farger (kontrasten holder), men ventetekst og
+   ventepeker viser at hentingen pågår. */
+button:disabled {
+  cursor: wait;
+}
+
 /* --- Begrepsforklaringer --- */
 
 .begreper details {

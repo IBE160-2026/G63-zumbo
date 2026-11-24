@@ -48,6 +48,10 @@ Web-appen finnes ikke ennå. Kommandoen for å starte den lokalt skrives inn her
 
 `ANTHROPIC_MODEL` kan stå tom; da brukes standardmodellen. `.env` og mellomlageret i `.cache/` holdes utenfor git.
 
+### Mellomlager
+
+Svar fra FHI lagres i `.cache/` i reporoten. Når appen er ferdig (story 2.9), skal tall du har sett før vises uten nytt kall, også når FHI er nede, og tall som er 24 timer eller eldre, hentes på nytt. Vil du ha mellomlageret et annet sted, setter du `CACHE_DIR` i `.env` eller i miljøet. En relativ sti regnes fra reporoten. På Vercel (miljøvariabelen `VERCEL` finnes) brukes `/tmp/fhi-helsedata-cache` når `CACHE_DIR` ikke er satt. Mappen kan slettes når som helst; alt hentes på nytt.
+
 ## Struktur
 
 - backend/: Python-prosjekt (uv)

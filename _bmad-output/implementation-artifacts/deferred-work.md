@@ -5,6 +5,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-1-rydde-uv-prosjektet-og-holde-nokler-og-cache-utenfor-git.md`
   summary: `config.les_innstillinger()` må behandle tom `ANTHROPIC_MODEL` og tom `ANTHROPIC_API_KEY` som ikke satt (bruk `os.getenv(...) or standard`).
   evidence: `.env.example` har `ANTHROPIC_MODEL=` og `ANTHROPIC_API_KEY=` med tomme verdier (AC i story 1.1). Kopieres fila uendret til `.env`, setter python-dotenv (`override=True`, AD-6) begge til `""`. Da gir `os.environ.get(navn, standard)` `""`, og en tom nøkkel kan bli tolket som at nøkkelen finnes. README og `.env.example` lover nå at tom modell gir standardmodellen.
+  status: løst 2026-11-24 i story 2.6 — `config._verdi` regner tomme verdier (også bare mellomrom) som ikke satt, testet i `test_tomme_verdier_fra_env_example_regnes_som_ikke_satt`.
 
 ## Deferred from: code review of spec-1-2-ruff-og-pytest-uten-nett.md (2026-11-23)
 
@@ -28,6 +29,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-5-enkel-readme.md`
   summary: Lag en test som viser at testene aldri laster `.env`, når python-dotenv tas i bruk (AD-6, AD-10).
   evidence: README og AD-10 sier at testene aldri leser `.env`. Det stemmer i dag fordi ingen kode laster `.env`, men ingen test håndhever det. Når `config.py` eller `web` begynner å kalle `load_dotenv`, kan en import ved et uhell lese en ekte nøkkel. Testen kan legge en falsk `.env` med `ANTHROPIC_API_KEY` i `tmp_path` og sjekke at verdien ikke havner i miljøet.
+  status: løst 2026-11-24 i story 2.6 — `les_innstillinger` tar `miljø` som argument, og testene sender det alltid inn. `test_import_av_config_laster_ikke_env` importerer `config` i en egen prosess med en falsk `dotenv`, og en AST-test stopper `dotenv`-kall utenfor funksjoner.
 
 ## Deferred from: code review of spec-2-1-domenemodellen.md (2026-11-23)
 

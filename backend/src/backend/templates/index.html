@@ -74,7 +74,7 @@
 <figure class="graf" aria-labelledby="graftittel">
   <figcaption><h2 id="graftittel">{{ resultat.utvalg|utvalgstekst }}</h2></figcaption>
   <div class="grafboks" hidden>
-    <canvas id="graf" role="img" aria-label="{{ alternativ }}" data-tekst-x="Uke" data-tekst-y="Andel positive (%)" data-tekst-usikker="usikker uke">{{ alternativ }}</canvas>
+    <canvas id="graf" role="img" aria-label="{{ alternativ }}" data-tekst-x="Uke" data-tekst-y="Andel positive (%)" data-tekst-usikker="usikker uke" data-tekst-tester="Tester" data-tekst-positive="Positive prøver" data-tekst-andel="Andel positive">{{ alternativ }}</canvas>
   </div>
   <p class="grafreserve">{{ alternativ }}</p>
   <p class="grafforklaring"><span aria-hidden="true">●</span> Sikker uke <span aria-hidden="true">○</span> Usikker uke: færre enn 30 tester eller flere positive prøver enn tester. Uker uten andel (skjult antall tester eller 0 tester) gir brudd i linjen.</p>
@@ -97,7 +97,7 @@
       </thead>
       <tbody>
         {% for u in uker %}
-        <tr>
+        <tr data-indeks="{{ loop.index0 }}">
           <th scope="row">{{ u|uke }}
             {%- if u.usikker %}<span aria-hidden="true">*</span><span class="for-skjermleser"> (usikker uke)</span>{% endif %}
             {%- if u.flere_positive_enn_tester %}<span aria-hidden="true">†</span><span class="for-skjermleser"> (flere positive prøver enn tester)</span>{% endif -%}

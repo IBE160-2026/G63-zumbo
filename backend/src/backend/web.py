@@ -102,8 +102,8 @@ def grafdata(serie: Dataserie) -> dict[str, Any]:
     """Tallene grafen tegner, fra samme `Dataserie` som tabellen (AD-8).
 
     Uker uten andel (manglende uker og uker med 0 tester) har `null`, så linjen
-    får brudd (FR-9). `andel_tekst` er andelen slik tabellen viser den, til
-    verktøytipset. `usikker` sier hvilke punkter som får åpen sirkel (FR-10).
+    får brudd (FR-9). `andel_tekst`, `tester_tekst` og `positive_tekst` er
+    tallene slik tabellen viser dem, til verktøytipset. `usikker` sier hvilke punkter som får åpen sirkel (FR-10).
     """
     return {
         "uker": [uke(u) for u in serie.uker],
@@ -111,6 +111,8 @@ def grafdata(serie: Dataserie) -> dict[str, Any]:
             None if u.andel is None else float(_avrundet(u.andel)) for u in serie.uker
         ],
         "andel_tekst": [andelstekst(u) for u in serie.uker],
+        "tester_tekst": [tall(u.tester) for u in serie.uker],
+        "positive_tekst": [tall(u.positive) for u in serie.uker],
         "usikker": [u.usikker for u in serie.uker],
     }
 

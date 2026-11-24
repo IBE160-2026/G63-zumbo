@@ -24,6 +24,7 @@ from backend.tjeneste import Resultat
 
 FIXTURES = Path(__file__).parent / "fixtures"
 STATIC = Path(web.__file__).parent / "static"
+TEMPLATES = Path(web.__file__).parent / "templates"
 DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data"
 DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimension"
 NÅ = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
@@ -87,7 +88,7 @@ def _tabell(html: str) -> list[list[str]]:
     tbody = re.search(r"<tbody>(.*?)</tbody>", html, re.DOTALL)
     assert tbody, "fant ingen tabell"
     rader = []
-    for rad in re.findall(r"<tr>(.*?)</tr>", tbody[1], re.DOTALL):
+    for rad in re.findall(r"<tr[^>]*>(.*?)</tr>", tbody[1], re.DOTALL):
         celler = re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", rad, re.DOTALL)
         rader.append([re.sub(r"<[^>]+>", "", c).strip() for c in celler])
     return rader
@@ -116,6 +117,14 @@ def test_jsonblokken_har_samme_tall_som_tabellen(
         assert andel_tekst == rad[3]
         if andel is not None:
             assert _som_tabell(andel) == rad[3]
+    # Verktøytipset viser tester og positive slik tabellen gjør (Irenes
+    # beslutning 24.11.2026).
+    assert graf["tester_tekst"] == [rad[1] for rad in tabell]
+    assert graf["positive_tekst"] == [rad[2] for rad in tabell]
+    # Radene har samme nummer som ukene i grafen, så de kan markeres sammen.
+    tbody = html[html.index("<tbody>") : html.index("</tbody>")]
+    indekser = re.findall(r'<tr data-indeks="(\d+)">', tbody)
+    assert indekser == [str(i) for i in range(len(graf["uker"]))]
 
 
 def test_jsonblokken_med_ekte_tall(klient: TestClient, mappe: Path) -> None:
@@ -130,6 +139,9 @@ def test_akseteksten_står_i_malen(klient: TestClient, mappe: Path) -> None:
     assert 'data-tekst-x="Uke"' in html
     assert 'data-tekst-y="Andel positive (%)"' in html
     assert 'data-tekst-usikker="usikker uke"' in html
+    assert 'data-tekst-tester="Tester"' in html
+    assert 'data-tekst-positive="Positive prøver"' in html
+    assert 'data-tekst-andel="Andel positive"' in html
 
 
 def test_manglende_uker_er_null(klient: TestClient, mappe: Path) -> None:
@@ -316,3 +328,37 @@ def test_jsonblokken_er_trygg_inne_i_script() -> None:
     tekst = web.maler.env.from_string("{{ d|tojson }}").render(d=data)
     assert "</" not in tekst
     assert json.loads(tekst) == data
+
+
+# --- Graf og tabell henger sammen (Irenes beslutning 24.11.2026) ---
+
+
+def test_app_js_kobler_graf_og_tabell() -> None:
+    kode = (STATIC / "app.js").read_text(encoding="utf-8")
+    # Peker på grafen markerer raden.
+    assert "afterEvent:" in kode
+    assert "markerRad(aktive.length ? aktive[0].index : null)" in kode
+    assert 'rad.classList.toggle("markert"' in kode
+    # Rad med mus eller tastatur markerer punktet og viser verktøytipset.
+    for hendelse in ("mouseenter", "focus", "mouseleave", "blur"):
+        assert f'rad.addEventListener("{hendelse}"' in kode
+    assert "diagram.setActiveElements(" in kode
+    assert "diagram.tooltip.setActiveElements(" in kode
+    # Radene kan nås med Tab bare når grafen finnes.
+    assert "rad.tabIndex = 0" in kode
+    mal = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+    assert "tabindex" not in mal[mal.index("<tbody>") :]
+
+
+def test_app_js_verktøytips_med_tester_positive_og_andel() -> None:
+    kode = (STATIC / "app.js").read_text(encoding="utf-8")
+    for nøkkel in ("tester_tekst", "positive_tekst", "andel_tekst"):
+        assert f"graf.{nøkkel}[i]" in kode
+    for tekst in ("tekstTester", "tekstPositive", "tekstAndel"):
+        assert f"tekster.{tekst}" in kode
+
+
+def test_app_js_mindre_punkter_på_smale_skjermer() -> None:
+    kode = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "Math.min(5, Math.max(2, plass / 3))" in kode
+    assert "pointRadius: radius," in kode

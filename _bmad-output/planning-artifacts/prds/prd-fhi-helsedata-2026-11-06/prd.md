@@ -249,6 +249,9 @@ Appen viser andel positive uke for uke som en linjegraf. Realiserer UJ-1.
 - Én verdi per uke i sesongen, med uker langs den vannrette aksen og andel positive (%) langs den loddrette.
 - Grafen har en tittel som gjentar utvalget, for eksempel «Influensa, sesongen 2025/2026, alle aldersgrupper».
 - Manglende uker vises som brudd i linjen, ikke som 0. Det gjelder alle uker uten andel, også uker med skjult antall tester og uker med 0 tester. De har ikke noe punkt i grafen. I tabellen står tallene som «skjult», «mangler» eller «kan ikke regnes ut» (FR-11). *Endret 24. november 2026: Irenes beslutning.*
+- Punktene blir mindre jo smalere grafen er, slik at de ikke overlapper på smale skjermer. *Endret 24. november 2026: Irenes beslutning.*
+- Når brukeren holder musa over et punkt, viser den lille boksen (verktøytipset) uka, antall tester, antall positive prøver og andelen, med de samme tallene som i tabellen. *Endret 24. november 2026: Irenes beslutning.*
+- Grafen og tabellen henger sammen. Peker brukeren på en uke i grafen, markeres samme rad i tabellen. Peker brukeren på eller går med tastaturet til en rad i tabellen, markeres punktet i grafen. Markeringen er ikke bare farge: raden får fet skrift og strek over og under, og punktet blir større og får verktøytipset. *Endret 24. november 2026: Irenes beslutning.*
 
 #### FR-10: Markere usikre uker
 
@@ -348,6 +351,7 @@ Når minst én kontrollregel slår inn, viser appen varselet over grafen. Varsel
 - Varselet lister hver regel som slo inn, med en setning på enkel norsk og de faktiske tallene, for eksempel «6 av 20 uker har færre enn 30 tester».
 - Når ingen regel slår inn, vises ikke varselet.
 - Varselet skilles fra resten av siden med ikon og overskrift, ikke bare med farge.
+- Varselet har FHIs Rød 3 (#FBD1CD) som bakgrunn, slik at det er tydelig rosa. Rammen og ikonet har Rød 1 (#D14641), og ikonet har minst 3:1 kontrast mot bakgrunnen. *Endret 24. november 2026: Irenes beslutning.*
 - Varselet har en lenke til begrepsforklaringen for «for tynt datagrunnlag».
 - For hvert tilfelle i testsettet (SM-3) gir R1–R5 riktig resultat og riktig begrunnelse.
 

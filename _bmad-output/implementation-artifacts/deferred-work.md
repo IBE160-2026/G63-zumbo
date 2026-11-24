@@ -35,3 +35,12 @@
   summary: Avgjør i story 2.4 om `Uke` skal avvise flere positive enn tester (andel over 100 %).
   evidence: `Uke(2025, 40, 100, 200)` gir i dag `andel == 200.0`. Vi vet ikke om FHI kan ha flere påvisninger enn testede i en uke (for eksempel hvis én person teller som påvisning for både A og B). En sperre i `Uke` ville da gjort at `fhi.tolk` feiler på ekte data. Sjekk dette mot FHI-dataene i story 2.4 før vi legger inn en sperre. Alvorlighet ukjent (ikke bekreftet).
   status: løst 2026-11-24 i story 2.4 — Irenes beslutning: ingen sperre. Andelen vises som den er (over 100 %), og uka er usikker med en fotnote (`Uke.flere_positive_enn_tester`, FR-10). R2 teller fortsatt bare færre enn 30 tester. Fixturen for 724 har ingen slike uker.
+
+## Deferred from: code review of spec-2-4-tolke-fhi-svar-til-en-komplett-dataserie.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-tolke-fhi-svar-til-en-komplett-dataserie.md`
+  summary: Tabellen og grafen (story 3.2 og 3.3) må vise en egen fotnote på enkel norsk for uker med `Uke.flere_positive_enn_tester`, i tillegg til markeringen som usikker uke (FR-10).
+  evidence: Irenes beslutning 24.11.2026. Bare egenskapen finnes i `domene`. Teksten står som eksempel i PRD FR-10. En uke med 0 tester og positive over 0 har ingen andel (kan ikke dele på 0), men skal likevel ha fotnoten.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-4-tolke-fhi-svar-til-en-komplett-dataserie.md`
+  summary: Story 2.7 (R2) må ha en test som viser at en uke med flere positive enn tester og minst 30 tester ikke telles i R2.
+  evidence: Irenes beslutning 24.11.2026 og FR-15. `Uke.usikker` er nå sann for slike uker, så R2 må telle `tester < 30` direkte og ikke bruke `usikker`. Ingen test håndhever det ennå.

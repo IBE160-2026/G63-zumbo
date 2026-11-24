@@ -265,7 +265,10 @@ def test_ingen_graf_uten_andeler(klient: TestClient) -> None:
     html = klient.get(STI).text
     assert "<table>" in html
     assert 'id="graf"' not in html
-    assert "<script" not in html
+    # Chart.js og grafdata lastes ikke. app.js lastes alltid, for den åpner
+    # begrepsforklaringene (story 3.6).
+    assert "chart.umd" not in html
+    assert 'id="grafdata"' not in html
 
 
 def test_alternativtekst_uten_andeler() -> None:
@@ -295,8 +298,10 @@ def test_bare_egen_javascript_i_app_js(klient: TestClient, mappe: Path) -> None:
     assert len(skript) == 3
 
 
-def test_ingen_skript_uten_tall(klient: TestClient) -> None:
-    assert "<script" not in klient.get("/").text
+def test_bare_app_js_uten_tall(klient: TestClient) -> None:
+    skript = re.findall(r'<script src="([^"]+)"', klient.get("/").text)
+    assert len(skript) == 1
+    assert skript[0].endswith("/static/app.js")
 
 
 def test_app_js_serveres(klient: TestClient) -> None:

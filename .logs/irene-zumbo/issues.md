@@ -1,7 +1,7 @@
 # Åpne punkter
 
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — `architecture/technology.md` beskriver et annet prosjekt (Pytagoras); må erstattes av eget arkitekturdokument (løst 2026-11-20: punktet var feil. Faglærer la inn fila 12. november som referanse for arkitekturarbeidet, commit `04e4076`. Den skal ikke slettes eller endres. Vår arkitektur skrives i en egen fil i samme mappe.)
-- [ ] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — skrive tekstene til de sju begrepsforklaringene (FR-13) (story 3.5, #19)
+- [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — skrive tekstene til de sju begrepsforklaringene (FR-13) (story 3.5, #19) (løst 2026-11-24: tekstene står i #19 og i appen, se [story-3-6](976-2026-11-24-20-06-06-story-3-6-begrepsforklaringer-i-appen.md))
 - [ ] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — velge 10 testspørsmål og hente fasit manuelt fra FHI (story 7.1, #32)
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — sjekke FHIs kildehenvisning for tabell 724 (story 1.4, #4) (løst 2026-11-23 i PR #42, se [story-1-4](994-2026-11-23-20-35-25-story-1-4-kildehenvisning-724.md))
 - [x] 2026-11-20 [prd-ny-retning](999-2026-11-20-15-21-16-prd-ny-retning.md) — bekrefte antakelser i PRD-en: «Sara», fornying av mellomlager, NFR-11 mobil og PC (fornying avklart 2026-11-20: 24 timer, FR-7; «Sara» og NFR-11 bekreftet, løst 2026-11-20)
@@ -38,6 +38,6 @@
 - [x] 2026-11-24 [story-3-2](980-2026-11-24-18-27-28-story-3-2-tabell-og-kilde.md) — Irene: avgjøre om andelen for en uke med 0 tester skal vise «mangler» eller en annen tekst (se deferred-work.md) (løst 2026-11-24)
 - [x] 2026-11-24 [story-3-3](979-2026-11-24-18-33-32-story-3-3-graf-uke-for-uke.md) — Irene: bekrefte at uker med skjult antall tester eller 0 tester gir brudd i grafen og bare er merket som usikre i tabellen (FR-10) (løst 2026-11-24)
 - [ ] 2026-11-24 [story-3-3](979-2026-11-24-18-33-32-story-3-3-graf-uke-for-uke.md) — story 3.7: nettlesertest (Playwright) for at grafen tegnes med åpne sirkler og brudd; grafen er ikke sjekket med øynene ennå
-- [ ] 2026-11-24 [story-3-4](978-2026-11-24-19-06-00-story-3-4-varsel-om-tynt-datagrunnlag.md) — story 3.6: lenke fra varselet til begrepsforklaringen «for tynt datagrunnlag» (FR-19), med test
+- [x] 2026-11-24 [story-3-4](978-2026-11-24-19-06-00-story-3-4-varsel-om-tynt-datagrunnlag.md) — story 3.6: lenke fra varselet til begrepsforklaringen «for tynt datagrunnlag» (FR-19), med test (løst 2026-11-24, se [story-3-6](976-2026-11-24-20-06-06-story-3-6-begrepsforklaringer-i-appen.md))
 - [ ] 2026-11-24 [story-3-4](978-2026-11-24-19-06-00-story-3-4-varsel-om-tynt-datagrunnlag.md) — Irene: passer overskriften «For tynt datagrunnlag» når bare R5 slår inn? (se deferred-work.md)
-- [ ] 2026-11-24 [prd-begrepet-test](977-2026-11-24-19-57-37-prd-begrepet-test.md) — story 3.5: begrepsforklaringen «Test og positiv prøve» må si at tallene teller PCR-analyser, ikke personer
+- [x] 2026-11-24 [prd-begrepet-test](977-2026-11-24-19-57-37-prd-begrepet-test.md) — story 3.5: begrepsforklaringen «Test og positiv prøve» må si at tallene teller PCR-analyser, ikke personer (løst 2026-11-24: teksten i #19 sier at samme person kan telles flere ganger, se [story-3-6](976-2026-11-24-20-06-06-story-3-6-begrepsforklaringer-i-appen.md))

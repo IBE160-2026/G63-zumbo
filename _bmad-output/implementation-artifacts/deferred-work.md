@@ -87,6 +87,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-4-varsel-om-tynt-datagrunnlag.md`
   summary: Varselet mangler lenken til begrepsforklaringen for «for tynt datagrunnlag» (FR-19, fjerde punkt). Den skal legges til i story 3.6.
   evidence: Begrepsforklaringene finnes ikke før 3.5 og 3.6 (epic-3-context, avhengigheter). Malen for varselet i `index.html` har ingen lenke ennå. Story 3.6 må legge til lenken og en test for den.
+  status: løst 2026-11-24 i story 3.6 — varselet har lenken «Hva betyr dette?» til `#begrep-tynt-datagrunnlag`, og `app.js` åpner forklaringen. Testet i `test_varselet_lenker_til_forklaringen_av_tynt_datagrunnlag`.
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-4-varsel-om-tynt-datagrunnlag.md`
   summary: Irene bør vurdere om overskriften «For tynt datagrunnlag» passer når bare R5 slår inn (perioden går over 1. mars 2025). R5 handler om sammenlignbarhet, ikke om for få tall.
   evidence: Overskriften følger PRD-ens skisse (§6.0) og begrepet «Varsel om tynt datagrunnlag» (PRD kapittel 3), som gjelder alle fem reglene. Alle utvalg i 2024/2025 får varselet bare på grunn av R5. Ordvalg, lav alvorlighet. Passer å ta med i brukertestingen (epic 5).

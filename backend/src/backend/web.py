@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from backend import config
+from backend.begreper import BEGREPER, TYNT_DATAGRUNNLAG
 from backend.config import Innstillinger
 from backend.domene import (
     ALDERSGRUPPER,
@@ -245,6 +246,10 @@ def lag_app(
                 "valgt": valgt,
                 "feilmelding": feilmelding,
                 "resultat": resultat,
+                "begreper": BEGREPER,
+                "tynt_datagrunnlag": next(
+                    b.html_id for b in BEGREPER if b.nøkkel == TYNT_DATAGRUNNLAG
+                ),
             },
         )
 

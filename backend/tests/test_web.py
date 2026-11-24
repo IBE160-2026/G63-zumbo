@@ -94,7 +94,9 @@ def test_bare_influensa_kan_velges(klient: TestClient) -> None:
     html = klient.get("/").text
     assert _verdier(html, "virus") == ["influensa"]
     assert ">Influensa<" in html
-    assert "RSV" not in html
+    # Begrepsforklaringen av «Sesong» nevner RSV, så bare skjemaet sjekkes.
+    skjema = html[html.index("<form") : html.index("</form>")]
+    assert "RSV" not in skjema
     assert "SARS-CoV-2" not in html
 
 

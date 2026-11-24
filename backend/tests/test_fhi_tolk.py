@@ -40,29 +40,34 @@ def test_én_uke_per_forventet_uke_i_sesongen() -> None:
     [
         ((2025, 40), 7023, 64, 0.9112915),
         ((2025, 52), 5822, 1477, 25.36929),
-        ((2026, 20), 4552, 37, None),
+        ((2026, 20), 4552, 37, 0.8128295),
     ],
 )
 def test_tre_uker_stemmer_med_fixturen(
-    uke: tuple[int, int], tester: int, positive: int, andel: float | None
+    uke: tuple[int, int], tester: int, positive: int, andel: float
 ) -> None:
     serie = fhi.tolk(DATA, UTVALG)
     (funnet,) = [u for u in serie.uker if (u.år, u.ukenummer) == uke]
     assert (funnet.tester, funnet.positive) == (tester, positive)
-    assert funnet.andel == pytest.approx(positive * 100 / tester)
-    if andel is not None:
-        assert funnet.andel == pytest.approx(andel, abs=1e-4)
+    assert funnet.andel == pytest.approx(andel, abs=1e-4)
 
 
 def test_andelen_stemmer_med_fhis_pos_rate_for_alle_uker() -> None:
-    plass = {
-        k: i
-        for i, k in enumerate(DATA["dimension"]["MEASURE_TYPE"]["category"]["index"])
+    # Fixturen har uke først og måltall sist (se README-en), og lister som index.
+    assert DATA["id"][0] == "dateusedforstatistics"
+    assert DATA["id"][-1] == "MEASURE_TYPE"
+    ukekoder = DATA["dimension"]["dateusedforstatistics"]["category"]["index"]
+    måltall = DATA["dimension"]["MEASURE_TYPE"]["category"]["index"]
+    plass = måltall.index("pos_rate")
+    fra_fhi = {
+        fhi.les_ukekode(kode): DATA["value"][i * len(måltall) + plass]
+        for i, kode in enumerate(ukekoder)
     }
-    rader = [DATA["value"][i : i + 3] for i in range(0, len(DATA["value"]), 3)]
     serie = fhi.tolk(DATA, UTVALG)
-    for uke, rad in zip(serie.uker, rader, strict=True):
-        assert uke.andel == pytest.approx(rad[plass["pos_rate"]], abs=1e-4)
+    assert len(fra_fhi) == len(serie.uker)
+    for uke in serie.uker:
+        forventet = fra_fhi[(uke.år, uke.ukenummer)]
+        assert uke.andel == pytest.approx(forventet, abs=1e-4)
 
 
 def test_fixturen_har_ingen_manglende_eller_usikre_uker() -> None:
@@ -76,10 +81,26 @@ def test_uten_siste_publiserte_uke_brukes_høyeste_uke_i_svaret() -> None:
     assert fhi.tolk(DATA, UTVALG) == fhi.tolk(DATA, UTVALG, (2026, 46))
 
 
+def _svar_til_uke_45() -> dict[str, Any]:
+    """Det konstruerte svaret med ukene 40–45 (uke 46 heter uke 44 i stedet)."""
+    svar = copy.deepcopy(KONSTRUERT)
+    kategori = svar["dimension"]["dateusedforstatistics"]["category"]
+    kategori["index"] = [f"2026-w{u}" for u in (40, 41, 42, 43, 45, 44)]
+    del kategori["label"]
+    return svar
+
+
 def test_sesongen_som_pågår_stopper_ved_siste_publiserte_uke() -> None:
-    serie = fhi.tolk(DATA, UTVALG, (2025, 45))
-    assert [(u.år, u.ukenummer) for u in serie.uker][-1] == (2025, 45)
-    assert len(serie.uker) == 6
+    serie = fhi.tolk(_svar_til_uke_45(), UTVALG_80, (2026, 45))
+    assert [u.ukenummer for u in serie.uker] == list(range(40, 46))
+    serie = fhi.tolk(_svar_til_uke_45(), UTVALG_80, (2026, 47))
+    assert [u.ukenummer for u in serie.uker] == list(range(40, 48))
+
+
+def test_uker_i_svaret_etter_siste_publiserte_uke_forsvinner_ikke() -> None:
+    assert len(fhi.tolk(DATA, UTVALG, (2025, 45)).uker) == 33
+    serie = fhi.tolk(KONSTRUERT, UTVALG_80, (2026, 42))
+    assert serie.uker[-1] == Uke(2026, 46, 29, 0)
 
 
 # --- Dimensjonslisten ---
@@ -101,7 +122,6 @@ def _dimensjoner(*koder: str) -> dict[str, Any]:
 @pytest.mark.parametrize(
     ("koder", "forventet"),
     [
-        (("2026-w21", "2026-w39"), ()),
         (("2026-w39", "2026-w40"), ("2026/2027",)),
         (("2027-w20",), ("2026/2027",)),
         (("2023-w45", "2024-w10", "2024-w40"), ("2024/2025",)),
@@ -128,9 +148,15 @@ def test_siste_publiserte_uke_tar_høyeste_uke_også_uten_rekkefølge() -> None:
         _dimensjoner("2025-w53"),
     ],
 )
-def test_ugyldig_dimensjonsliste(dimensjoner: dict[str, Any]) -> None:
+@pytest.mark.parametrize("funksjon", [fhi.siste_publiserte_uke, fhi.sesonger])
+def test_ugyldig_dimensjonsliste(funksjon: Any, dimensjoner: dict[str, Any]) -> None:
     with pytest.raises(ValueError):
-        fhi.siste_publiserte_uke(dimensjoner)
+        funksjon(dimensjoner)
+
+
+def test_dimensjonsliste_uten_noen_sesong_gir_valueerror() -> None:
+    with pytest.raises(ValueError):
+        fhi.sesonger(_dimensjoner("2026-w21", "2026-w39"))
 
 
 # --- Konstruert svar med skjulte verdier og en manglende uke ---
@@ -234,7 +260,9 @@ def test_ugyldig_svar_gir_valueerror(svar: dict[str, Any]) -> None:
         fhi.tolk(svar, UTVALG_80)
 
 
-@pytest.mark.parametrize("verdi", ["12", "x", True, -1, 1.5, float("nan"), [1]])
+@pytest.mark.parametrize(
+    "verdi", ["12", "x", True, -1, 1.5, float("nan"), float("inf"), [1], 10**400]
+)
 def test_ugyldig_antall_gir_valueerror(verdi: Any) -> None:
     svar = copy.deepcopy(KONSTRUERT)
     svar["value"][1] = verdi
@@ -248,10 +276,86 @@ def test_heltall_skrevet_som_desimaltall_godtas() -> None:
     assert fhi.tolk(svar, UTVALG_80).uker[0] == Uke(2026, 40, 250, 12)
 
 
-def test_svar_for_feil_sesong_gir_bare_manglende_uker() -> None:
-    serie = fhi.tolk(KONSTRUERT, Utvalg(1, "influensa", "2025/2026", "80+"), (2026, 46))
-    assert len(serie.uker) == 33
-    assert all(u.manglende for u in serie.uker)
+@pytest.mark.parametrize("siste", [None, (2026, 46)])
+def test_svar_for_feil_sesong_gir_valueerror(siste: tuple[int, int] | None) -> None:
+    with pytest.raises(ValueError, match="utenfor sesongen"):
+        fhi.tolk(KONSTRUERT, Utvalg(1, "influensa", "2025/2026", "80+"), siste)
+    with pytest.raises(ValueError, match="utenfor sesongen"):
+        fhi.tolk(DATA, Utvalg(1, "influensa", "2026/2027", "alle"), siste)
+
+
+def test_svar_med_en_uke_utenfor_sesongen_gir_valueerror() -> None:
+    svar = copy.deepcopy(KONSTRUERT)
+    kategori = svar["dimension"]["dateusedforstatistics"]["category"]
+    kategori["index"] = [f"2026-w{u}" for u in (39, 41, 42, 43, 45, 46)]
+    with pytest.raises(ValueError, match="utenfor sesongen"):
+        fhi.tolk(svar, UTVALG_80)
+
+
+def test_plassene_i_index_brukes_ikke_rekkefølgen_på_nøklene() -> None:
+    svar = copy.deepcopy(KONSTRUERT)
+    svar["dimension"]["MEASURE_TYPE"]["category"]["index"] = {
+        "Tests": 1,
+        "pos_rate": 2,
+        "Detections": 0,
+    }
+    uker = svar["dimension"]["dateusedforstatistics"]["category"]
+    uker["index"] = dict(reversed(list(uker["index"].items())))
+    assert fhi.tolk(svar, UTVALG_80) == fhi.tolk(KONSTRUERT, UTVALG_80)
+
+
+@pytest.mark.parametrize(
+    "indeks",
+    [
+        {"Detections": 0, "Tests": 2, "pos_rate": 3},
+        {"Detections": 0, "Tests": 0, "pos_rate": 2},
+        ["Detections", "Tests", "Tests"],
+    ],
+)
+def test_ugyldige_plasser_i_index_gir_valueerror(indeks: Any) -> None:
+    svar = copy.deepcopy(KONSTRUERT)
+    svar["dimension"]["MEASURE_TYPE"]["category"]["index"] = indeks
+    with pytest.raises(ValueError):
+        fhi.tolk(svar, UTVALG_80)
+
+
+def test_samme_uke_to_ganger_gir_valueerror() -> None:
+    svar = copy.deepcopy(KONSTRUERT)
+    kategori = svar["dimension"]["dateusedforstatistics"]["category"]
+    kategori["index"] = [f"2026-w{u}" for u in (40, 41, 42, 43, 45, 45)]
+    with pytest.raises(ValueError):
+        fhi.tolk(svar, UTVALG_80)
+
+
+def test_flere_aldersgrupper_i_svaret_gir_valueerror() -> None:
+    svar = copy.deepcopy(KONSTRUERT)
+    svar["dimension"]["aldersgruppe"]["category"]["index"] = {"80+ år": 0, "Alle": 1}
+    svar["size"][1] = 2
+    rader = [svar["value"][i : i + 3] for i in range(0, len(svar["value"]), 3)]
+    svar["value"] = [x for rad in rader for x in rad + rad]
+    with pytest.raises(ValueError, match="kategorier"):
+        fhi.tolk(svar, UTVALG_80)
+
+
+@pytest.mark.parametrize("dimensjon", ["surveillancetype", "influenzatypeandsubtype"])
+def test_svar_uten_et_fast_filter_gir_valueerror(dimensjon: str) -> None:
+    svar = copy.deepcopy(KONSTRUERT)
+    plass = svar["id"].index(dimensjon)
+    del svar["id"][plass], svar["size"][plass], svar["dimension"][dimensjon]
+    with pytest.raises(ValueError, match="mangler"):
+        fhi.tolk(svar, UTVALG_80)
+
+
+def test_flere_positive_enn_tester_gjennom_tolk() -> None:
+    # Irenes beslutning i story 2.4: andelen vises som den er, og uka er usikker.
+    svar = copy.deepcopy(KONSTRUERT)
+    svar["value"][0:2] = [300, 250]
+    uke = fhi.tolk(svar, UTVALG_80).uker[0]
+    assert uke == Uke(2026, 40, 250, 300)
+    assert uke.andel == 120.0
+    assert uke.flere_positive_enn_tester
+    assert uke.usikker
+    assert not uke.manglende
 
 
 def test_andre_tabeller_kan_ikke_tolkes_ennå() -> None:

@@ -153,10 +153,14 @@ class Uke:
     def flere_positive_enn_tester(self) -> bool:
         """Sann når uka har flere positive prøver enn tester (andel over 100 %).
 
-        Endret 24. november 2026: Irenes beslutning i story 2.4: andelen vises som den er, og uka er usikker med en fotnote.
+        Endret 24. november 2026: Irenes beslutning i story 2.4: andelen vises
+        som den er, og uka er usikker med en fotnote. Med 0 tester kan andelen
+        ikke regnes ut (`andel` er `None`), men uka er likevel usikker.
         """
         return (
-            not self.manglende and self.positive > self.tester  # type: ignore[operator]
+            self.tester is not None
+            and self.positive is not None
+            and self.positive > self.tester
         )
 
     @property

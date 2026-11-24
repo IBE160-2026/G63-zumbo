@@ -66,6 +66,8 @@ def sesonger(dimensjoner: Mapping[str, Any]) -> tuple[str, ...]:
     """Sesongene som har minst én publisert uke, eldste først (FR-3, AD-3).
 
     Uke 21–39 hører ikke til noen sesong. Sesonger før 2024/2025 tas ikke med.
+    Gir `ValueError` når listen ikke har noen sesong, slik at `tjeneste` kan
+    bruke reserven `sesong.sesonger_fra_dato`.
     """
     startår = set()
     for kode in _ukekoder_i_dimensjonslisten(dimensjoner):
@@ -74,9 +76,12 @@ def sesonger(dimensjoner: Mapping[str, Any]) -> tuple[str, ...]:
             startår.add(år)
         elif uke <= sesong.SISTE_UKE:
             startår.add(år - 1)
-    return tuple(
+    resultat = tuple(
         sesong.navn(år) for år in sorted(startår) if år >= sesong.FØRSTE_SESONG
     )
+    if not resultat:
+        raise ValueError("dimensjonslisten har ingen sesonger")
+    return resultat
 
 
 # --- Datasvaret (`POST …/Table/<tabell>/data`, `json-stat2`) ---
@@ -86,10 +91,16 @@ def _kategorier(svar: Mapping[str, Any], dimensjon: str) -> list[str]:
     """Kodene i en dimensjon i rekkefølgen de har i `value`."""
     indeks = svar["dimension"][dimensjon]["category"]["index"]
     if isinstance(indeks, Mapping):
-        return sorted(indeks, key=indeks.__getitem__)
-    if isinstance(indeks, Sequence) and not isinstance(indeks, str):
-        return list(indeks)
-    raise ValueError(f"ugyldig kategoriliste for {dimensjon}")
+        koder = sorted(indeks, key=indeks.__getitem__)
+        if [indeks[k] for k in koder] != list(range(len(koder))):
+            raise ValueError(f"plassene i {dimensjon} er ikke 0, 1, 2, …")
+    elif isinstance(indeks, Sequence) and not isinstance(indeks, str):
+        koder = list(indeks)
+    else:
+        raise TypeError(f"ugyldig kategoriliste for {dimensjon}")
+    if len(set(koder)) != len(koder):
+        raise ValueError(f"{dimensjon} har samme kode flere ganger")
+    return koder
 
 
 def _tall(verdi: Any) -> int | None:
@@ -135,13 +146,14 @@ def tolk(
 
     `rått_svar` er `svar` fra FHI eller cachen. Ukene er `sesong.uker` for
     utvalgets sesong frem til `siste_publiserte_uke` (fra dimensjonslisten).
-    Uten den brukes den høyeste uka i svaret. En uke FHI ikke sendte, og skjulte
-    verdier, blir `None`, aldri 0 (FR-11, FR-16). Et svar som ikke har riktig
-    form eller ikke gjelder utvalget, gir `ValueError`.
+    Uten den, eller hvis svaret har en høyere uke, brukes den høyeste uka i
+    svaret. En uke FHI ikke sendte, og skjulte verdier, blir `None`, aldri 0
+    (FR-11, FR-16). Et svar som ikke har riktig form, eller som ikke gjelder
+    utvalget (også uker utenfor sesongen), gir `ValueError`.
     """
     try:
         return _tolk(rått_svar, utvalg, siste_publiserte_uke)
-    except (KeyError, TypeError, IndexError, AttributeError) as feil:
+    except (KeyError, TypeError, IndexError, AttributeError, OverflowError) as feil:
         raise ValueError(f"ugyldig svar fra FHI: {feil!r}") from feil
 
 
@@ -162,9 +174,14 @@ def _tolk(svar: Mapping[str, Any], utvalg: Utvalg, siste: IsoUke | None) -> Data
         steg[dimensjon] = gange
         gange *= størrelse
 
+    if UKEDIMENSJON not in ider or MÅLTALL not in ider:
+        raise ValueError("svaret mangler uker eller måltall")
     ukeplass = {
         les_ukekode(kode): i for i, kode in enumerate(_kategorier(svar, UKEDIMENSJON))
     }
+    alle_uker = set(sesong.uker(utvalg.sesong))
+    if not ukeplass or not set(ukeplass) <= alle_uker:
+        raise ValueError(f"svaret har uker utenfor sesongen {utvalg.sesong}")
     måltall = {kode: i for i, kode in enumerate(_kategorier(svar, MÅLTALL))}
     if POSITIVE not in måltall or TESTER not in måltall:
         raise ValueError("svaret mangler antall positive eller antall tester")
@@ -183,10 +200,9 @@ def _tolk(svar: Mapping[str, Any], utvalg: Utvalg, siste: IsoUke | None) -> Data
     else:
         raise TypeError("value mangler")
 
-    if siste is None:
-        if not ukeplass:
-            raise ValueError("svaret har ingen uker")
-        siste = max(ukeplass)
+    # Siste publiserte uke er minst den høyeste uka FHI sendte, slik at ingen
+    # publiserte tall forsvinner hvis dimensjonslisten er eldre enn svaret.
+    siste = max(ukeplass) if siste is None else max(siste, max(ukeplass))
     uker = []
     for uke in sesong.uker(utvalg.sesong, siste):
         tester = positive = None

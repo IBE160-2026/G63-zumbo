@@ -99,3 +99,12 @@
   summary: Ingen test sammenligner den ferdige HTML-tabellen med `formatering.ukelinje`.
   evidence: I dag sikres likheten ved at Jinja2-filtrene er de samme funksjonene (`test_tabellen_bruker_de_samme_funksjonene_som_prompten`). Får tabellen egne tekster i `index.html`, bør testen sammenligne den ferdige tabellen.
 
+## Deferred from: code review of spec-4-4-mellomlagre-ki-forklaringen.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-4-mellomlagre-ki-forklaringen.md`
+  summary: Nøkkelen for KI-forklaringen tar ikke med effort, max_tokens eller formateringen av ukene, så endringer i ki.py gir ikke ny forklaring.
+  evidence: ki.nøkkel hasher bare promptfila, tallene og modellen (AD-7). En versjonskonstant i nøkkelen, eller hashing av den ferdige prompten uten hentetidspunktet, ville løst det. Inntil da må .cache/ki/ slettes etter slike endringer.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-4-mellomlagre-ki-forklaringen.md`
+  summary: Prompten har «Hentet <tidspunkt>», men nøkkelen har det ikke, så en gjenbrukt forklaring kan sitere et eldre hentetidspunkt.
+  evidence: kildetekst(kilde) i lag_prompt har tidspunktet, og ki.nøkkel utelater det med vilje (AD-7). Det må Irene bestemme: ta tidspunktet ut av prompten, eller be KI-en ikke nevne det.
+

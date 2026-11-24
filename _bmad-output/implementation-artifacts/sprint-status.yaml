@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-20-2026 23:52
-last_updated: 11-24-2026 19:00
+last_updated: 11-24-2026 19:30
 project: fhi-helsedata
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ development_status:
   epic-2-retrospective: optional
 
   epic-3: in-progress
-  3-1-velge-mal-og-utvalg-på-siden: in-progress
+  3-1-velge-mal-og-utvalg-på-siden: done
   3-2-tabell-kildehenvisning-og-feilmelding: backlog
   3-3-graf-uke-for-uke: backlog
   3-4-varsel-om-tynt-datagrunnlag: backlog

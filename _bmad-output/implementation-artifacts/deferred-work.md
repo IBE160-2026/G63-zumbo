@@ -70,3 +70,12 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-tabell-kildehenvisning-og-feilmelding.md`
   summary: Irene bør avgjøre om andelen for en uke med 0 tester skal vise «mangler» eller en annen tekst (for eksempel «kan ikke regnes ut»).
   evidence: `andel(None)` gir «mangler» både for skjulte tall og for 0 tester (FR-10: «ingen andel»). Ved siden av de kjente tallene «0» og «45» kan «mangler» leses som at FHI har skjult andelen. Ordvalg, lav alvorlighet. Kan tas med i brukertestingen (epic 5).
+
+## Deferred from: code review of spec-3-3-graf-uke-for-uke.md (2026-11-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-3-graf-uke-for-uke.md`
+  summary: Ingen test kjører `app.js` i en nettleser, så åpen sirkel, brudd i linjen og fargene fra CSS sjekkes bare indirekte.
+  evidence: Repoet har ingen JS- eller nettlesertester. Testene sjekker JSON-blokken, HTML-en, at fargene `app.js` leser finnes i `style.css`, og at nøklene finnes i `grafdata`. En røyktest med Playwright (for eksempel `Chart.getChart('graf').data.datasets[0].pointBackgroundColor` for R2-fixturen) passer i story 3.7. Medium, ikke bekreftet som feil.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-3-graf-uke-for-uke.md`
+  summary: Irene bør bekrefte at uker med skjult antall tester eller 0 tester gir brudd i linjen i grafen (ingen åpen sirkel), og bare markeres som usikre i tabellen.
+  evidence: Slike uker har ingen andel, så det finnes ikke noe punkt å tegne (FR-9: manglende uker gir brudd). FR-10 sier at de er usikre «i grafen og tabellen». Forklaringen under grafen og alternativteksten sier nå at uker uten andel gir brudd i linjen. Lav: skjulte verdier er ikke sett i ekte data.

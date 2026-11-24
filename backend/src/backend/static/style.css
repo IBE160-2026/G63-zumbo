@@ -57,3 +57,21 @@ tbody th {
   position: relative;
   height: 20rem;
 }
+
+/* Varselet skilles fra resten med ramme, ikon og overskrift, ikke bare farge
+   (FR-19, NFR-7). */
+.varsel {
+  border: 2px solid #8a5a00;
+  border-left-width: 0.5rem;
+  margin: 1.5rem 0;
+  padding: 0.5rem 1rem;
+}
+
+.varsel h2 {
+  font-size: 1.25rem;
+  margin: 0.25rem 0;
+}
+
+.varsel ul {
+  margin: 0.25rem 0 0.5rem;
+}

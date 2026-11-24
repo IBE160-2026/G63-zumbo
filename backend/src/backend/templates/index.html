@@ -57,6 +57,17 @@
 {% set uker = resultat.serie.uker %}
 {% set har_usikker = uker|selectattr("usikker")|list|length > 0 %}
 {% set har_flere_positive = uker|selectattr("flere_positive_enn_tester")|list|length > 0 %}
+{% if resultat.regelutslag %}
+<section class="varsel" aria-labelledby="varseltittel">
+  <h2 id="varseltittel"><span class="varselikon" aria-hidden="true">⚠︎</span> For tynt datagrunnlag</h2>
+  <p>Tallene bør tolkes med forsiktighet fordi:</p>
+  <ul>
+    {% for utslag in resultat.regelutslag %}
+    <li>{{ utslag.tekst }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% if resultat.serie|har_andel %}
 {% set alternativ = resultat.serie|alternativtekst %}
 <figure class="graf" aria-labelledby="graftittel">
@@ -92,7 +103,7 @@
           </th>
           <td>{{ u.tester|tall }}</td>
           <td>{{ u.positive|tall }}</td>
-          <td>{{ u.andel|andel }}</td>
+          <td>{{ u|andelstekst }}</td>
         </tr>
         {% endfor %}
       </tbody>

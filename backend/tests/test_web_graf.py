@@ -93,10 +93,8 @@ def _tabell(html: str) -> list[list[str]]:
     return rader
 
 
-def _som_tabell(andel: float | None) -> str:
+def _som_tabell(andel: float) -> str:
     """Andelen i JSON skrevet slik tabellen viser den."""
-    if andel is None:
-        return "mangler"
     return f"{andel:.1f}".replace(".", ",") + " %"
 
 
@@ -112,11 +110,12 @@ def test_jsonblokken_har_samme_tall_som_tabellen(
     tabell = _tabell(html)
     assert len(graf["uker"]) == len(graf["andel"]) == len(graf["usikker"])
     assert len(graf["uker"]) == len(tabell)
-    andel_tekst = graf["andel_tekst"]
-    for uke, andel, rad in zip(graf["uker"], graf["andel"], tabell, strict=True):
+    rader = zip(graf["uker"], graf["andel"], graf["andel_tekst"], tabell, strict=True)
+    for uke, andel, andel_tekst, rad in rader:
         assert re.match(rf"{uke}(\D|$)", rad[0])
-        assert rad[3] in andel_tekst
-        assert _som_tabell(andel) == rad[3]
+        assert andel_tekst == rad[3]
+        if andel is not None:
+            assert _som_tabell(andel) == rad[3]
 
 
 def test_jsonblokken_med_ekte_tall(klient: TestClient, mappe: Path) -> None:
@@ -165,6 +164,18 @@ def test_grafen_har_forklaring_av_markeringen(klient: TestClient, mappe: Path) -
     assert "● Sikker uke" in tekst
     assert "○ Usikker uke: færre enn 30 tester eller flere positive" in tekst
     assert "Uker uten andel (skjult antall tester eller 0 tester) gir brudd" in tekst
+
+
+def test_forklaringen_vises_også_uten_usikre_uker(
+    klient: TestClient, mappe: Path
+) -> None:
+    # Irenes beslutning 24.11.2026: forklaringen av fylt og åpen sirkel vises
+    # alltid. De ekte tallene for 2025/2026 har ingen usikre uker.
+    html = _side(klient, mappe, DATA)
+    assert not any(_grafdata(html)["usikker"])
+    forklaring = re.search(r'<p class="grafforklaring">(.*?)</p>', html, re.DOTALL)
+    assert forklaring
+    assert "○ Usikker uke" in re.sub(r"<[^>]+>", "", forklaring[1])
 
 
 def test_app_js_gir_usikre_uker_åpen_sirkel() -> None:

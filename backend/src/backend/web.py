@@ -73,6 +73,19 @@ def andel(verdi: float | None) -> str:
     return f"{_avrundet(verdi)}".replace(".", ",") + HARDT_MELLOMROM + "%"
 
 
+def andelstekst(verdi: Uke) -> str:
+    """Andelen i en uke slik tabellen viser den.
+
+    «mangler» bare når et tall er skjult eller mangler (FR-11). En uke med
+    0 tester har kjente tall, men andelen kan ikke regnes ut (Irenes beslutning
+    24.11.2026). Er antall tester 0 og antall positive skjult, er et tall skjult,
+    og uka viser «mangler».
+    """
+    if verdi.andel is not None or verdi.manglende:
+        return andel(verdi.andel)
+    return "kan ikke regnes ut"
+
+
 def uke(verdi: Uke) -> str:
     """«uke 50»."""
     return f"uke {verdi.ukenummer}"
@@ -96,7 +109,7 @@ def grafdata(serie: Dataserie) -> dict[str, Any]:
         "andel": [
             None if u.andel is None else float(_avrundet(u.andel)) for u in serie.uker
         ],
-        "andel_tekst": [andel(u.andel) for u in serie.uker],
+        "andel_tekst": [andelstekst(u) for u in serie.uker],
         "usikker": [u.usikker for u in serie.uker],
     }
 
@@ -147,6 +160,7 @@ maler = Jinja2Templates(directory=MAPPE / "templates")
 maler.env.filters.update(
     tall=tall,
     andel=andel,
+    andelstekst=andelstekst,
     uke=uke,
     tidspunkt=tidspunkt,
     utvalgstekst=utvalgstekst,

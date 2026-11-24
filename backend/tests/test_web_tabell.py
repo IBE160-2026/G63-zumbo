@@ -169,9 +169,28 @@ def test_skjulte_verdier_vises_som_skjult_og_mangler(
     assert rad[0].startswith("uke 51*")
 
 
-def test_uke_med_0_tester_har_ingen_andel(klient: TestClient, mappe: Path) -> None:
+def test_uke_med_0_tester_viser_kan_ikke_regnes_ut(
+    klient: TestClient, mappe: Path
+) -> None:
+    # Irenes beslutning 24.11.2026: «mangler» bare for skjulte tall.
     mellomlager.lagre_svar(mappe, UTVALG, R2, HENTET)
-    assert _rad(klient.get(STI).text, 47)[1:] == ["0", "0", "mangler"]
+    assert _rad(klient.get(STI).text, 47)[1:] == ["0", "0", "kan ikke regnes ut"]
+
+
+@pytest.mark.parametrize(
+    ("tester", "positive", "tekst"),
+    [
+        (100, 5, f"5,0{NB}%"),
+        (0, 0, "kan ikke regnes ut"),
+        (0, 3, "kan ikke regnes ut"),
+        (None, 5, "mangler"),
+        (20, None, "mangler"),
+        (0, None, "mangler"),
+        (None, None, "mangler"),
+    ],
+)
+def test_andelstekst(tester: int | None, positive: int | None, tekst: str) -> None:
+    assert web.andelstekst(Uke(2025, 40, tester, positive)) == tekst
 
 
 # --- Usikre uker (FR-10) ---
@@ -331,7 +350,7 @@ def test_uke_med_0_tester_og_positive_har_fotnote_men_ingen_andel(
     rad = _rad(html, 41)
     assert rad[0].startswith("uke 41*")
     assert "†" in rad[0]
-    assert rad[1:] == ["0", "3", "mangler"]
+    assert rad[1:] == ["0", "3", "kan ikke regnes ut"]
     assert FOTNOTE_FLERE_POSITIVE in html
 
 

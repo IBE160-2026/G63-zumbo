@@ -299,21 +299,16 @@ def lag_app(
             return RedirectResponse("/resultat?" + request.url.query, status_code=301)
         tjeneste: Tjeneste = request.app.state.tjeneste
         nå = klokke()
-        try:
-            sesong = tjeneste.sesonger(nå)[-1]
-        except Exception:
-            logger.exception("Sesongen som pågår kunne ikke finnes")
-            sesong = ""
+        # `sesonger` har egen reserve når FHI er nede (AD-3), så listen er aldri tom.
+        sesong = tjeneste.sesonger(nå)[-1]
         kort = []
         for nøkkel in VIRUS:
             utvalg = Utvalg(1, nøkkel, sesong, STANDARD_ALDERSGRUPPE)
-            resultat: Resultat | None = None
-            if sesong:
-                try:
-                    resultat = tjeneste.svar(utvalg, nå)
-                except Exception:
-                    logger.exception("Kortet for %s kunne ikke lages", nøkkel)
-            kort.append(viruskort(utvalg, resultat))
+            try:
+                kort.append(viruskort(utvalg, tjeneste.svar(utvalg, nå)))
+            except Exception:
+                logger.exception("Kortet for %s kunne ikke lages", nøkkel)
+                kort.append(viruskort(utvalg, None))
         return maler.TemplateResponse(request, "forside.html", {"kort": kort})
 
     @app.get("/resultat", response_class=HTMLResponse)
@@ -393,7 +388,8 @@ def lag_app(
         oppdatering av siden ikke sender skjemaet på nytt. Når FHI ikke svarte,
         får adressen `nyeste_feilet` med tidspunktet for forsøket. Et ugyldig
         utvalg sendes videre uten henting, og `GET /resultat` viser da
-        feilmeldingen (FR-5).
+        feilmeldingen (FR-5). Er alle feltene tomme, sender `GET /resultat`
+        videre til forsiden.
         """
         tjeneste: Tjeneste = request.app.state.tjeneste
         nå = klokke()

@@ -174,10 +174,7 @@ class Tjeneste:
                 lagret = self._lagret_dimensjonsliste()
                 if lagret is not None and not sesong.er_utdatert(lagret.hentet, nå):
                     return lagret.svar
-                if self._feilet is not None and nå - self._feilet < PAUSE_ETTER_FEIL:
-                    raise fhi.FhiUtilgjengelig(
-                        "FHI svarte ikke nylig, prøver ikke på nytt"
-                    )
+                self._stopp_hvis_nylig_feil(nå)
             try:
                 svar = fhi.hent_dimensjoner(SESONGTABELL, klient=self._klient)
             except fhi.FhiUtilgjengelig:
@@ -189,6 +186,12 @@ class Tjeneste:
 
         jobb = f"dimensjoner-{SESONGTABELL}" + ("-tving" if tving else "")
         return self._én_gang(jobb, hent)
+
+    def _stopp_hvis_nylig_feil(self, nå: datetime) -> None:
+        """Gir `FhiUtilgjengelig` uten kall når FHI ikke svarte for under
+        `PAUSE_ETTER_FEIL` siden, på dimensjonslisten eller på tallene."""
+        if self._feilet is not None and nå - self._feilet < PAUSE_ETTER_FEIL:
+            raise fhi.FhiUtilgjengelig("FHI svarte ikke nylig, prøver ikke på nytt")
 
     def sesonger(self, nå: datetime) -> tuple[str, ...]:
         """Sesongene brukeren kan velge, eldste først (FR-3, AD-3).
@@ -242,7 +245,15 @@ class Tjeneste:
                 return Resultat(
                     utvalg, melding=IKKE_PUBLISERT.format(sesong=utvalg.sesong)
                 )
-            rått = fhi.hent(utvalg, siste, klient=self._klient)
+            if not tving:
+                # Svarte ikke FHI på tallene nettopp, venter vi ikke på nytt
+                # (FR-8). Det gjelder også siden etter «Hent nyeste tall nå».
+                self._stopp_hvis_nylig_feil(nå)
+            try:
+                rått = fhi.hent(utvalg, siste, klient=self._klient)
+            except fhi.FhiUtilgjengelig:
+                self._feilet = nå
+                raise
         except fhi.FhiUtilgjengelig as feil:
             logger.info("Tallene kunne ikke hentes fra FHI: %r", feil)
             if lagret is None:

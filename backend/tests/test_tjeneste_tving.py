@@ -6,6 +6,8 @@ selv om de lagrede er ferske. FHI mockes med `respx`, og cachen ligger i
 """
 
 import json
+import threading
+from concurrent.futures import Future
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -14,7 +16,7 @@ import httpx
 import pytest
 import respx
 
-from backend import mellomlager
+from backend import mellomlager, tjeneste
 from backend.config import Innstillinger
 from backend.domene import Utvalg
 from backend.tjeneste import FHI_NEDE_LAGRET, Tjeneste
@@ -152,3 +154,85 @@ def test_tving_uten_lagrede_tall_og_fhi_nede_gir_melding(
     resultat = tj.svar(UTVALG, NÅ, tving=True)
     assert resultat.serie is None
     assert resultat.melding is not None and "ingen lagrede" in resultat.melding
+
+
+def test_pausen_etter_feil_gjelder_også_datakallet(
+    tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    # Dimensjonslisten svarer, men tallene gjør det ikke (FR-8).
+    mellomlager.lagre_svar(mappe, UTVALG, R1_19, NÅ - timedelta(hours=30))
+    fhi_mock.routes["data"].mock(side_effect=httpx.ConnectError("nede"))
+    assert tj.svar(UTVALG, NÅ).sist_lagrede is True
+    assert tj.svar(UTVALG, NÅ + timedelta(seconds=30)).sist_lagrede is True
+    assert fhi_mock.routes["data"].call_count == 1
+    # Etter pausen prøves FHI igjen.
+    tj.svar(UTVALG, NÅ + timedelta(seconds=61))
+    assert fhi_mock.routes["data"].call_count == 2
+
+
+def _hold_igjen(rute: respx.Route, antall: int) -> tuple[threading.Event, Any]:
+    """Holder igjen kallene til `rute` til `slipp` settes. Gir `slipp` og en
+    funksjon som venter til `antall` kall har startet."""
+    slipp = threading.Event()
+    startet = threading.Semaphore(0)
+
+    def treg(_: httpx.Request) -> httpx.Response:
+        startet.release()
+        assert slipp.wait(5)
+        return httpx.Response(200, json=DATA)
+
+    rute.mock(side_effect=treg)
+
+    def vent() -> None:
+        for _ in range(antall):
+            assert startet.acquire(timeout=5)
+
+    return slipp, vent
+
+
+def _i_tråd(kall: Any) -> tuple[threading.Thread, dict[str, Any]]:
+    resultat: dict[str, Any] = {}
+    tråd = threading.Thread(target=lambda: resultat.setdefault("r", kall()))
+    tråd.start()
+    return tråd, resultat
+
+
+def test_tvunget_kall_blir_ikke_med_på_et_vanlig_kall(
+    tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    # Et vanlig kall henter utdaterte tall. Et tvunget kall som kommer samtidig,
+    # henter selv i stedet for å vente på det vanlige.
+    mellomlager.lagre_svar(mappe, UTVALG, R1_19, NÅ - timedelta(hours=30))
+    slipp, vent = _hold_igjen(fhi_mock.routes["data"], 2)
+    senere = NÅ + timedelta(seconds=1)
+    vanlig, _ = _i_tråd(lambda: tj.svar(UTVALG, NÅ))
+    tvunget, resultat = _i_tråd(lambda: tj.svar(UTVALG, senere, tving=True))
+    vent()
+    slipp.set()
+    vanlig.join(5)
+    tvunget.join(5)
+    assert fhi_mock.routes["data"].call_count == 2
+    assert resultat["r"].kilde.hentet == senere
+
+
+def test_samtidige_tvungne_kall_deler_ett_kall_til_fhi(
+    tj: Tjeneste, fhi_mock: respx.MockRouter, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    venter = threading.Event()
+
+    class Fremtid(Future):
+        def result(self, timeout: float | None = None) -> Any:
+            venter.set()
+            return super().result(timeout)
+
+    monkeypatch.setattr(tjeneste, "Future", Fremtid)
+    slipp, vent = _hold_igjen(fhi_mock.routes["data"], 1)
+    første, a = _i_tråd(lambda: tj.svar(UTVALG, NÅ, tving=True))
+    vent()
+    andre, b = _i_tråd(lambda: tj.svar(UTVALG, NÅ, tving=True))
+    assert venter.wait(5), "det andre tvungne kallet venter ikke på det første"
+    slipp.set()
+    første.join(5)
+    andre.join(5)
+    assert fhi_mock.routes["data"].call_count == 1
+    assert a["r"] == b["r"]

@@ -42,7 +42,7 @@ Fra `backend/`:
 
     uv run uvicorn backend.web:app --reload
 
-Åpne så http://127.0.0.1:8000 i nettleseren. Appen starter uten `.env`. `--reload` starter appen på nytt når koden endres. Stopp den med Ctrl+C.
+Åpne så http://127.0.0.1:8000 i nettleseren. Forsiden på `/` viser ett kort per virus med andelen positive i siste uke med tall. Trykk på et kort for å åpne resultatsiden på `/resultat`, der du kan endre sesong og aldersgruppe. Appen starter uten `.env`. `--reload` starter appen på nytt når koden endres. Stopp den med Ctrl+C.
 
 ### KI-nøkkel er valgfri
 
@@ -68,7 +68,7 @@ Vil du se de tre utfallene uten en ekte nøkkel, starter du appen med en falsk C
     uv run python scripts/vis_forklaring.py uten-nokkel
     uv run python scripts/vis_forklaring.py feil
 
-Åpne så http://127.0.0.1:8001 (port 8001, så den ikke kolliderer med den vanlige appen), velg et utvalg og trykk «Vis tallene». Tallene hentes fra FHI som vanlig, men Claude kalles aldri, og mellomlageret er en midlertidig mappe, så den falske forklaringen havner ikke i `.cache/ki/`. Stopp med Ctrl+C.
+Åpne så http://127.0.0.1:8001 (port 8001, så den ikke kolliderer med den vanlige appen), og trykk på et viruskort. Tallene hentes fra FHI som vanlig, men Claude kalles aldri, og mellomlageret er en midlertidig mappe, så den falske forklaringen havner ikke i `.cache/ki/`. Stopp med Ctrl+C.
 
 ### Mellomlager
 

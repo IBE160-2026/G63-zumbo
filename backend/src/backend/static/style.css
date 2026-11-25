@@ -111,6 +111,80 @@ summary:focus-visible,
   outline-offset: 2px;
 }
 
+/* --- Forsiden (FR-27) --- */
+
+.intro {
+  max-width: 40rem;
+}
+
+/* Tre kort ved siden av hverandre på brede skjermer, under hverandre på smale
+   (NFR-11). */
+.viruskort {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+}
+
+/* Hele kortet er én lenke. Rammen viser kortet, og fokusmarkeringen kommer
+   fra a:focus-visible over (NFR-5). */
+.kort {
+  border: 2px solid var(--hovedfarge);
+  border-radius: 0.5rem;
+  color: var(--tekst);
+  display: block;
+  height: 100%;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.kort p {
+  margin: 0.25rem 0;
+}
+
+.kort h2 {
+  color: var(--hovedfarge);
+  margin: 0 0 0.25rem;
+}
+
+.kortandel {
+  font-family: var(--skrift-overskrift);
+  font-size: 2rem;
+  font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.usikker {
+  font-weight: 600;
+}
+
+.korthentet {
+  font-size: 0.9rem;
+}
+
+/* Understreken viser at kortet er en lenke, ikke bare fargen. */
+.kortlenke {
+  color: var(--hovedfarge);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.15em;
+}
+
+.kort:hover {
+  border-width: 3px;
+  padding: calc(0.75rem - 1px) calc(1rem - 1px);
+}
+
+/* --- Resultatsiden --- */
+
+.tilbake {
+  margin: 0 0 0.5rem;
+}
+
 /* --- Skjemaet --- */
 
 .skjema p {

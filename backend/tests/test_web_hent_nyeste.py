@@ -311,7 +311,7 @@ def test_gyldig_utvalg_uten_tall_har_knappen_og_teksten_om_torsdag(
 
 
 def test_virus_som_ikke_er_klart_har_ikke_knappen(klient: TestClient) -> None:
-    html = klient.get("/?mal=1&virus=rsv&sesong=2025%2F2026&alder=alle").text
+    html = klient.get("/?mal=1&virus=sars-cov-2&sesong=2025%2F2026&alder=alle").text
     assert "Hent nyeste tall nå" not in html
 
 

@@ -2,7 +2,8 @@
 title: 'Story 3.8: Forside med viruskort'
 type: 'feature'
 created: '2026-11-25'
-status: 'ready-for-dev'
+status: 'in-progress'
+baseline_commit: '792b655549ff05cf6702f3fa905855eb12617d0f'
 route: 'dispatch'
 review_loop_iteration: 0
 context:

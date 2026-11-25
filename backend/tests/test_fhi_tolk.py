@@ -514,7 +514,8 @@ def test_svar_med_typedimensjon_tolket_som_sars_cov_2_gir_valueerror(
 
 @pytest.mark.parametrize("utvalg", [UTVALG, RSV_UTVALG], ids=["influensa", "rsv"])
 def test_svar_fra_731_tolket_som_annet_virus_gir_valueerror(utvalg: Utvalg) -> None:
-    with pytest.raises(ValueError):
+    # 731 har ingen typedimensjon, så svaret mangler den utvalget krever.
+    with pytest.raises(ValueError, match="mangler"):
         fhi.tolk(SARS_DATA, utvalg)
 
 

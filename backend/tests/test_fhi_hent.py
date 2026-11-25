@@ -118,6 +118,15 @@ def test_forespørsel_som_ikke_kan_lages_gir_valueerror(
         fhi.forespørsel(utvalg, siste)
 
 
+def test_forespørsel_for_tabell_uten_faste_filtre_gir_valueerror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Sikkerhetsnett: alle tabellene i `VIRUS` har faste filtre i dag.
+    monkeypatch.delitem(fhi.FASTE_FILTRE, 731)
+    with pytest.raises(ValueError, match="ingen faste filtre"):
+        fhi.forespørsel(Utvalg(1, "sars-cov-2", "2025/2026", "alle"), SISTE)
+
+
 @respx.mock
 def test_hent_dimensjoner_med_egen_funksjon() -> None:
     rute = respx.get(DIMENSJON_URL).respond(json=DIMENSJONER)

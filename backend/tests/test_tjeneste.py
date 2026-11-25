@@ -673,9 +673,13 @@ def test_siste_publiserte_uke_for_sars_cov_2_kommer_fra_731(
             ]
     sars_mock.routes["sars-dimensjoner"].respond(json=kopi)
     # Bare forespørselen sjekkes. Svaret fra mocken er for 2025/2026 og avvises.
-    tj.svar(Utvalg(1, "sars-cov-2", "2026/2027", "alle"), NÅ)
+    resultat = tj.svar(Utvalg(1, "sars-cov-2", "2026/2027", "alle"), NÅ)
     kropp = json.loads(sars_mock.routes["sars-data"].calls.last.request.content)
     uker = next(
         d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
     )
     assert uker[-1] == "2026-w44"
+    assert not sars_mock.routes["dimensjoner"].called
+    # Svaret gjelder en annen sesong, så det avvises som et ugyldig svar (FR-8).
+    assert resultat.serie is None
+    assert resultat.melding == tjeneste.FHI_NEDE_INGEN_TALL

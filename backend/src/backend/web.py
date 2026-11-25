@@ -193,7 +193,7 @@ def _valgt(verdi: str, valg: list[str], standard: str | None = None) -> str:
     listen, ellers `standard`, ellers det første valget.
 
     Slik viser skjemaet aldri et annet valg enn det som står der, også etter et
-    ugyldig valg eller et virus som ikke er klart ennå.
+    ugyldig valg.
     """
     if verdi in valg:
         return verdi

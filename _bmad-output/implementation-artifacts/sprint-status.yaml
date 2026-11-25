@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-20-2026 23:52
-last_updated: 11-25-2026 13:07
+last_updated: 11-25-2026 13:18
 project: fhi-helsedata
 project_key: NOKEY
 tracking_system: file-system
@@ -55,7 +55,7 @@ development_status:
   2-9-sette-sammen-svaret-for-et-utvalg: done
   epic-2-retrospective: optional
 
-  epic-3: in-progress
+  epic-3: done
   3-1-velge-mal-og-utvalg-på-siden: done
   3-2-tabell-kildehenvisning-og-feilmelding: done
   3-3-graf-uke-for-uke: done
@@ -63,7 +63,7 @@ development_status:
   3-5-skrive-tekstene-til-de-sju-begrepsforklaringene-irene: done
   3-6-begrepsforklaringer-i-appen: done
   3-7-tilgjengelighet-og-mobil: done
-  3-8-forside-med-viruskort: in-progress
+  3-8-forside-med-viruskort: done
   epic-3-retrospective: optional
 
   epic-4: done

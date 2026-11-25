@@ -2,7 +2,7 @@
 title: 'Story 3.8: Forside med viruskort'
 type: 'feature'
 created: '2026-11-25'
-status: 'in-review'
+status: 'done'
 baseline_commit: '792b655549ff05cf6702f3fa905855eb12617d0f'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -102,10 +102,41 @@ Hvert kort er en lenke til resultatsiden for viruset, med sesongen som pågår o
 ## Implementation Notes
 
 - Ikke commit; hovedøkten committer.
+- Gjennomgangen er rettet etter `Review Triage Log`. 905 tester består, og ruff er grønn.
+- Prøvd mot ekte FHI med egen cache: tre kort med tall i uke 46, kortlenken åpner resultatsiden, og gamle adresser gir `301`.
 
 ## Spec Change Log
 
 ## Review Triage Log
+
+Kodegjennomgang 25.11.2026 med fire lag: blind-hunter (BH), edge-case-hunter (EC), verification-gap (VG) og acceptance-auditor (AA). Ingen alvorlige funn, ingen som krever endring i PRD eller arkitektur. 9 rettet, 0 utsatt, 15 avvist.
+
+| # | Lag | Funn | Vurdering | Begrunnelse / rettelse |
+|---|-----|------|-----------|------------------------|
+| 1 | AA | `try/except` i `forside` dekker bare `tjeneste.svar`, ikke `Utvalg(...)` og `viruskort(...)` | low, patch | Rettet: hele kortet lages inne i `try`, med test. |
+| 2 | VG+AA+BH | Når sesonglisten feiler, lenker kortene til `sesong=` (tom), og grenen er ikke testet | low, patch | Rettet: `try` rundt sesonglisten er fjernet. `tjeneste.sesonger` har allerede reserven `sesonger_fra_dato` når FHI er nede (AD-3), så sesongen er aldri tom. En reserve i `web` ville gitt en import fra `web` til `sesong`, som diagrammet i AD-1 ikke tillater. Testen for FHI nede sjekker nå den faktiske sesongen i lenken. |
+| 3 | BH | Ingen test for antall kall til FHI på forsiden når FHI er nede | low, patch | Rettet: test for nøyaktig ett kall. Pausen i `tjeneste` gjør at kortene ikke venter på hvert sitt tidsavbrudd. |
+| 4 | VG+BH | `<title>` med virusnavn er ikke testet | low, patch | Rettet. |
+| 5 | VG+BH | Tre tester ber fortsatt om `/`, som nå er forsiden, og sjekker derfor ingenting | low, patch | Rettet: tilfellene bruker en ugyldig `/resultat`-adresse. |
+| 6 | BH | Like tester i `test_web.py` og `test_web_forside.py` | low, patch | Rettet: én av hver er beholdt. |
+| 7 | VG | Docstringen i `scripts/vis_forklaring.py` sier «Vis tallene» | low, patch | Rettet. |
+| 8 | EC | Docstringen i `hent_nyeste` lover feilmelding også for et helt tomt utvalg, som havner på forsiden | low, patch | Rettet. |
+| 9 | BH | README nevner ikke at gamle adresser sendes videre | low, patch | Rettet. |
+| 10 | BH+EC | Forsiden bruker sesongen fra 724 for alle tre virus | false | Alle tre tabellene har samme uker (sjekket 25.11.2026, `SESONGTABELL`), og sesonglisten har bare sesonger med publiserte uker. |
+| 11 | EC | Kortet viser samme tekst for «ikke publisert» og «FHI nede» | low, avvist | Sesongen som pågår har alltid publiserte uker (#10), så «ikke publisert» skjer nesten ikke. Resultatsiden viser den presise meldingen. |
+| 12 | BH | Kortene viser ikke hentetidspunkt når FHI svarer | low, avvist | Resultatsiden viser kilde og hentetidspunkt. Kortet viser tidspunktet når tallene er de sist lagrede, slik FR-8 krever. |
+| 13 | BH | «usikker uke» på kortet forklares ikke | low, avvist | Resultatsiden har varsel, fotnote og begrepsforklaring. Kortet sier fra i tekst. |
+| 14 | BH | Skjermleseren leser hele kortet som lenketekst | low, avvist | Teksten er kort og gir virus, andel og uke, som er nyttig. Ingen feil. |
+| 15 | BH | Introteksten sier «koronavirus», kortet «SARS-CoV-2» | low, avvist | Valg i Design Notes (`Virus.navn`). Nevnt for Irene i oppsummeringen. |
+| 16 | BH+EC | `301` er varig, og `/?nyeste_feilet=…` alene gir to omdirigeringer | low, avvist | `/` med valg blir aldri forsiden igjen (AD-9). Bare `nyeste_feilet` kommer ikke fra appen. |
+| 17 | BH+AA | Mal og virus kan ikke endres på resultatsiden, og malspørsmålet vises ikke | false | Slik er intensjonen: «Der kan sesong og aldersgruppe endres som før». Mal 2 (epic 8) må få et eget valg. |
+| 18 | EC+AA | Ugyldig `mal` med gyldig virus gir «Velg en mal» uten malvalg, og det skjulte feltet blir 1 | low, avvist | Kan bare skje med en adresse som er endret for hånd. Skjemaet gir da mal 1, som er den eneste. |
+| 19 | EC | Et helt tomt `POST /hent-nyeste` havner på forsiden uten melding | low, avvist | Kan bare skje med et skjema som er laget for hånd. Docstringen er rettet (#8). |
+| 20 | EC | Gamle adresser med bare tomme valg sendes ikke videre | false | Villet og testet. Tomme valg er ingen valg. |
+| 21 | EC | Gyldig virus med andre ugyldige valg viser overskrift uten tall | false | Skjemaet og feilmeldingen vises, slik det skal. |
+| 22 | BH | `Viruskort` hører hjemme i `formatering` | low, avvist | Ingen skade å peke på. `formatering` har bare filtre. |
+| 23 | AA | Ingen automatisk test av synlig fokus på kortene | low, avvist | Kortene er `<a>`, og `a:focus-visible` er testet i `test_stil`. Tastatur og 360 piksler sjekkes for hånd av Irene. |
+| 24 | AA | Epic-konteksten nevner malspørsmålet i skjemaet | false | Endringen følger intensjonen (#17). |
 
 ## Design Notes
 

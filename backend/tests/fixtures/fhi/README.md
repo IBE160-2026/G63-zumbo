@@ -13,6 +13,8 @@ Hver fil har samme format som cachen (AD-4):
 | --- | --- | --- |
 | `724-dimensjoner.json` | `GET https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimension` | 23.11.2026 |
 | `724-influensa-2025-2026-alle-nonstl.json` | `POST https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data`, se kroppen under | 23.11.2026 |
+| `729-dimensjoner.json` | `GET https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/dimension` | 25.11.2026 |
+| `729-rsv-2025-2026-alle-nonstl.json` | `POST https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/data`, se kroppen under | 25.11.2026 |
 
 Kroppen i `POST`-forespørselen, sendt med `Content-Type: application/json`.
 Alle dimensjoner må være med. `…` står for resten av ukene: i den ekte
@@ -32,6 +34,19 @@ samme rekkefølge som i dimensjonslisten (`2025-w40`, `2025-w41`, …,
   "response": {"format": "json-stat2"}
 }
 ```
+
+For tabell 729 (RSV) er kroppen den samme, bortsett fra at
+`influenzatypeandsubtype` er byttet ut med `rsvtype`:
+
+```json
+{"code": "rsvtype", "filter": "item", "values": ["A+B"]}
+```
+
+`A+B` er totalen, også prøver med ukjent type (se PRD-ens addendum). FHI kaller
+den «RS-virus (A+B)». Den etiketten vises ikke i appen. I svaret fra 729 kommer
+`surveillancetype` før `rsvtype` i `id`. Tolkingen bruker `id` og `size`, så
+rekkefølgen spiller ingen rolle. `GET …/Table/729/flag` gir også bare flagg `0`
+(sjekket 25.11.2026).
 
 ## Valg: JSON (`json-stat2`), ikke CSV
 

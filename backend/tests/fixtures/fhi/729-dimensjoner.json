@@ -1,0 +1,678 @@
+{
+  "hentet": "2026-11-25T09:40:39Z",
+  "svar": {
+    "dimensions": [
+      {
+        "code": "dateusedforstatistics",
+        "label": "År og uke",
+        "categories": [
+          {
+            "label": "2024-w40",
+            "value": "2024-w40",
+            "children": []
+          },
+          {
+            "label": "2024-w41",
+            "value": "2024-w41",
+            "children": []
+          },
+          {
+            "label": "2024-w42",
+            "value": "2024-w42",
+            "children": []
+          },
+          {
+            "label": "2024-w43",
+            "value": "2024-w43",
+            "children": []
+          },
+          {
+            "label": "2024-w44",
+            "value": "2024-w44",
+            "children": []
+          },
+          {
+            "label": "2024-w45",
+            "value": "2024-w45",
+            "children": []
+          },
+          {
+            "label": "2024-w46",
+            "value": "2024-w46",
+            "children": []
+          },
+          {
+            "label": "2024-w47",
+            "value": "2024-w47",
+            "children": []
+          },
+          {
+            "label": "2024-w48",
+            "value": "2024-w48",
+            "children": []
+          },
+          {
+            "label": "2024-w49",
+            "value": "2024-w49",
+            "children": []
+          },
+          {
+            "label": "2024-w50",
+            "value": "2024-w50",
+            "children": []
+          },
+          {
+            "label": "2024-w51",
+            "value": "2024-w51",
+            "children": []
+          },
+          {
+            "label": "2024-w52",
+            "value": "2024-w52",
+            "children": []
+          },
+          {
+            "label": "2025-w01",
+            "value": "2025-w01",
+            "children": []
+          },
+          {
+            "label": "2025-w02",
+            "value": "2025-w02",
+            "children": []
+          },
+          {
+            "label": "2025-w03",
+            "value": "2025-w03",
+            "children": []
+          },
+          {
+            "label": "2025-w04",
+            "value": "2025-w04",
+            "children": []
+          },
+          {
+            "label": "2025-w05",
+            "value": "2025-w05",
+            "children": []
+          },
+          {
+            "label": "2025-w06",
+            "value": "2025-w06",
+            "children": []
+          },
+          {
+            "label": "2025-w07",
+            "value": "2025-w07",
+            "children": []
+          },
+          {
+            "label": "2025-w08",
+            "value": "2025-w08",
+            "children": []
+          },
+          {
+            "label": "2025-w09",
+            "value": "2025-w09",
+            "children": []
+          },
+          {
+            "label": "2025-w10",
+            "value": "2025-w10",
+            "children": []
+          },
+          {
+            "label": "2025-w11",
+            "value": "2025-w11",
+            "children": []
+          },
+          {
+            "label": "2025-w12",
+            "value": "2025-w12",
+            "children": []
+          },
+          {
+            "label": "2025-w13",
+            "value": "2025-w13",
+            "children": []
+          },
+          {
+            "label": "2025-w14",
+            "value": "2025-w14",
+            "children": []
+          },
+          {
+            "label": "2025-w15",
+            "value": "2025-w15",
+            "children": []
+          },
+          {
+            "label": "2025-w16",
+            "value": "2025-w16",
+            "children": []
+          },
+          {
+            "label": "2025-w17",
+            "value": "2025-w17",
+            "children": []
+          },
+          {
+            "label": "2025-w18",
+            "value": "2025-w18",
+            "children": []
+          },
+          {
+            "label": "2025-w19",
+            "value": "2025-w19",
+            "children": []
+          },
+          {
+            "label": "2025-w20",
+            "value": "2025-w20",
+            "children": []
+          },
+          {
+            "label": "2025-w21",
+            "value": "2025-w21",
+            "children": []
+          },
+          {
+            "label": "2025-w22",
+            "value": "2025-w22",
+            "children": []
+          },
+          {
+            "label": "2025-w23",
+            "value": "2025-w23",
+            "children": []
+          },
+          {
+            "label": "2025-w24",
+            "value": "2025-w24",
+            "children": []
+          },
+          {
+            "label": "2025-w25",
+            "value": "2025-w25",
+            "children": []
+          },
+          {
+            "label": "2025-w26",
+            "value": "2025-w26",
+            "children": []
+          },
+          {
+            "label": "2025-w27",
+            "value": "2025-w27",
+            "children": []
+          },
+          {
+            "label": "2025-w28",
+            "value": "2025-w28",
+            "children": []
+          },
+          {
+            "label": "2025-w29",
+            "value": "2025-w29",
+            "children": []
+          },
+          {
+            "label": "2025-w30",
+            "value": "2025-w30",
+            "children": []
+          },
+          {
+            "label": "2025-w31",
+            "value": "2025-w31",
+            "children": []
+          },
+          {
+            "label": "2025-w32",
+            "value": "2025-w32",
+            "children": []
+          },
+          {
+            "label": "2025-w33",
+            "value": "2025-w33",
+            "children": []
+          },
+          {
+            "label": "2025-w34",
+            "value": "2025-w34",
+            "children": []
+          },
+          {
+            "label": "2025-w35",
+            "value": "2025-w35",
+            "children": []
+          },
+          {
+            "label": "2025-w36",
+            "value": "2025-w36",
+            "children": []
+          },
+          {
+            "label": "2025-w37",
+            "value": "2025-w37",
+            "children": []
+          },
+          {
+            "label": "2025-w38",
+            "value": "2025-w38",
+            "children": []
+          },
+          {
+            "label": "2025-w39",
+            "value": "2025-w39",
+            "children": []
+          },
+          {
+            "label": "2025-w40",
+            "value": "2025-w40",
+            "children": []
+          },
+          {
+            "label": "2025-w41",
+            "value": "2025-w41",
+            "children": []
+          },
+          {
+            "label": "2025-w42",
+            "value": "2025-w42",
+            "children": []
+          },
+          {
+            "label": "2025-w43",
+            "value": "2025-w43",
+            "children": []
+          },
+          {
+            "label": "2025-w44",
+            "value": "2025-w44",
+            "children": []
+          },
+          {
+            "label": "2025-w45",
+            "value": "2025-w45",
+            "children": []
+          },
+          {
+            "label": "2025-w46",
+            "value": "2025-w46",
+            "children": []
+          },
+          {
+            "label": "2025-w47",
+            "value": "2025-w47",
+            "children": []
+          },
+          {
+            "label": "2025-w48",
+            "value": "2025-w48",
+            "children": []
+          },
+          {
+            "label": "2025-w49",
+            "value": "2025-w49",
+            "children": []
+          },
+          {
+            "label": "2025-w50",
+            "value": "2025-w50",
+            "children": []
+          },
+          {
+            "label": "2025-w51",
+            "value": "2025-w51",
+            "children": []
+          },
+          {
+            "label": "2025-w52",
+            "value": "2025-w52",
+            "children": []
+          },
+          {
+            "label": "2026-w01",
+            "value": "2026-w01",
+            "children": []
+          },
+          {
+            "label": "2026-w02",
+            "value": "2026-w02",
+            "children": []
+          },
+          {
+            "label": "2026-w03",
+            "value": "2026-w03",
+            "children": []
+          },
+          {
+            "label": "2026-w04",
+            "value": "2026-w04",
+            "children": []
+          },
+          {
+            "label": "2026-w05",
+            "value": "2026-w05",
+            "children": []
+          },
+          {
+            "label": "2026-w06",
+            "value": "2026-w06",
+            "children": []
+          },
+          {
+            "label": "2026-w07",
+            "value": "2026-w07",
+            "children": []
+          },
+          {
+            "label": "2026-w08",
+            "value": "2026-w08",
+            "children": []
+          },
+          {
+            "label": "2026-w09",
+            "value": "2026-w09",
+            "children": []
+          },
+          {
+            "label": "2026-w10",
+            "value": "2026-w10",
+            "children": []
+          },
+          {
+            "label": "2026-w11",
+            "value": "2026-w11",
+            "children": []
+          },
+          {
+            "label": "2026-w12",
+            "value": "2026-w12",
+            "children": []
+          },
+          {
+            "label": "2026-w13",
+            "value": "2026-w13",
+            "children": []
+          },
+          {
+            "label": "2026-w14",
+            "value": "2026-w14",
+            "children": []
+          },
+          {
+            "label": "2026-w15",
+            "value": "2026-w15",
+            "children": []
+          },
+          {
+            "label": "2026-w16",
+            "value": "2026-w16",
+            "children": []
+          },
+          {
+            "label": "2026-w17",
+            "value": "2026-w17",
+            "children": []
+          },
+          {
+            "label": "2026-w18",
+            "value": "2026-w18",
+            "children": []
+          },
+          {
+            "label": "2026-w19",
+            "value": "2026-w19",
+            "children": []
+          },
+          {
+            "label": "2026-w20",
+            "value": "2026-w20",
+            "children": []
+          },
+          {
+            "label": "2026-w21",
+            "value": "2026-w21",
+            "children": []
+          },
+          {
+            "label": "2026-w22",
+            "value": "2026-w22",
+            "children": []
+          },
+          {
+            "label": "2026-w23",
+            "value": "2026-w23",
+            "children": []
+          },
+          {
+            "label": "2026-w24",
+            "value": "2026-w24",
+            "children": []
+          },
+          {
+            "label": "2026-w25",
+            "value": "2026-w25",
+            "children": []
+          },
+          {
+            "label": "2026-w26",
+            "value": "2026-w26",
+            "children": []
+          },
+          {
+            "label": "2026-w27",
+            "value": "2026-w27",
+            "children": []
+          },
+          {
+            "label": "2026-w28",
+            "value": "2026-w28",
+            "children": []
+          },
+          {
+            "label": "2026-w29",
+            "value": "2026-w29",
+            "children": []
+          },
+          {
+            "label": "2026-w30",
+            "value": "2026-w30",
+            "children": []
+          },
+          {
+            "label": "2026-w31",
+            "value": "2026-w31",
+            "children": []
+          },
+          {
+            "label": "2026-w32",
+            "value": "2026-w32",
+            "children": []
+          },
+          {
+            "label": "2026-w33",
+            "value": "2026-w33",
+            "children": []
+          },
+          {
+            "label": "2026-w34",
+            "value": "2026-w34",
+            "children": []
+          },
+          {
+            "label": "2026-w35",
+            "value": "2026-w35",
+            "children": []
+          },
+          {
+            "label": "2026-w36",
+            "value": "2026-w36",
+            "children": []
+          },
+          {
+            "label": "2026-w37",
+            "value": "2026-w37",
+            "children": []
+          },
+          {
+            "label": "2026-w38",
+            "value": "2026-w38",
+            "children": []
+          },
+          {
+            "label": "2026-w39",
+            "value": "2026-w39",
+            "children": []
+          },
+          {
+            "label": "2026-w40",
+            "value": "2026-w40",
+            "children": []
+          },
+          {
+            "label": "2026-w41",
+            "value": "2026-w41",
+            "children": []
+          },
+          {
+            "label": "2026-w42",
+            "value": "2026-w42",
+            "children": []
+          },
+          {
+            "label": "2026-w43",
+            "value": "2026-w43",
+            "children": []
+          },
+          {
+            "label": "2026-w44",
+            "value": "2026-w44",
+            "children": []
+          },
+          {
+            "label": "2026-w45",
+            "value": "2026-w45",
+            "children": []
+          },
+          {
+            "label": "2026-w46",
+            "value": "2026-w46",
+            "children": []
+          }
+        ]
+      },
+      {
+        "code": "aldersgruppe",
+        "label": "Aldersgruppe",
+        "categories": [
+          {
+            "label": "Alle aldersgr.",
+            "value": "Alle",
+            "children": [
+              {
+                "label": "0-4 år",
+                "value": "0-4 år",
+                "children": []
+              },
+              {
+                "label": "5-14 år",
+                "value": "5-14 år",
+                "children": []
+              },
+              {
+                "label": "15-29 år",
+                "value": "15-29 år",
+                "children": []
+              },
+              {
+                "label": "30-64 år",
+                "value": "30-64 år",
+                "children": []
+              },
+              {
+                "label": "65-79 år",
+                "value": "65-79 år",
+                "children": []
+              },
+              {
+                "label": "80+ år",
+                "value": "80+ år",
+                "children": []
+              },
+              {
+                "label": "Ukjent",
+                "value": "Ukjent",
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "code": "surveillancetype",
+        "label": "Overvåkingstype",
+        "categories": [
+          {
+            "label": "Non-Sentinel",
+            "value": "NONSTL",
+            "children": []
+          },
+          {
+            "label": "Sentinel",
+            "value": "STL",
+            "children": []
+          }
+        ]
+      },
+      {
+        "code": "rsvtype",
+        "label": "RS-virus type",
+        "categories": [
+          {
+            "label": "A",
+            "value": "A",
+            "children": []
+          },
+          {
+            "label": "B",
+            "value": "B",
+            "children": []
+          },
+          {
+            "label": "Ukjent",
+            "value": "UNK",
+            "children": []
+          },
+          {
+            "label": "RS-virus (A+B)",
+            "value": "A+B",
+            "children": []
+          }
+        ]
+      },
+      {
+        "code": "MEASURE_TYPE",
+        "label": "Måltall",
+        "categories": [
+          {
+            "label": "Påvisninger",
+            "value": "Detections",
+            "children": null
+          },
+          {
+            "label": "Testede",
+            "value": "Tests",
+            "children": null
+          },
+          {
+            "label": "Andel (%)",
+            "value": "pos_rate",
+            "children": null
+          }
+        ]
+      }
+    ]
+  }
+}

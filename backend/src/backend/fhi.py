@@ -36,7 +36,7 @@ FASTE_FILTRE: Mapping[int, Mapping[str, str]] = {
 """Faste valg per tabell: totalen for virustypen og vanlig klinisk praksis.
 
 For 729 (RSV) er `rsvtype` `A+B` totalen, også prøver med ukjent type. FHIs
-etikett for den vises aldri (se `tests/fixtures/fhi/README.md`).
+etikett for den vises aldri (PRD-ens addendum, «Sjekk av RSV-totalen»).
 """
 
 SKJULTE_VERDIER = frozenset({"..", ".", ":", ""})

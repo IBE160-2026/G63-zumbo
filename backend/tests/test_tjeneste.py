@@ -334,6 +334,52 @@ def test_rsv_fhi_nede_venter_ikke_på_729_rett_etter_feil_på_724(
     assert not rsv_mock.routes["rsv-data"].called
 
 
+def test_tvungen_henting_for_rsv_henter_729_selv_om_alt_er_ferskt(
+    tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
+) -> None:
+    # «Hent nyeste tall nå» for RSV (FR-25): begge kallene går til 729.
+    før = NÅ - timedelta(hours=2)
+    mellomlager.lagre_dimensjoner(mappe, 729, RSV_DIMENSJONER, før)
+    mellomlager.lagre_svar(mappe, RSV_UTVALG, RSV_DATA, før)
+    resultat = tj.svar(RSV_UTVALG, NÅ, tving=True)
+    assert rsv_mock.routes["rsv-dimensjoner"].call_count == 1
+    assert rsv_mock.routes["rsv-data"].call_count == 1
+    assert not rsv_mock.routes["dimensjoner"].called
+    assert not rsv_mock.routes["data"].called
+    assert resultat.kilde is not None and resultat.kilde.hentet == NÅ
+    lagret = mellomlager.les_dimensjoner(mappe, 729)
+    assert lagret is not None and lagret.hentet == NÅ
+
+
+def test_rsv_venter_ikke_på_724_listen_som_hentes_samtidig(
+    tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
+) -> None:
+    # Jobbnøkkelen for dimensjonslisten er per tabell (AD-3, AD-9). Mens
+    # sesonglisten (724) hentes, henter et RSV-kall sin egen 729-liste.
+    startet, slipp = threading.Event(), threading.Event()
+
+    def treg(_: httpx.Request) -> httpx.Response:
+        startet.set()
+        assert slipp.wait(5)
+        return httpx.Response(200, json=DIMENSJONER)
+
+    rsv_mock.routes["dimensjoner"].mock(side_effect=treg)
+    sesonger: list[object] = []
+    tråd = threading.Thread(target=lambda: sesonger.append(tj.sesonger(NÅ)))
+    tråd.start()
+    try:
+        assert startet.wait(5)
+        resultat = tj.svar(RSV_UTVALG, NÅ)
+    finally:
+        slipp.set()
+        tråd.join(5)
+    assert not tråd.is_alive()
+    assert resultat.serie is not None
+    assert rsv_mock.routes["rsv-dimensjoner"].call_count == 1
+    assert mellomlager.les_dimensjoner(mappe, 729) is not None
+    assert sesonger == [("2024/2025", "2025/2026", "2026/2027")]
+
+
 def test_rsv_svar_fra_feil_tabell_gir_fhi_nede(
     tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
 ) -> None:

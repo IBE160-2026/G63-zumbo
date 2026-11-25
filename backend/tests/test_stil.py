@@ -30,7 +30,7 @@ APP_JS = (STATIC / "app.js").read_text(encoding="utf-8")
 NÅ = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
 HENTET = datetime(2026, 11, 24, 10, 5, tzinfo=UTC)
 UTVALG = Utvalg(1, "influensa", "2025/2026", "alle")
-STI = "/?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
+STI = "/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
 DATA = "fhi/724-influensa-2025-2026-alle-nonstl.json"
 
 AVSENDER = (
@@ -209,14 +209,14 @@ def klient(tmp_path: Path) -> Iterator[TestClient]:
             yield testklient
 
 
-@pytest.mark.parametrize("sti", ["/", STI, "/?alder=ukjent"])
+@pytest.mark.parametrize("sti", [STI, "/resultat?virus=influensa&alder=ukjent"])
 def test_alle_skjemafelt_har_label(klient: TestClient, sti: str) -> None:
-    # Skjulte felt (skjemaet for «Hent nyeste tall nå») vises ikke og trenger
-    # ingen label.
+    # Skjulte felt (mal, virus og skjemaet for «Hent nyeste tall nå») vises
+    # ikke og trenger ingen label. Bare sesong og aldersgruppe er synlige.
     html = re.sub(r'<input\b[^>]*\btype="hidden"[^>]*>', "", klient.get(sti).text)
     felt = re.findall(r"<(?:select|input|textarea)\b[^>]*\bid=\"([^\"]+)\"", html)
     alle_felt = re.findall(r"<(?:select|input|textarea)\b", html)
-    assert len(felt) == len(alle_felt) == 4
+    assert len(felt) == len(alle_felt) == 2
     etiketter = re.findall(r'<label for="([^"]+)">[^<]+</label>', html)
     assert sorted(felt) == sorted(etiketter)
 
@@ -248,29 +248,48 @@ def test_justering_står_rett_under_hentetidspunktet(klient: TestClient) -> None
 
 
 def test_justering_vises_ikke_uten_tall(klient: TestClient) -> None:
-    assert JUSTERING not in klient.get("/").text
+    assert JUSTERING not in klient.get("/resultat?alder=ukjent").text
 
 
 def test_varselets_overskrift_er_uendret() -> None:
-    mal = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+    mal = (TEMPLATES / "resultat.html").read_text(encoding="utf-8")
     assert "</span> For tynt datagrunnlag</h2>" in mal
 
 
-@pytest.mark.parametrize("sti", ["/", STI])
-def test_chatbotteksten_står_nederst_på_siden(klient: TestClient, sti: str) -> None:
-    """FR-26 (Irenes beslutning 24.11.2026)."""
-    html = klient.get(sti).text
+def test_chatbotteksten_står_nederst_på_forsiden(klient: TestClient) -> None:
+    """FR-26 (Irenes beslutning 24.11.2026), på forsiden fra 25.11.2026 (FR-27)."""
+    html = klient.get("/").text
     del_ = re.search(r'<section class="om-appen"(.*?)</section>', html, re.DOTALL)
     assert del_
     assert f'<h2 id="chatbottittel">{CHATBOT_TITTEL}</h2>' in del_[1]
     assert f"<p>{CHATBOT_TEKST}</p>" in del_[1]
-    # Siste del av innholdet, under begrepsforklaringene og over avsenderlinjen.
-    assert html.index('<section class="begreper"') < html.index(
+    # Siste del av innholdet, under viruskortene og over avsenderlinjen.
+    assert html.index('<ul class="viruskort">') < html.index(
         '<section class="om-appen"'
     )
     etter = html[html.index('<section class="om-appen"') :]
     assert "<section" not in etter[1:]
     assert etter.index("</main>") < etter.index('<footer class="avsender">')
+
+
+def test_chatbotteksten_står_ikke_på_resultatsiden(klient: TestClient) -> None:
+    html = klient.get(STI).text
+    assert CHATBOT_TITTEL not in html
+    assert 'class="om-appen"' not in html
+
+
+def test_kortene_står_i_rutenett_og_er_én_lenke() -> None:
+    """Tre kolonner på brede skjermer, én ved 360 piksler (FR-27, NFR-11).
+
+    `minmax(14rem, 1fr)` gir tre kolonner i `max-width: 60rem` og bare én
+    kolonne når siden er 360 piksler bred (328 piksler innhold).
+    """
+    rutenett = _blokk(".viruskort")
+    assert "display: grid" in rutenett
+    assert "repeat(auto-fit, minmax(14rem, 1fr))" in rutenett
+    kort = _blokk(".kort")
+    assert "display: block" in kort
+    assert "border: 2px solid var(--hovedfarge)" in kort
 
 
 def test_varselet_er_rosa_med_ramme_og_ikon_i_rød_1() -> None:

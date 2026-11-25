@@ -28,7 +28,9 @@ DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimen
 NÅ = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
 HENTET = datetime(2026, 11, 24, 10, 5, tzinfo=UTC)
 UTVALG = Utvalg(1, "influensa", "2025/2026", "alle")
-STI = "/?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
+STI = "/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
+UTEN_UTVALG = "/resultat?mal=1&virus=influensa&sesong=1999/2000"
+"""Resultatsiden med et ugyldig utvalg, så ingen tall vises."""
 
 
 def _svar(navn: str) -> dict[str, Any]:
@@ -84,14 +86,14 @@ def test_forklaringene_er_lukket_og_bruker_details_og_summary(
 ) -> None:
     """`<details>`/`<summary>` åpnes med mus, Enter og mellomrom uten
     JavaScript (NFR-5, AD-8). De er lukket når siden lastes."""
-    html = klient.get("/").text
+    html = klient.get(UTEN_UTVALG).text
     assert html.count("<details") == len(BEGREPER) == 7
     assert html.count("<summary>") == 7
     assert "<details open" not in html
 
 
 def test_forklaringene_vises_også_uten_utvalg(klient: TestClient) -> None:
-    assert len(_forklaringer(klient.get("/").text)) == 7
+    assert len(_forklaringer(klient.get(UTEN_UTVALG).text)) == 7
 
 
 def test_forklaringene_står_under_tabellen_og_kilden(

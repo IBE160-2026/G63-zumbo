@@ -28,7 +28,7 @@ DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data"
 DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimension"
 UTVALG = Utvalg(1, "influensa", "2025/2026", "alle")
 SKJEMA = {"mal": "1", "virus": "influensa", "sesong": "2025/2026", "alder": "alle"}
-SIDE = "/?mal=1&virus=influensa&sesong=2025%2F2026&alder=alle"
+SIDE = "/resultat?mal=1&virus=influensa&sesong=2025%2F2026&alder=alle"
 FRAGMENT = "/forklaring?mal=1&virus=influensa&sesong=2025%2F2026&alder=alle"
 START = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
 FORKLARING = (
@@ -128,7 +128,7 @@ def _fhi_nede(router: respx.MockRouter) -> None:
 
 def _parametre(adresse: str) -> dict[str, list[str]]:
     del_ = urlsplit(adresse)
-    assert del_.path == "/"
+    assert del_.path == "/resultat"
     return parse_qs(del_.query)
 
 
@@ -159,7 +159,13 @@ def test_knappen_sender_post_med_samme_utvalg(klient: TestClient) -> None:
     assert re.search(r'<button type="submit"[^>]*>Hent nyeste tall nå</button>', html)
 
 
-@pytest.mark.parametrize("sti", ["/", "/?mal=1&virus=influensa&sesong=1999/2000"])
+@pytest.mark.parametrize(
+    "sti",
+    [
+        "/resultat?mal=1&virus=ebola&sesong=2025/2026&alder=alle",
+        "/resultat?mal=1&virus=influensa&sesong=1999/2000",
+    ],
+)
 def test_uten_tall_vises_ikke_knappen(klient: TestClient, sti: str) -> None:
     assert "Hent nyeste tall nå" not in klient.get(sti).text
 
@@ -317,7 +323,9 @@ def test_sars_cov_2_uten_tall_har_knappen(
     fhi_mock.route(host="statistikk-data.fhi.no").mock(
         side_effect=httpx.ConnectError("nede")
     )
-    html = klient.get("/?mal=1&virus=sars-cov-2&sesong=2025%2F2026&alder=alle").text
+    html = klient.get(
+        "/resultat?mal=1&virus=sars-cov-2&sesong=2025%2F2026&alder=alle"
+    ).text
     assert "det finnes ingen lagrede tall" in html
     assert "Hent nyeste tall nå" in html
 
@@ -335,7 +343,7 @@ def test_ugyldig_utvalg_hentes_ikke_og_sendes_til_siden(
 ) -> None:
     svar = klient.post("/hent-nyeste", data=skjema)
     assert svar.status_code == 303
-    assert urlsplit(svar.headers["location"]).path == "/"
+    assert urlsplit(svar.headers["location"]).path == "/resultat"
     assert web.NYESTE not in _parametre(svar.headers["location"])
     assert fhi_mock.routes["data"].call_count == 0
 

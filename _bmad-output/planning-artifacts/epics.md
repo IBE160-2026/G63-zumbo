@@ -42,7 +42,8 @@ Dette dokumentet deler kravene i PRD-en (med addendum) og beslutningene i arkite
 - FR-23 (strekkmål): Mal 2 viser denne og forrige sesong i samme graf, uke for uke fra uke 40, med hel og stiplet linje og etiketter, og en tabell med begge sesongene side om side. Uke 53 vises bare for sesongen som har den.
 - FR-24 (strekkmål): For mal 2 beregnes R1–R5 per sesong, og varselet sier hvilken sesong det gjelder. Uke 53 som bare finnes i den ene sesongen, teller ikke som manglende i den andre.
 - FR-25: Siden viser hentetidspunkt og at FHI publiserer hver torsdag. Knappen «Hent nyeste tall nå» henter på nytt uten mellomlagring, er deaktivert mens hentingen pågår, faller tilbake til FR-8 ved feil, gjenbruker KI-forklaringen når tallene er uendret og kan brukes med tastatur.
-- FR-26: Nederst på siden står den faste teksten «Hvorfor ikke bare spørre en chatbot?» (lagt til 24. november 2026: Irenes beslutning).
+- FR-26: Nederst på siden står den faste teksten «Hvorfor ikke bare spørre en chatbot?» (lagt til 24. november 2026: Irenes beslutning). Fra 25. november 2026 står den på forsiden (FR-27).
+- FR-27: Appen har en forside med introtekst og tre viruskort med andelen positive i siste uke med tall. Et klikk på et kort åpner en egen resultatside for viruset (lagt til 25. november 2026: Irenes beslutning etter tilbakemelding fra testperson).
 
 ### Ikke-funksjonelle krav
 
@@ -122,7 +123,8 @@ Det finnes ikke noe eget UX-dokument. Kravene til utseende og oppførsel står i
 | FR-20–FR-22 | 4 | Prompt, `ki.forklar`, `GET /forklaring` |
 | FR-23, FR-24 | 8 | Mal 2 (strekkmål) |
 | FR-25 | 4 | «Hent nyeste tall nå» |
-| FR-26 | 3 | Teksten «Hvorfor ikke bare spørre en chatbot?» (story 3.7) |
+| FR-26 | 3 | Teksten «Hvorfor ikke bare spørre en chatbot?» (story 3.7, flyttet til forsiden i story 3.8) |
+| FR-27 | 3 | Forside med viruskort og egen resultatside (story 3.8) |
 | NFR-1, NFR-2 | 4 | Uten nøkkel, forklaringen lastes etter siden |
 | NFR-3 | 3, 5 | Norske tekster, retting etter brukertesting |
 | NFR-4–NFR-7, NFR-11 | 3 | Tilgjengelighet og mobil |
@@ -145,7 +147,7 @@ Appen kan hente, mellomlagre og tolke influensatall for et utvalg, og avgjør me
 
 ### Epic 3: Influensa på skjermen
 Brukeren kan velge utvalg og se graf, tabell, varsel, kildehenvisning og begrepsforklaringer, også på mobil og med tastatur. Veiledende: 26.–28. november.
-**Dekker:** FR-1, FR-3–FR-5, FR-8 (melding), FR-9–FR-13, FR-19, FR-26, NFR-3–NFR-7, NFR-11, AD-8, AD-9
+**Dekker:** FR-1, FR-3–FR-5, FR-8 (melding), FR-9–FR-13, FR-19, FR-26, FR-27, NFR-3–NFR-7, NFR-11, AD-8, AD-9
 
 ### Epic 4: KI-forklaring og nyeste tall
 Brukeren får en kort KI-forklaring med kilde, og kan hente nyeste tall fra FHI. Appen virker uten KI-nøkkel. Etter denne epicen er mal 1 for influensa ferdig. **Fast frist: 2. desember.** Veiledende: 29. november–2. desember.
@@ -529,6 +531,27 @@ slik at jeg kan bruke appen der jeg er (NFR-4, NFR-5, NFR-11).
 **Og** siden kan brukes ved 360 piksler bredde uten vannrett rulling, og tabellen kan rulle inni sin egen boks (NFR-11)
 **Og** fargene for tekst og graf er CSS-variabler i `style.css`, som `app.js` leser, og en automatisk test regner ut kontrasten og sjekker grensene, og en test sjekker at alle skjemafelt har en `<label>`
 **Og** en manuell sjekk i gråtoner, med tastatur og ved 360 piksler er notert i issuet (NFR-5, NFR-7, NFR-11)
+
+### Story 3.8: Forside med viruskort (etter tilbakemelding fra testperson)
+
+*Lagt til 25. november 2026: Irenes beslutning etter tilbakemelding fra en testperson, som sa: «at appen mangler overganger som en forside, at når man trykker så kommer man til en annen side, at den gjør for lite». Issue #72.*
+
+Som Sara
+vil jeg starte på en forside som viser hvordan de tre virusene står nå, og gå videre til ett virus med ett klikk,
+slik at appen har tydelige overganger og gir meg noe med en gang (FR-27).
+
+**Akseptansekriterier:**
+
+**Gitt** at Sara åpner `GET /` uten valg
+**Når** forsiden vises
+**Så** har den overskrift, introteksten «Se hvordan influensa, RSV og koronavirus utvikler seg uke for uke i Norge, med tall fra Folkehelseinstituttet. Appen sier fra når tallene er for usikre til å trekke konklusjoner, og forklarer ordene underveis.», tre viruskort, teksten «Hvorfor ikke bare spørre en chatbot?» (FR-26) og avsenderlinjen (FR-27)
+**Og** hvert kort viser virusnavnet, andelen positive i siste uke med tall for sesongen som pågår og alle aldre, og hvilken uke det gjelder (FR-27)
+**Og** mangler tallene, for eksempel fordi FHI ikke svarer, sier kortet det i stedet for å krasje (FR-8, FR-27)
+**Og** et klikk på et kort går til `GET /resultat` for det viruset, med sesongen som pågår og alle aldre valgt (FR-27, AD-9)
+**Og** på resultatsiden kan sesong og aldersgruppe endres som før, og en tydelig lenke går tilbake til forsiden (FR-27)
+**Og** gamle adresser med valg (`/?mal=…&virus=…`) sendes videre til `/resultat` med de samme valgene, så ingen lenker blir ødelagt (AD-9)
+**Og** alt virker med tastatur og på mobil (360 piksler), med de samme fargene og skriftene som før (NFR-4, NFR-5, NFR-11)
+**Og** README og testene er oppdatert
 
 ---
 

@@ -129,12 +129,14 @@ Pilen betyr «kan importere». Kjernemodulene (`domene`, `sesong`, fhi-tolking, 
 
 ### AD-9 — Ruter og lastemønster
 
-- **Binds (gjelder):** `web`, `static/app.js`; FR-1–FR-5, FR-8, FR-20, FR-22, FR-25, NFR-2
+- **Binds (gjelder):** `web`, `static/app.js`; FR-1–FR-5, FR-8, FR-20, FR-22, FR-25, FR-27, NFR-2
 - **Prevents (hindrer):** at siden venter på KI-en, at skjermleserbrukere ikke får vite når forklaringen kommer, at et dobbelttrykk starter flere kall mot FHI, og at oppdatering av siden sender skjemaet på nytt.
 - **Rule (regel):**
-  - `GET /` med utvalget som query-parametre (`mal`, `virus`, `sesong`, `alder`) viser skjema og resultat. Uten parametre vises bare skjemaet. Ugyldige parametre gir en norsk melding og ingen henting (FR-5). Validering skjer bare i `domene.Utvalg.fra_parametre`.
+  - *Endret 25. november 2026 (FR-27, story 3.8):* `GET /` er forsiden med tre viruskort. Hvert kort bruker `tjeneste.svar` for sesongen som pågår (den nyeste i sesonglisten) og alle aldre, og lenker til resultatsiden for det utvalget. Mangler tallene, sier kortet det. Forsiden henter aldri KI-forklaringer.
+  - `GET /resultat` med utvalget som query-parametre (`mal`, `virus`, `sesong`, `alder`) er resultatsiden. Den viser viruset, et skjema der sesong og aldersgruppe kan endres (mal og virus følger med som skjulte felt), resultatet og en lenke tilbake til forsiden. Uten parametre sendes brukeren til `/`. Ugyldige parametre gir en norsk melding og ingen henting (FR-5). Validering skjer bare i `domene.Utvalg.fra_parametre`.
+  - `GET /` med minst ett av parametrene for et utvalg (gamle adresser fra før 25. november 2026) svarer med `301` til `GET /resultat` med den samme query-strengen, så gamle lenker virker.
   - `GET /forklaring` med samme parametre returnerer et HTML-fragment med KI-forklaringen. `app.js` henter det etter at siden er vist og setter det inn i forklaringsområdet. Området har `aria-live="polite"` og inneholder «Forklaringen lages …» fra start (FR-20). Hvis kallet feiler (nettverksfeil eller annen status enn 200), setter `app.js` inn FR-22-meldingen «forklaringen kunne ikke lages akkurat nå». Teksten legges av malen i et `data-feiltekst`-attributt på området, slik at alle faste tekster står i malene og ikke i JavaScript.
-  - `POST /hent-nyeste` (skjema med samme felt) henter på nytt uten mellomlagring og svarer med `303` til `GET /` for samme utvalg. `app.js` deaktiverer knappen når skjemaet sendes. I `tjeneste` sørger en lås per utvalg for at samtidige forespørsler deler ett kall til FHI.
+  - `POST /hent-nyeste` (skjema med samme felt) henter på nytt uten mellomlagring og svarer med `303` til `GET /resultat` for samme utvalg. `app.js` deaktiverer knappen når skjemaet sendes. I `tjeneste` sørger en lås per utvalg for at samtidige forespørsler deler ett kall til FHI.
   - Brukeren ser aldri tekniske feilkoder. `FhiUtilgjengelig` gir FR-8-meldingen, med eller uten lagrede tall.
 - **Begrunnelse:** Graf og tabell vises innen 5 sekunder selv om KI-en er treg (NFR-2). Mønsteret med POST og omdirigering gjør at FR-25-knappen ikke sendes på nytt hvis brukeren oppdaterer siden.
 
@@ -227,7 +229,7 @@ sequenceDiagram
     participant M as mellomlager
     participant F as FHI-API
     participant K as ki / Claude
-    B->>W: GET /?virus=...&sesong=...
+    B->>W: GET /resultat?virus=...&sesong=...
     W->>T: svar(utvalg, nå)
     T->>M: les FHI-svar
     alt mangler eller utdatert (AD-5)
@@ -257,6 +259,7 @@ sequenceDiagram
 | FR-20–FR-22 (KI-forklaring), SM-4 | `ki`, `prompts/` | AD-6, AD-7, AD-9 |
 | FR-23, FR-24 (mal 2, strekkmål) | `tjeneste` (to serier), `kontrollregler` per sesong, `app.js` | AD-3, AD-8 |
 | FR-25 (hente nyeste tall nå) | `web` (`POST /hent-nyeste`), `tjeneste`, `app.js` | AD-5, AD-7, AD-9 |
+| FR-26, FR-27 (chatbot-teksten, forside med viruskort) | `web` (`GET /`, `GET /resultat`), `templates/`, `static/style.css` | AD-8, AD-9 |
 | NFR-1, NFR-9 (uten nøkkel, nøkler utenfor repoet) | `config`, `ki` | AD-6 |
 | NFR-2 (svartid) | `web`, `app.js` | AD-9 |
 | NFR-3–NFR-7, NFR-11 (språk og tilgjengelighet) | `templates/`, `static/` | AD-2, AD-8 |

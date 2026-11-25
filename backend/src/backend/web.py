@@ -7,16 +7,22 @@ Start lokalt fra `backend/` med `uv run uvicorn backend.web:app --reload`.
 leses én gang, ved oppstart, og aldri ved import, slik at testene ikke laster
 `.env` (AD-6, AD-10).
 
+`GET /` er forsiden med ett kort per virus, og `GET /resultat` er resultatsiden
+for ett utvalg (FR-27, AD-9). Gamle adresser med valg (`/?mal=…`) sendes videre
+til `/resultat` med `301`.
+
 KI-forklaringen hentes for seg med `GET /forklaring`, etter at siden er vist,
-så `GET /` venter aldri på KI-en (FR-20, NFR-2, AD-9). Knappen «Hent nyeste
-tall nå» sender `POST /hent-nyeste`, som henter uten mellomlager og svarer med
-`303` til `GET /` for samme utvalg (FR-25, AD-9).
+så `GET /resultat` venter aldri på KI-en (FR-20, NFR-2, AD-9). Forsiden henter
+aldri KI-forklaringer. Knappen «Hent nyeste tall nå» sender `POST /hent-nyeste`,
+som henter uten mellomlager og svarer med `303` til `GET /resultat` for samme
+utvalg (FR-25, AD-9).
 """
 
+import logging
 import re
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any
@@ -37,6 +43,7 @@ from backend.domene import (
     VIRUS,
     Dataserie,
     UgyldigUtvalg,
+    Uke,
     Utvalg,
 )
 from backend.formatering import (
@@ -61,14 +68,16 @@ if TYPE_CHECKING:
     # Bare for typen til testklienten. `web` kaller aldri `fhi` (AD-1).
     from backend import fhi
 
+logger = logging.getLogger(__name__)
+
 MAPPE = Path(__file__).parent
 PARAMETRE = ("mal", "virus", "sesong", "alder")
 """Query-parametrene for et utvalg (AD-9)."""
 
 NYESTE = "nyeste_feilet"
 """Query-parameteret `POST /hent-nyeste` legger til når FHI ikke svarte. Verdien
-er tidspunktet for forsøket i sekunder (Unix-tid), så `GET /` kan si at de viste
-tallene er de sist lagrede (FR-8, FR-25)."""
+er tidspunktet for forsøket i sekunder (Unix-tid), så `GET /resultat` kan si at
+de viste tallene er de sist lagrede (FR-8, FR-25)."""
 
 NYESTE_GJELDER = timedelta(minutes=5)
 """Så lenge merket gjelder. Lastes adressen inn på nytt senere, eller er tallene
@@ -129,6 +138,64 @@ def forklaringsadresse(utvalg: Utvalg) -> str:
     return "/forklaring?" + urlencode(utvalgsparametre(utvalg))
 
 
+def resultatadresse(utvalg: Utvalg) -> str:
+    """`/resultat` med parametrene for `utvalg` (FR-27, AD-9)."""
+    return "/resultat?" + urlencode(utvalgsparametre(utvalg))
+
+
+def siste_uke_med_andel(serie: Dataserie | None) -> Uke | None:
+    """Den siste uka i serien som har en andel, eller `None` når ingen har det."""
+    if serie is None:
+        return None
+    return next((u for u in reversed(serie.uker) if u.andel is not None), None)
+
+
+KORTNAVN = {"sars-cov-2": "Koronavirus (SARS-CoV-2)"}
+"""Navn på forsiden som avviker fra `Virus.navn`. Brukerne kjenner ordet korona,
+så kortet sier det. Resten av appen bruker «SARS-CoV-2»."""
+
+
+@dataclass(frozen=True)
+class Viruskort:
+    """Det ett kort på forsiden viser (FR-27).
+
+    `andel` og `uke` er ferdige tekster («20,8 %», «uke 50») for den siste uka
+    med andel, eller `None` når tallene ikke kan vises. `hentet` har en verdi
+    bare når tallene er de sist lagrede fordi FHI ikke svarte (FR-8).
+    """
+
+    navn: str
+    adresse: str
+    andel: str | None = None
+    uke: str | None = None
+    usikker: bool = False
+    hentet: str | None = None
+
+
+def viruskort(utvalg: Utvalg, resultat: Resultat | None) -> Viruskort:
+    """Kortet for `utvalg` laget av svaret fra `tjeneste.svar` (FR-27).
+
+    Uten svar, uten tall eller uten noen uke med andel viser kortet bare navnet
+    og lenken. Formateringen er den samme som på resultatsiden (`formatering`).
+    """
+    navn = KORTNAVN.get(utvalg.virus, VIRUS[utvalg.virus].navn)
+    adresse = resultatadresse(utvalg)
+    siste = siste_uke_med_andel(resultat.serie if resultat else None)
+    if resultat is None or siste is None:
+        return Viruskort(navn, adresse)
+    hentet = None
+    if resultat.sist_lagrede and resultat.kilde is not None:
+        hentet = tidspunkt(resultat.kilde.hentet)
+    return Viruskort(
+        navn,
+        adresse,
+        andel=andel(siste.andel),
+        uke=uke(siste),
+        usikker=siste.usikker,
+        hentet=hentet,
+    )
+
+
 def har_andel(serie: Dataserie) -> bool:
     """Sann når minst én uke har en andel, så grafen har noe å tegne."""
     return any(u.andel is not None for u in serie.uker)
@@ -183,9 +250,10 @@ maler.env.filters.update(
 )
 
 
-def _spørsmål(mal_spørsmål: str) -> str:
-    """Malens spørsmål med plass til valgene: «… for [virus] i sesongen [sesong]»."""
-    return mal_spørsmål.format(virus="[virus]", sesong="[sesong]")
+def _har_valg(request: Request, navn: tuple[str, ...]) -> bool:
+    """Sann når minst ett av query-parametrene i `navn` har en verdi som ikke
+    bare er mellomrom."""
+    return any(request.query_params.get(n, "").strip() for n in navn)
 
 
 def _valgt(verdi: str, valg: list[str], standard: str | None = None) -> str:
@@ -224,41 +292,71 @@ def lag_app(
     app.mount("/static", StaticFiles(directory=MAPPE / "static"), name="static")
 
     @app.get("/", response_class=HTMLResponse)
-    def forside(request: Request) -> HTMLResponse:
+    def forside(request: Request) -> Response:
+        """Forsiden med ett kort per virus (FR-26, FR-27).
+
+        Hvert kort viser den siste uka med andel for sesongen som pågår og alle
+        aldre, fra `tjeneste.svar` og samme mellomlager som resultatsiden. Feiler
+        ett kort uventet, logges feilen, og kortet sier at tallene ikke kan vises.
+        Gamle adresser med valg sendes videre til `/resultat` med `301`.
+        """
+        if _har_valg(request, (*PARAMETRE, NYESTE)):
+            return RedirectResponse("/resultat?" + request.url.query, status_code=301)
+        tjeneste: Tjeneste = request.app.state.tjeneste
+        nå = klokke()
+        # `sesonger` har egen reserve når FHI er nede (AD-3), så listen er aldri tom.
+        sesong = tjeneste.sesonger(nå)[-1]
+        kort = []
+        for nøkkel in VIRUS:
+            utvalg = Utvalg(1, nøkkel, sesong, STANDARD_ALDERSGRUPPE)
+            try:
+                kort.append(viruskort(utvalg, tjeneste.svar(utvalg, nå)))
+            except Exception:
+                logger.exception("Kortet for %s kunne ikke lages", nøkkel)
+                kort.append(viruskort(utvalg, None))
+        return maler.TemplateResponse(request, "forside.html", {"kort": kort})
+
+    @app.get("/resultat", response_class=HTMLResponse)
+    def resultatside(request: Request) -> Response:
+        """Resultatsiden for ett utvalg (FR-1–FR-27, AD-9).
+
+        Uten valg sendes brukeren til forsiden med `303`. Valgene sjekkes bare
+        i `Utvalg.fra_parametre`.
+        """
+        if not _har_valg(request, PARAMETRE):
+            return RedirectResponse("/", status_code=303)
         tjeneste: Tjeneste = request.app.state.tjeneste
         nå = klokke()
         sesonger = tjeneste.sesonger(nå)
         parametre = {navn: request.query_params.get(navn, "") for navn in PARAMETRE}
         feilmelding: str | None = None
         resultat: Resultat | None = None
-        if any(verdi.strip() for verdi in parametre.values()):
-            # Verdiene sjekkes bare i `fra_parametre` (AD-9).
-            try:
-                utvalg = Utvalg.fra_parametre(parametre, sesonger)
-            except UgyldigUtvalg as feil:
-                feilmelding = str(feil)
-            else:
-                resultat = tjeneste.svar(utvalg, nå)
-                forsøk = _mislykket_forsøk(request.query_params.get(NYESTE), nå)
-                if (
-                    forsøk is not None
-                    and resultat.serie is not None
-                    and resultat.kilde is not None
-                    and resultat.kilde.hentet < forsøk
-                    and not resultat.sist_lagrede
-                ):
-                    # «Hent nyeste tall nå» fikk nettopp ikke svar fra FHI, og
-                    # tallene som vises, er eldre enn forsøket (FR-8, FR-25).
-                    resultat = replace(
-                        resultat, sist_lagrede=True, melding=FHI_NEDE_LAGRET
-                    )
+        # Verdiene sjekkes bare i `fra_parametre` (AD-9).
+        try:
+            utvalg = Utvalg.fra_parametre(parametre, sesonger)
+        except UgyldigUtvalg as feil:
+            feilmelding = str(feil)
+        else:
+            resultat = tjeneste.svar(utvalg, nå)
+            forsøk = _mislykket_forsøk(request.query_params.get(NYESTE), nå)
+            if (
+                forsøk is not None
+                and resultat.serie is not None
+                and resultat.kilde is not None
+                and resultat.kilde.hentet < forsøk
+                and not resultat.sist_lagrede
+            ):
+                # «Hent nyeste tall nå» fikk nettopp ikke svar fra FHI, og
+                # tallene som vises, er eldre enn forsøket (FR-8, FR-25).
+                resultat = replace(resultat, sist_lagrede=True, melding=FHI_NEDE_LAGRET)
 
-        mal_valg = [(str(m.nummer), _spørsmål(m.spørsmål)) for m in MALER.values()]
-        virus_valg = [(n, v.navn) for n, v in VIRUS.items()]
         alder_valg = [(g.nøkkel, g.etikett) for g in ALDERSGRUPPER.values()]
+        # Viruset står i overskriften og følger med som skjult felt. Er viruset
+        # ukjent, vises bare feilmeldingen og lenken til forsiden.
+        virus = VIRUS.get(parametre["virus"])
         valgt = {
-            "mal": _valgt(parametre["mal"], [v for v, _ in mal_valg]),
-            "virus": _valgt(parametre["virus"], list(VIRUS)),
+            "mal": _valgt(parametre["mal"], [str(m) for m in MALER]),
+            "virus": virus.nøkkel if virus else "",
             "sesong": _valgt(parametre["sesong"], list(reversed(sesonger))),
             "alder": _valgt(
                 parametre["alder"], list(ALDERSGRUPPER), STANDARD_ALDERSGRUPPE
@@ -266,10 +364,9 @@ def lag_app(
         }
         return maler.TemplateResponse(
             request,
-            "index.html",
+            "resultat.html",
             {
-                "maler": mal_valg,
-                "virus": virus_valg,
+                "virusnavn": virus.navn if virus else None,
                 "sesonger": sesonger,
                 "aldersgrupper": alder_valg,
                 "valgt": valgt,
@@ -292,10 +389,12 @@ def lag_app(
     ) -> RedirectResponse:
         """Henter tallene for utvalget fra FHI uten mellomlager (FR-25, AD-9).
 
-        Svarer alltid med `303` til `GET /` for samme utvalg, så en oppdatering
-        av siden ikke sender skjemaet på nytt. Når FHI ikke svarte, får adressen
-        `nyeste_feilet` med tidspunktet for forsøket. Et ugyldig utvalg sendes videre uten henting, og
-        `GET /` viser da feilmeldingen (FR-5).
+        Svarer alltid med `303` til `GET /resultat` for samme utvalg, så en
+        oppdatering av siden ikke sender skjemaet på nytt. Når FHI ikke svarte,
+        får adressen `nyeste_feilet` med tidspunktet for forsøket. Et ugyldig
+        utvalg sendes videre uten henting, og `GET /resultat` viser da
+        feilmeldingen (FR-5). Er alle feltene tomme, sender `GET /resultat`
+        videre til forsiden.
         """
         tjeneste: Tjeneste = request.app.state.tjeneste
         nå = klokke()
@@ -303,12 +402,14 @@ def lag_app(
         try:
             utvalg = Utvalg.fra_parametre(parametre, tjeneste.sesonger(nå))
         except UgyldigUtvalg:
-            return RedirectResponse("/?" + urlencode(parametre), status_code=303)
+            return RedirectResponse(
+                "/resultat?" + urlencode(parametre), status_code=303
+            )
         resultat = tjeneste.svar(utvalg, nå, tving=True)
         adresse = utvalgsparametre(utvalg)
         if resultat.sist_lagrede:
             adresse[NYESTE] = str(int(nå.timestamp()))
-        return RedirectResponse("/?" + urlencode(adresse), status_code=303)
+        return RedirectResponse("/resultat?" + urlencode(adresse), status_code=303)
 
     @app.get("/forklaring", response_class=HTMLResponse)
     def forklaring(request: Request) -> Response:

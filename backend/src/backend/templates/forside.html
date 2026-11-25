@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block innhold %}
+<h1>Tall fra FHI om luftveisvirus</h1>
+<p class="intro">Se hvordan influensa, RSV og koronavirus utvikler seg uke for uke i Norge, med tall fra Folkehelseinstituttet. Appen sier fra når tallene er for usikre til å trekke konklusjoner, og forklarer ordene underveis.</p>
+
+{#- Ett kort per virus. Hele kortet er én lenke til resultatsiden for sesongen
+    som pågår og alle aldre (FR-27). -#}
+<ul class="viruskort">
+  {% for k in kort %}
+  <li>
+    <a class="kort" href="{{ k.adresse }}">
+      <h2 class="kortnavn">{{ k.navn }}</h2>
+      {% if k.andel %}
+      <p class="kortandel">{{ k.andel }}</p>
+      <p>Andel positive tester i {{ k.uke }}{% if k.usikker %}, <span class="usikker">usikker uke</span>{% endif %}</p>
+      {% if k.hentet %}
+      <p class="korthentet">Sist lagrede tall, hentet {{ k.hentet }}.</p>
+      {% endif %}
+      {% else %}
+      <p>Tallene kan ikke vises akkurat nå. Prøv igjen senere.</p>
+      {% endif %}
+      <p class="kortlenke">Se tallene uke for uke <span aria-hidden="true">→</span></p>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+<section class="om-appen" aria-labelledby="chatbottittel">
+  <h2 id="chatbottittel">Hvorfor ikke bare spørre en chatbot?</h2>
+  <p>En chatbot kan finne på tall eller bruke gamle tall, og den sier sjelden hvor tallene kommer fra. Denne appen henter tallene direkte fra Folkehelseinstituttet, viser når de ble hentet, og sier fra når det er for lite data til å konkludere. KI brukes bare til å forklare tallene med enkle ord, aldri til å lage dem.</p>
+</section>
+{% endblock %}

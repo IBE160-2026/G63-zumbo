@@ -6,8 +6,8 @@ Slik kan du se alle tre utfallene i nettleseren uten en ekte KI-nøkkel:
     uv run python scripts/vis_forklaring.py uten-nokkel
     uv run python scripts/vis_forklaring.py feil
 
-Kjør fra `backend/` og åpne http://127.0.0.1:8001 i nettleseren. Velg et
-utvalg og trykk «Vis tallene». Tallene hentes fra FHI som vanlig, så du må ha
+Kjør fra `backend/` og åpne http://127.0.0.1:8001 i nettleseren, og trykk på
+et viruskort. Tallene hentes fra FHI som vanlig, så du må ha
 nett. Claude kalles aldri: «forklaring» gir den lagrede teksten fra
 `tests/fixtures/ki/` etter to sekunder, så du rekker å se «Forklaringen lages …»,
 og «feil» later som Claude ikke svarte. Den falske

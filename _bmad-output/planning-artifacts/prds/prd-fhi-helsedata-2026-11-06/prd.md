@@ -113,7 +113,7 @@ Mal 3 (aldersfordeling) og mal 4 (fylker) er ikke med (se kapittel 9).
 
 ### 6.0 Skisse av hovedskjermen
 
-Hovedskjermen er én side. På mobil ligger delene under hverandre i samme rekkefølge.
+Hovedskjermen er én side. Fra 25. november 2026 er dette resultatsiden, og appen har i tillegg en forside med viruskort (FR-27). På resultatsiden er viruset valgt fra forsiden, og sesong og aldersgruppe kan endres. På mobil ligger delene under hverandre i samme rekkefølge.
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
@@ -422,6 +422,20 @@ Nederst på siden står en kort tekst med overskriften «Hvorfor ikke bare spør
 
 - Teksten er fast og står i koden, ikke laget av KI.
 - Den vises på hele siden, også uten valgt utvalg og uten KI-nøkkel.
+- Endret 25. november 2026: teksten står på forsiden (FR-27), ikke på resultatsiden.
+
+#### FR-27: Forside med viruskort
+
+*Lagt til 25. november 2026: Irenes beslutning etter tilbakemelding fra testperson.*
+
+En testperson sa 25. november 2026, ordrett: «at appen mangler overganger som en forside, at når man trykker så kommer man til en annen side, at den gjør for lite». Appen får derfor en forside med tre viruskort.
+
+- Forsiden har overskrift, introteksten «Se hvordan influensa, RSV og koronavirus utvikler seg uke for uke i Norge, med tall fra Folkehelseinstituttet. Appen sier fra når tallene er for usikre til å trekke konklusjoner, og forklarer ordene underveis.», tre kort, teksten fra FR-26 og avsenderlinjen.
+- Hvert kort viser virusnavnet, andelen positive i siste uke med tall for sesongen som pågår og alle aldre, og hvilken uke det gjelder.
+- Mangler tallene, for eksempel fordi FHI ikke svarer, sier kortet det i stedet for å vise feil tall eller en feilside (FR-8).
+- Et klikk på et kort åpner en egen resultatside for viruset, med sesongen som pågår og alle aldre valgt. Der kan sesong og aldersgruppe endres som før, og en tydelig lenke går tilbake til forsiden.
+- Gamle adresser med valg sendes videre til resultatsiden, så ingen lenker blir ødelagt.
+- Alt virker med tastatur og på mobil, med de samme fargene og skriftene som resten av appen (NFR-4, NFR-5, NFR-11).
 
 ## 7. Ikke-funksjonelle krav
 
@@ -500,7 +514,8 @@ Hentet fra `docs/sjekkliste.md` og bekreftet av gruppen 20. november 2026. Hoved
 - Graf, tabell, usikre uker, begrepsforklaringer, kildehenvisning, varsel (R1–R5) og KI-forklaring.
 - Mellomlagring og feilmelding når FHI-API-et ikke svarer.
 - Knappen «Hent nyeste tall nå» (FR-25, lagt til 20. november 2026).
-- Teksten «Hvorfor ikke bare spørre en chatbot?» nederst på siden (FR-26, lagt til 24. november 2026).
+- Teksten «Hvorfor ikke bare spørre en chatbot?» (FR-26, lagt til 24. november 2026, på forsiden fra 25. november 2026).
+- Forside med viruskort og egen resultatside (FR-27, lagt til 25. november 2026).
 
 **Strekkmål**
 - Mal 2, sammenligning av sesonger (FR-23, FR-24).
@@ -542,6 +557,8 @@ PRD-en skulle vært ferdig 8. november 2026. Den ble skrevet 20. november, fordi
 FR-25 («Hente nyeste tall nå») ble lagt til 20. november 2026, etter at PRD-en var ferdig, og før arkitekturen ble skrevet.
 
 FR-26 («Hvorfor ikke bare spørre en chatbot?») ble lagt til 24. november 2026 etter Irenes beslutning, under arbeidet med story 3.7.
+
+FR-27 («Forside med viruskort») ble lagt til 25. november 2026 etter Irenes beslutning, etter tilbakemelding fra en testperson. Skissen i kapittel 6.0 viser resultatsiden. Forsiden er beskrevet i FR-27.
 
 ## 12. Åpne spørsmål
 

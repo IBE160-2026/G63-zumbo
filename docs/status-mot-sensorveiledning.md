@@ -62,7 +62,7 @@ Skrevet 26.11.2026 som utkast. Irene går gjennom rapporten og krysser av i [sje
 ## 3. Kvalitetssikring og testing (15 %)
 
 **Gjort**
-- 905 tester på main (915 med PR #78 og #79) som kjører uten nett og uten nøkkel (`pytest-socket`, [#43](https://github.com/IBE160-2026/G63-zumbo/pull/43)).
+- 905 tester på main (910 med PR #78, 915 med PR #79) som kjører uten nett og uten nøkkel (`pytest-socket`, [#43](https://github.com/IBE160-2026/G63-zumbo/pull/43)).
 - Lagrede svar fra FHI og KI ligger i [`backend/tests/fixtures/`](../backend/tests/fixtures/): ekte svar for tabell 724, 729 og 731 i `fhi/`, en KI-forklaring i `ki/`, og grensetilfeller for R1–R5 i `konstruert/`.
 - Tester for henting og tolking mot kjente tall (`test_fhi_*.py`), for reglene (`test_kontrollregler.py`) og for sidene (`test_web_*.py`).
 - GitHub Actions kjører pytest og ruff på hver PR ([#75](https://github.com/IBE160-2026/G63-zumbo/pull/75), issue #74).

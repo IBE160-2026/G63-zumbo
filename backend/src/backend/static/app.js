@@ -26,11 +26,8 @@
       return;
     }
     const tekst = knapp.textContent;
-    skjema.addEventListener("submit", (hendelse) => {
-      if (knapp.disabled) {
-        hendelse.preventDefault();
-        return;
-      }
+    // En deaktivert knapp kan ikke sende skjemaet på nytt.
+    skjema.addEventListener("submit", () => {
       knapp.disabled = true;
       if (knapp.dataset.ventetekst) {
         knapp.textContent = knapp.dataset.ventetekst;

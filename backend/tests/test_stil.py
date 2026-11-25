@@ -213,7 +213,7 @@ def klient(tmp_path: Path) -> Iterator[TestClient]:
 def test_alle_skjemafelt_har_label(klient: TestClient, sti: str) -> None:
     # Skjulte felt (skjemaet for «Hent nyeste tall nå») vises ikke og trenger
     # ingen label.
-    html = re.sub(r'<input type="hidden"[^>]*>', "", klient.get(sti).text)
+    html = re.sub(r'<input\b[^>]*\btype="hidden"[^>]*>', "", klient.get(sti).text)
     felt = re.findall(r"<(?:select|input|textarea)\b[^>]*\bid=\"([^\"]+)\"", html)
     alle_felt = re.findall(r"<(?:select|input|textarea)\b", html)
     assert len(felt) == len(alle_felt) == 4

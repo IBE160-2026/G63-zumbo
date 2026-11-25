@@ -278,7 +278,7 @@ tbody tr.markert td {
 
 /* Deaktivert knapp: samme farger (kontrasten holder), men ventetekst og
    ventepeker viser at hentingen pågår. */
-button:disabled {
+.hent-nyeste button:disabled {
   cursor: wait;
 }
 

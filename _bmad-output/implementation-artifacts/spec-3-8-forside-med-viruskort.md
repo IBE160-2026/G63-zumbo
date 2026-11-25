@@ -2,7 +2,7 @@
 title: 'Story 3.8: Forside med viruskort'
 type: 'feature'
 created: '2026-11-25'
-status: 'in-progress'
+status: 'in-review'
 baseline_commit: '792b655549ff05cf6702f3fa905855eb12617d0f'
 route: 'dispatch'
 review_loop_iteration: 0
@@ -86,11 +86,11 @@ Hvert kort er en lenke til resultatsiden for viruset, med sesongen som pågår o
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `backend/src/backend/web.py` -- rutene `/`, `/resultat`, omdirigeringen og kortdataene -- FR-27, AD-9
-- [ ] `backend/src/backend/templates/forside.html`, `resultat.html` (erstatter `index.html`) -- forsiden og resultatsiden -- FR-26, FR-27
-- [ ] `backend/src/backend/static/style.css` -- kort og rutenett, fokus, 360 piksler -- NFR-4, NFR-5, NFR-11
-- [ ] `README.md` -- adressene og forsiden
-- [ ] Tester:
+- [x] `backend/src/backend/web.py` -- rutene `/`, `/resultat`, omdirigeringen og kortdataene -- FR-27, AD-9
+- [x] `backend/src/backend/templates/forside.html`, `resultat.html` (erstatter `index.html`) -- forsiden og resultatsiden -- FR-26, FR-27
+- [x] `backend/src/backend/static/style.css` -- kort og rutenett, fokus, 360 piksler -- NFR-4, NFR-5, NFR-11
+- [x] `README.md` -- adressene og forsiden
+- [x] Tester:
   - Ny `backend/tests/test_web_forside.py` med hele matrisen over, at introteksten står ordrett, at kortene står i riktig rekkefølge med riktige lenker, at sesongen som pågår er valgt, at det ikke finnes FHI-koder, at FR-26 står på forsiden og ikke på resultatsiden, og lenken tilbake.
   - Oppdater de eksisterende testene i Code Map.
 

@@ -20,3 +20,21 @@ Tre ting: (1) gi SARS-CoV-2-kortet på forsiden navnet «Koronavirus (SARS-CoV-2
 ### Åpne punkter
 - CI-sjekken i PR #75 er rød fordi `astral-sh/setup-uv@v10` ikke fins (siste er `v10.4.0`). Irene avgjør rettingen.
 - Irene retter manuset i PR #76 og skriver fasit før første testperson.
+
+## 2026-11-25 kl. 23:48 — Irene Zumbo
+
+### Oppgave
+Rette CI-sjekken i PR #75 ved å låse setup-uv til v10.4.0, merge hvis grønn, og pushe sesjonsloggen.
+
+### Plan
+- Bytte `@v10` med `@v10.4.0` i `.github/workflows/tester.yml`, pushe og vente på sjekken.
+- Kommentere ordrett på PR #75, merge med `--merge --delete-branch`, hente main og pushe loggen.
+
+### Resultat
+- Commit fa14d83 på `ci-pytest-ruff`. Sjekken ble grønn på 20 sekunder: 905 tester bestod, `ruff check` og `ruff format --check` bestod.
+- Kommentaren står på PR #75. PR-en er merget til main (238526d), og issue #74 er lukket.
+- Loggcommiten fra forrige seksjon ble lagt oppå den nye main og pushet til ibe.
+- Lukket punktet om rød CI-sjekk i issues.md.
+
+### Åpne punkter
+- Irene retter manuset i PR #76 og skriver fasit før første testperson (står alt i issues.md).

@@ -16,6 +16,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-1-2-ruff-og-pytest-uten-nett.md`
   summary: Ingenting kjører `ruff check`, `ruff format --check` og `pytest` automatisk før commit eller push (ingen CI eller pre-commit).
   evidence: AD-10 sier at ruff skal bestå før commit. README sier det nå, men ingen test eller hook håndhever det, så `uv run pytest` er grønn selv om ruff feiler. Hører naturlig hjemme i en GitHub Actions-jobb eller pre-commit når det settes opp. Vurderes i epic 7 hvis det blir tid.
+  status: løst 2026-11-25 i issue #74 — `.github/workflows/tester.yml` kjører `pytest`, `ruff check` og `ruff format --check` i `backend/` på hver PR og hver push til main. Tatt før epic 7 fordi resten av PR-ene skal ha grønn hake. Ingen pre-commit-hook.
 
 ## Deferred from: code review of spec-1-3-lagre-et-ekte-svar-fra-tabell-724-som-fixture.md (2026-11-23)
 

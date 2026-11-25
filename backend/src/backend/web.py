@@ -51,7 +51,6 @@ from backend.formatering import (
 )
 from backend.tjeneste import (
     FHI_NEDE_LAGRET,
-    KLARE_VIRUS,
     Forklaring,
     ManglerNøkkel,
     Resultat,
@@ -194,7 +193,7 @@ def _valgt(verdi: str, valg: list[str], standard: str | None = None) -> str:
     listen, ellers `standard`, ellers det første valget.
 
     Slik viser skjemaet aldri et annet valg enn det som står der, også etter et
-    ugyldig valg eller et virus som ikke er klart ennå.
+    ugyldig valg.
     """
     if verdi in valg:
         return verdi
@@ -255,11 +254,11 @@ def lag_app(
                     )
 
         mal_valg = [(str(m.nummer), _spørsmål(m.spørsmål)) for m in MALER.values()]
-        virus_valg = [(n, VIRUS[n].navn) for n in KLARE_VIRUS]
+        virus_valg = [(n, v.navn) for n, v in VIRUS.items()]
         alder_valg = [(g.nøkkel, g.etikett) for g in ALDERSGRUPPER.values()]
         valgt = {
             "mal": _valgt(parametre["mal"], [v for v, _ in mal_valg]),
-            "virus": _valgt(parametre["virus"], list(KLARE_VIRUS)),
+            "virus": _valgt(parametre["virus"], list(VIRUS)),
             "sesong": _valgt(parametre["sesong"], list(reversed(sesonger))),
             "alder": _valgt(
                 parametre["alder"], list(ALDERSGRUPPER), STANDARD_ALDERSGRUPPE
@@ -276,7 +275,6 @@ def lag_app(
                 "valgt": valgt,
                 "feilmelding": feilmelding,
                 "resultat": resultat,
-                "klare_virus": KLARE_VIRUS,
                 "begreper": BEGREPER,
                 "tynt_datagrunnlag": next(
                     b.html_id for b in BEGREPER if b.nøkkel == TYNT_DATAGRUNNLAG

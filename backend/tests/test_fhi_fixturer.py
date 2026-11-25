@@ -1,5 +1,5 @@
-"""Sjekker de lagrede svarene fra FHI for tabell 724 og 729 (story 1.3, 6.1, AD-4,
-AD-10)."""
+"""Sjekker de lagrede svarene fra FHI for tabell 724, 729 og 731 (story 1.3, 6.1,
+6.2, AD-4, AD-10)."""
 
 import json
 import math
@@ -13,6 +13,8 @@ DATA = FHI / "724-influensa-2025-2026-alle-nonstl.json"
 DIMENSJONER = FHI / "724-dimensjoner.json"
 RSV_DATA = FHI / "729-rsv-2025-2026-alle-nonstl.json"
 RSV_DIMENSJONER = FHI / "729-dimensjoner.json"
+SARS_DATA = FHI / "731-sars-cov-2-2025-2026-alle-nonstl.json"
+SARS_DIMENSJONER = FHI / "731-dimensjoner.json"
 
 
 def _les(fil: Path) -> dict:
@@ -32,7 +34,9 @@ def _uker_i_dimensjonslisten() -> list[str]:
 
 
 @pytest.mark.parametrize(
-    "fil", [DATA, DIMENSJONER, RSV_DATA, RSV_DIMENSJONER], ids=lambda f: f.name
+    "fil",
+    [DATA, DIMENSJONER, RSV_DATA, RSV_DIMENSJONER, SARS_DATA, SARS_DIMENSJONER],
+    ids=lambda f: f.name,
 )
 def test_fixturen_har_cacheformatet(fil: Path) -> None:
     innhold = _les(fil)
@@ -90,6 +94,23 @@ def test_rsv_dataene_er_utvalget_fra_storyen() -> None:
     assert _koder(svar, "aldersgruppe") == ["Alle"]
     assert _koder(svar, "surveillancetype") == ["NONSTL"]
     assert _koder(svar, "rsvtype") == ["A+B"]
+    assert _koder(svar, "MEASURE_TYPE") == ["Detections", "Tests", "pos_rate"]
+    assert svar["size"] == [len(_koder(svar, d)) for d in svar["id"]]
+    assert len(svar["value"]) == math.prod(svar["size"])
+
+
+def test_sars_cov_2_dataene_er_utvalget_fra_storyen() -> None:
+    svar = _les(SARS_DATA)["svar"]
+    assert svar["class"] == "dataset" and svar["version"] == "2.0"
+    # Ingen typedimensjon, og aldersgruppen står foran ukene (README-en).
+    assert svar["id"] == [
+        "aldersgruppe",
+        "dateusedforstatistics",
+        "surveillancetype",
+        "MEASURE_TYPE",
+    ]
+    assert _koder(svar, "aldersgruppe") == ["Alle"]
+    assert _koder(svar, "surveillancetype") == ["NONSTL"]
     assert _koder(svar, "MEASURE_TYPE") == ["Detections", "Tests", "pos_rate"]
     assert svar["size"] == [len(_koder(svar, d)) for d in svar["id"]]
     assert len(svar["value"]) == math.prod(svar["size"])

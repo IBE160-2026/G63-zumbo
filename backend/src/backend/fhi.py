@@ -32,11 +32,13 @@ ALDERSDIMENSJON = "aldersgruppe"
 FASTE_FILTRE: Mapping[int, Mapping[str, str]] = {
     724: {"influenzatypeandsubtype": "A+B", "surveillancetype": "NONSTL"},
     729: {"rsvtype": "A+B", "surveillancetype": "NONSTL"},
+    731: {"surveillancetype": "NONSTL"},
 }
 """Faste valg per tabell: totalen for virustypen og vanlig klinisk praksis.
 
 For 729 (RSV) er `rsvtype` `A+B` totalen, også prøver med ukjent type. FHIs
-etikett for den vises aldri (PRD-ens addendum, «Sjekk av RSV-totalen»).
+etikett for den vises aldri (PRD-ens addendum, «Sjekk av RSV-totalen»). 731
+(SARS-CoV-2) har ingen typedimensjon, så der er bare overvåkingstypen fast.
 """
 
 SKJULTE_VERDIER = frozenset({"..", ".", ":", ""})
@@ -136,18 +138,23 @@ def _sjekk_filtre(svar: Mapping[str, Any], utvalg: Utvalg, ider: list[str]) -> N
         **FASTE_FILTRE.get(utvalg.tabell, {}),
     }
     if utvalg.tabell not in FASTE_FILTRE:
-        raise ValueError(f"tabell {utvalg.tabell} kan ikke tolkes ennå")
-    for dimensjon in ider:
-        if dimensjon in (UKEDIMENSJON, MÅLTALL):
-            continue
-        koder = _kategorier(svar, dimensjon)
-        if len(koder) != 1:
-            raise ValueError(f"{dimensjon} har {len(koder)} kategorier, ikke 1")
-        if dimensjon in forventet and koder[0] != forventet[dimensjon]:
-            raise ValueError(f"{dimensjon} er {koder[0]!r}, ikke det som ble valgt")
+        raise ValueError(f"tabell {utvalg.tabell} har ingen faste filtre")
     mangler = set(forventet) - set(ider)
     if mangler:
         raise ValueError(f"svaret mangler {sorted(mangler)}")
+    for dimensjon in ider:
+        if dimensjon in (UKEDIMENSJON, MÅLTALL):
+            continue
+        if dimensjon not in forventet:
+            # Gjelder alle tabellene: et svar med en dimensjon utvalget ikke har,
+            # gjelder ikke akkurat utvalget (FR-6). For eksempel en typedimensjon
+            # i et svar fra 724 eller 729 som tolkes som SARS-CoV-2.
+            raise ValueError(f"svaret har {dimensjon!r}, som utvalget ikke har")
+        koder = _kategorier(svar, dimensjon)
+        if len(koder) != 1:
+            raise ValueError(f"{dimensjon} har {len(koder)} kategorier, ikke 1")
+        if koder[0] != forventet[dimensjon]:
+            raise ValueError(f"{dimensjon} er {koder[0]!r}, ikke det som ble valgt")
 
 
 def tolk(
@@ -262,10 +269,10 @@ def forespørsel(utvalg: Utvalg, siste_publiserte_uke: IsoUke) -> dict[str, Any]
     """Kroppen i `POST …/Table/<tabell>/data` for utvalget (FR-2, FR-6).
 
     Ukene er sesongens uker frem til siste publiserte uke. Gir `ValueError` for
-    en tabell som ikke kan hentes ennå, eller en sesong uten publiserte uker.
+    en tabell uten faste filtre, eller en sesong uten publiserte uker.
     """
     if utvalg.tabell not in FASTE_FILTRE:
-        raise ValueError(f"tabell {utvalg.tabell} kan ikke hentes ennå")
+        raise ValueError(f"tabell {utvalg.tabell} har ingen faste filtre")
     uker = sesong.uker(utvalg.sesong, siste_publiserte_uke)
     if not uker:
         raise ValueError(f"sesongen {utvalg.sesong} har ingen publiserte uker")

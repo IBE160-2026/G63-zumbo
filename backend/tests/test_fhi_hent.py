@@ -42,6 +42,14 @@ RSV_DIMENSJON_URL = (
     "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/dimension"
 )
 
+SARS_DATA = _svar("fhi/731-sars-cov-2-2025-2026-alle-nonstl.json")
+SARS_DIMENSJONER = _svar("fhi/731-dimensjoner.json")
+SARS_UTVALG = Utvalg(1, "sars-cov-2", "2025/2026", "alle")
+SARS_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/data"
+SARS_DIMENSJON_URL = (
+    "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/dimension"
+)
+
 
 # --- Vellykket svar ---
 
@@ -99,8 +107,8 @@ def test_ukekoden_har_to_sifre_og_liten_w() -> None:
 @pytest.mark.parametrize(
     ("utvalg", "siste"),
     [
-        (Utvalg(1, "sars-cov-2", "2025/2026", "alle"), SISTE),
         (Utvalg(1, "influensa", "2027/2028", "alle"), SISTE),
+        (Utvalg(1, "sars-cov-2", "2027/2028", "alle"), SISTE),
     ],
 )
 def test_forespørsel_som_ikke_kan_lages_gir_valueerror(
@@ -108,6 +116,15 @@ def test_forespørsel_som_ikke_kan_lages_gir_valueerror(
 ) -> None:
     with pytest.raises(ValueError):
         fhi.forespørsel(utvalg, siste)
+
+
+def test_forespørsel_for_tabell_uten_faste_filtre_gir_valueerror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Sikkerhetsnett: alle tabellene i `VIRUS` har faste filtre i dag.
+    monkeypatch.delitem(fhi.FASTE_FILTRE, 731)
+    with pytest.raises(ValueError, match="ingen faste filtre"):
+        fhi.forespørsel(Utvalg(1, "sars-cov-2", "2025/2026", "alle"), SISTE)
 
 
 @respx.mock
@@ -342,6 +359,54 @@ def test_dimensjonslisten_for_729() -> None:
     rute = respx.get(RSV_DIMENSJON_URL).respond(json=RSV_DIMENSJONER)
     svar = fhi.hent_dimensjoner(729)
     assert svar == RSV_DIMENSJONER
+    assert rute.call_count == 1
+    assert fhi.siste_publiserte_uke(svar) == SISTE
+    assert fhi.sesonger(svar) == ("2024/2025", "2025/2026", "2026/2027")
+
+
+# --- SARS-CoV-2, tabell 731 (story 6.2, FR-2, FR-6) ---
+
+
+@respx.mock
+def test_sars_cov_2_hentes_fra_tabell_731_uten_typedimensjon() -> None:
+    rute = respx.post(SARS_DATA_URL).respond(json=SARS_DATA)
+    assert fhi.hent(SARS_UTVALG, SISTE) == SARS_DATA
+    kropp = json.loads(rute.calls.last.request.content)
+    filtre = {d["code"]: d["values"] for d in kropp["dimensions"]}
+    assert all(d["filter"] == "item" for d in kropp["dimensions"])
+    assert kropp["response"] == {"format": "json-stat2"}
+    # Ingen typedimensjon: verken `influenzatypeandsubtype`, `rsvtype` eller annet.
+    assert list(filtre) == [
+        "dateusedforstatistics",
+        "aldersgruppe",
+        "surveillancetype",
+        "MEASURE_TYPE",
+    ]
+    assert filtre["aldersgruppe"] == ["Alle"]
+    assert filtre["surveillancetype"] == ["NONSTL"]
+    assert filtre["MEASURE_TYPE"] == ["Detections", "Tests", "pos_rate"]
+    assert filtre["dateusedforstatistics"] == list(
+        SARS_DATA["dimension"]["dateusedforstatistics"]["category"]["index"]
+    )
+
+
+@respx.mock
+@pytest.mark.parametrize("feil_svar", [DATA, RSV_DATA], ids=["724", "729"])
+def test_sars_cov_2_svar_med_typedimensjon_gir_fhiutilgjengelig(
+    feil_svar: dict[str, Any],
+) -> None:
+    # Et svar fra 724 eller 729 har en typedimensjon som 731 ikke har.
+    respx.post(SARS_DATA_URL).respond(json=feil_svar)
+    with pytest.raises(fhi.FhiUtilgjengelig) as feil:
+        fhi.hent(SARS_UTVALG, SISTE)
+    assert isinstance(feil.value.__cause__, ValueError)
+
+
+@respx.mock
+def test_dimensjonslisten_for_731() -> None:
+    rute = respx.get(SARS_DIMENSJON_URL).respond(json=SARS_DIMENSJONER)
+    svar = fhi.hent_dimensjoner(731)
+    assert svar == SARS_DIMENSJONER
     assert rute.call_count == 1
     assert fhi.siste_publiserte_uke(svar) == SISTE
     assert fhi.sesonger(svar) == ("2024/2025", "2025/2026", "2026/2027")

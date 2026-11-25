@@ -310,9 +310,16 @@ def test_gyldig_utvalg_uten_tall_har_knappen_og_teksten_om_torsdag(
     assert "Hent nyeste tall nå" in html
 
 
-def test_virus_som_ikke_er_klart_har_ikke_knappen(klient: TestClient) -> None:
+def test_sars_cov_2_uten_tall_har_knappen(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    # Alle tre virusene kan hentes, så knappen vises også for SARS-CoV-2.
+    fhi_mock.route(host="statistikk-data.fhi.no").mock(
+        side_effect=httpx.ConnectError("nede")
+    )
     html = klient.get("/?mal=1&virus=sars-cov-2&sesong=2025%2F2026&alder=alle").text
-    assert "Hent nyeste tall nå" not in html
+    assert "det finnes ingen lagrede tall" in html
+    assert "Hent nyeste tall nå" in html
 
 
 @pytest.mark.parametrize(

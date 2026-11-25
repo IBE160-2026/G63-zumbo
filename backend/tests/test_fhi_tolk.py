@@ -458,3 +458,76 @@ def test_rsv_svar_med_annen_rsvtype_gir_valueerror() -> None:
     svar["dimension"]["rsvtype"]["category"]["label"] = {"A": "RS-virus A"}
     with pytest.raises(ValueError, match="rsvtype"):
         fhi.tolk(svar, RSV_UTVALG)
+
+
+# --- Fixturen for tabell 731, SARS-CoV-2 (story 6.2) ---
+
+SARS_DATA = _svar("fhi/731-sars-cov-2-2025-2026-alle-nonstl.json")
+SARS_DIMENSJONER = _svar("fhi/731-dimensjoner.json")
+SARS_UTVALG = Utvalg(1, "sars-cov-2", "2025/2026", "alle")
+
+
+def test_sars_cov_2_fixturen_gir_én_uke_per_uke_i_sesongen() -> None:
+    serie = fhi.tolk(SARS_DATA, SARS_UTVALG, fhi.siste_publiserte_uke(SARS_DIMENSJONER))
+    assert serie.utvalg == SARS_UTVALG
+    assert [(u.år, u.ukenummer) for u in serie.uker] == list(sesong.uker("2025/2026"))
+    assert not any(u.manglende or u.usikker for u in serie.uker)
+
+
+@pytest.mark.parametrize(
+    ("uke", "tester", "positive", "andel"),
+    [
+        ((2025, 40), 7109, 471, 6.625404),
+        ((2025, 52), 5691, 210, 3.690037),
+        ((2026, 20), 4543, 14, 0.3081664),
+    ],
+)
+def test_sars_cov_2_tre_uker_stemmer_med_fixturen(
+    uke: tuple[int, int], tester: int, positive: int, andel: float
+) -> None:
+    # I 731-svaret står `aldersgruppe` foran ukene i `id`.
+    assert SARS_DATA["id"][0] == "aldersgruppe"
+    serie = fhi.tolk(SARS_DATA, SARS_UTVALG)
+    (funnet,) = [u for u in serie.uker if (u.år, u.ukenummer) == uke]
+    assert (funnet.tester, funnet.positive) == (tester, positive)
+    assert funnet.andel == pytest.approx(andel, abs=1e-4)
+
+
+def test_sars_cov_2_dimensjonslisten_har_samme_uker_som_724() -> None:
+    assert fhi.siste_publiserte_uke(SARS_DIMENSJONER) == fhi.siste_publiserte_uke(
+        DIMENSJONER
+    )
+    assert fhi.sesonger(SARS_DIMENSJONER) == fhi.sesonger(DIMENSJONER)
+
+
+@pytest.mark.parametrize(
+    ("svar", "typedimensjon"),
+    [(DATA, "influenzatypeandsubtype"), (RSV_DATA, "rsvtype")],
+    ids=["724", "729"],
+)
+def test_svar_med_typedimensjon_tolket_som_sars_cov_2_gir_valueerror(
+    svar: dict[str, Any], typedimensjon: str
+) -> None:
+    with pytest.raises(ValueError, match=typedimensjon):
+        fhi.tolk(svar, SARS_UTVALG)
+
+
+@pytest.mark.parametrize("utvalg", [UTVALG, RSV_UTVALG], ids=["influensa", "rsv"])
+def test_svar_fra_731_tolket_som_annet_virus_gir_valueerror(utvalg: Utvalg) -> None:
+    # 731 har ingen typedimensjon, så svaret mangler den utvalget krever.
+    with pytest.raises(ValueError, match="mangler"):
+        fhi.tolk(SARS_DATA, utvalg)
+
+
+def test_sars_cov_2_svar_med_annen_overvåkingstype_gir_valueerror() -> None:
+    svar = copy.deepcopy(SARS_DATA)
+    svar["dimension"]["surveillancetype"]["category"]["index"] = ["STL"]
+    svar["dimension"]["surveillancetype"]["category"]["label"] = {"STL": "Sentinel"}
+    with pytest.raises(ValueError, match="surveillancetype"):
+        fhi.tolk(svar, SARS_UTVALG)
+
+
+def test_alle_tabellene_i_virus_har_faste_filtre() -> None:
+    from backend.domene import VIRUS
+
+    assert {v.tabell for v in VIRUS.values()} <= set(fhi.FASTE_FILTRE)

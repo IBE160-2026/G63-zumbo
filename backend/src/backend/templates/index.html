@@ -63,7 +63,7 @@
   {% if resultat.sist_lagrede and resultat.kilde %}
   <p>Sist lagrede tall, hentet {{ resultat.kilde.hentet|tidspunkt }}.</p>
   {% endif %}
-  {% if resultat.serie is none and resultat.utvalg.virus in klare_virus %}
+  {% if resultat.serie is none %}
   {#- Uten tall kan brukeren prøve igjen, for eksempel når FHI har publisert
       en ny sesong på torsdag. -#}
   {{ hent_nyeste(resultat.utvalg) }}

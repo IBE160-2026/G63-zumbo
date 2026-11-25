@@ -62,6 +62,13 @@ def _valgt(html: str, felt: str) -> list[str]:
     return re.findall(r'<option value="([^"]*)" selected>', liste[0])
 
 
+def _etiketter(html: str, felt: str) -> list[str]:
+    """Teksten brukeren ser for hvert valg i nedtrekkslisten `felt`."""
+    liste = re.search(rf'<select id="{felt}".*?</select>', html, re.DOTALL)
+    assert liste, f"fant ikke feltet {felt}"
+    return re.findall(r"<option [^>]*>([^<]*)</option>", liste[0])
+
+
 def _verdier(html: str, felt: str) -> list[str]:
     liste = re.search(rf'<select id="{felt}".*?</select>', html, re.DOTALL)
     assert liste, f"fant ikke feltet {felt}"
@@ -90,12 +97,21 @@ def test_mal_1_vises_som_spørsmål(klient: TestClient) -> None:
     assert MALER[1].tittel not in html
 
 
-def test_influensa_og_rsv_kan_velges(klient: TestClient) -> None:
+def test_influensa_rsv_og_sars_cov_2_kan_velges(klient: TestClient) -> None:
     html = klient.get("/").text
-    assert _verdier(html, "virus") == ["influensa", "rsv"]
-    assert ">Influensa<" in html
-    assert ">RSV<" in html
-    assert "SARS-CoV-2" not in html
+    assert _verdier(html, "virus") == ["influensa", "rsv", "sars-cov-2"]
+    assert _etiketter(html, "virus") == ["Influensa", "RSV", "SARS-CoV-2"]
+
+
+def test_ugyldig_virus_nevner_nøyaktig_valgene_i_skjemaet(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    html = klient.get("/?mal=1&virus=ebola&sesong=2025/2026").text
+    navn = _etiketter(html, "virus")
+    forventet = ", ".join(navn[:-1]) + " eller " + navn[-1]
+    assert f"Velg et virus: {forventet}." in html
+    assert "Velg et virus: Influensa, RSV eller SARS-CoV-2." in html
+    assert not fhi_mock.routes["data"].called
 
 
 def test_sesongene_med_siste_som_standard(klient: TestClient) -> None:
@@ -200,7 +216,7 @@ def test_valgene_er_forhåndsvalgt_etter_innsending(klient: TestClient) -> None:
     "sti",
     [
         "/?mal=9&virus=ebola&sesong=1999/2000&alder=99",
-        "/?mal=1&virus=sars-cov-2&sesong=2025/2026",
+        "/?mal=1&virus=ebola&sesong=2025/2026",
     ],
 )
 def test_ukjente_valg_viser_standardvalget(klient: TestClient, sti: str) -> None:
@@ -237,17 +253,6 @@ def test_fhi_nede_gir_melding_og_ett_kall_per_side(
     assert not fhi_mock.routes["data"].called
 
 
-def test_sars_cov_2_gir_melding_fra_tjeneste_uten_henting(
-    klient: TestClient, fhi_mock: respx.MockRouter
-) -> None:
-    html = klient.get("/?mal=1&virus=sars-cov-2&sesong=2025/2026").text
-    assert (
-        "Tall for SARS-CoV-2 kan ikke vises i appen ennå. Velg influensa eller RSV."
-        in html
-    )
-    assert not fhi_mock.routes["data"].called
-
-
 # --- RSV, tabell 729 (story 6.1) ---
 
 RSV_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/data"
@@ -278,6 +283,40 @@ def test_rsv_viser_tall_og_kilde_for_729(
     ) in html
     assert "RS-virus (A+B)" not in html
     for kode in (*FHI_KODER, "rsvtype"):
+        assert kode not in html
+
+
+# --- SARS-CoV-2, tabell 731 (story 6.2) ---
+
+SARS_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/data"
+SARS_DIMENSJON_URL = (
+    "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/dimension"
+)
+
+
+def test_sars_cov_2_viser_tall_og_kilde_for_731(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    fhi_mock.get(SARS_DIMENSJON_URL, name="sars-dimensjoner").respond(
+        json=_svar("fhi/731-dimensjoner.json")
+    )
+    fhi_mock.post(SARS_DATA_URL, name="sars-data").respond(
+        json=_svar("fhi/731-sars-cov-2-2025-2026-alle-nonstl.json")
+    )
+    svar = klient.get("/?mal=1&virus=sars-cov-2&sesong=2025/2026")
+    html = svar.text
+    assert svar.status_code == 200
+    assert fhi_mock.routes["sars-data"].call_count == 1
+    assert not fhi_mock.routes["data"].called
+    assert _valgt(html, "virus") == ["sars-cov-2"]
+    assert "<table" in html
+    assert "kan ikke vises i appen ennå" not in html
+    assert (
+        "Kilde: MSIS-labdatabase og Referanselaboratoriet for koronavirus med "
+        "utbruddspotensiale, Folkehelseinstituttet (FHI). Tabell 731 "
+        "«RESPIaggr SARS-CoV-2 antall og andel»."
+    ) in html
+    for kode in (*FHI_KODER, "surveillancetype", "MEASURE_TYPE", "Detections"):
         assert kode not in html
 
 

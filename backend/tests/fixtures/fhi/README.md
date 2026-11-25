@@ -15,6 +15,8 @@ Hver fil har samme format som cachen (AD-4):
 | `724-influensa-2025-2026-alle-nonstl.json` | `POST https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data`, se kroppen under | 23.11.2026 |
 | `729-dimensjoner.json` | `GET https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/dimension` | 25.11.2026 |
 | `729-rsv-2025-2026-alle-nonstl.json` | `POST https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/data`, se kroppen under | 25.11.2026 |
+| `731-dimensjoner.json` | `GET https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/dimension` | 25.11.2026 |
+| `731-sars-cov-2-2025-2026-alle-nonstl.json` | `POST https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/data`, se kroppen under | 25.11.2026 |
 
 Kroppen i `POST`-forespørselen, sendt med `Content-Type: application/json`.
 Alle dimensjoner må være med. `…` står for resten av ukene: i den ekte
@@ -47,6 +49,12 @@ den «RS-virus (A+B)». Den etiketten vises ikke i appen. I svaret fra 729 komme
 `surveillancetype` før `rsvtype` i `id`. Tolkingen bruker `id` og `size`, så
 rekkefølgen spiller ingen rolle. `GET …/Table/729/flag` gir også bare flagg `0`
 (sjekket 25.11.2026).
+
+For tabell 731 (SARS-CoV-2) er kroppen den samme, men uten typedimensjon:
+`influenzatypeandsubtype` er tatt ut, og ingen annen dimensjon er lagt til.
+Tabellen har ingen inndeling i virustyper. I svaret fra 731 står
+`aldersgruppe` først i `id`, foran ukene. `GET …/Table/731/flag` gir også bare
+flagg `0` (sjekket 25.11.2026).
 
 ## Valg: JSON (`json-stat2`), ikke CSV
 

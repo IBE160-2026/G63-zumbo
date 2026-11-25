@@ -370,7 +370,12 @@ def test_uten_tall_gir_fragmentet_feilteksten(
 
 @pytest.mark.parametrize(
     "parametre",
-    ["", "mal=1&virus=influensa&sesong=1999%2F2000&alder=alle", "mal=9", "virus=rsv"],
+    [
+        "",
+        "mal=1&virus=influensa&sesong=1999%2F2000&alder=alle",
+        "mal=9",
+        "virus=sars-cov-2",
+    ],
 )
 def test_ugyldig_utvalg_gir_400(
     klient: TestClient, claude: FalskClaude, parametre: str

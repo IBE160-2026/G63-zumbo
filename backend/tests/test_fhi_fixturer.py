@@ -1,4 +1,5 @@
-"""Sjekker de lagrede svarene fra FHI for tabell 724 (story 1.3, AD-4, AD-10)."""
+"""Sjekker de lagrede svarene fra FHI for tabell 724 og 729 (story 1.3, 6.1, AD-4,
+AD-10)."""
 
 import json
 import math
@@ -10,6 +11,8 @@ import pytest
 FHI = Path(__file__).parent / "fixtures" / "fhi"
 DATA = FHI / "724-influensa-2025-2026-alle-nonstl.json"
 DIMENSJONER = FHI / "724-dimensjoner.json"
+RSV_DATA = FHI / "729-rsv-2025-2026-alle-nonstl.json"
+RSV_DIMENSJONER = FHI / "729-dimensjoner.json"
 
 
 def _les(fil: Path) -> dict:
@@ -28,7 +31,9 @@ def _uker_i_dimensjonslisten() -> list[str]:
     return [k["value"] for k in ukedimensjon["categories"]]
 
 
-@pytest.mark.parametrize("fil", [DATA, DIMENSJONER], ids=lambda f: f.name)
+@pytest.mark.parametrize(
+    "fil", [DATA, DIMENSJONER, RSV_DATA, RSV_DIMENSJONER], ids=lambda f: f.name
+)
 def test_fixturen_har_cacheformatet(fil: Path) -> None:
     innhold = _les(fil)
     assert set(innhold) == {"hentet", "svar"}
@@ -77,3 +82,14 @@ def test_verdiene_følger_id_og_size() -> None:
     assert len(svar["value"]) == math.prod(svar["size"])
     # Ingen skjulte verdier i dette svaret (se README).
     assert all(isinstance(v, int | float) for v in svar["value"])
+
+
+def test_rsv_dataene_er_utvalget_fra_storyen() -> None:
+    svar = _les(RSV_DATA)["svar"]
+    assert svar["class"] == "dataset" and svar["version"] == "2.0"
+    assert _koder(svar, "aldersgruppe") == ["Alle"]
+    assert _koder(svar, "surveillancetype") == ["NONSTL"]
+    assert _koder(svar, "rsvtype") == ["A+B"]
+    assert _koder(svar, "MEASURE_TYPE") == ["Detections", "Tests", "pos_rate"]
+    assert svar["size"] == [len(_koder(svar, d)) for d in svar["id"]]
+    assert len(svar["value"]) == math.prod(svar["size"])

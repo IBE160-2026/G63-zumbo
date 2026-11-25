@@ -90,13 +90,11 @@ def test_mal_1_vises_som_spørsmål(klient: TestClient) -> None:
     assert MALER[1].tittel not in html
 
 
-def test_bare_influensa_kan_velges(klient: TestClient) -> None:
+def test_influensa_og_rsv_kan_velges(klient: TestClient) -> None:
     html = klient.get("/").text
-    assert _verdier(html, "virus") == ["influensa"]
+    assert _verdier(html, "virus") == ["influensa", "rsv"]
     assert ">Influensa<" in html
-    # Begrepsforklaringen av «Sesong» nevner RSV, så bare skjemaet sjekkes.
-    skjema = html[html.index("<form") : html.index("</form>")]
-    assert "RSV" not in skjema
+    assert ">RSV<" in html
     assert "SARS-CoV-2" not in html
 
 
@@ -202,7 +200,7 @@ def test_valgene_er_forhåndsvalgt_etter_innsending(klient: TestClient) -> None:
     "sti",
     [
         "/?mal=9&virus=ebola&sesong=1999/2000&alder=99",
-        "/?mal=1&virus=rsv&sesong=2025/2026",
+        "/?mal=1&virus=sars-cov-2&sesong=2025/2026",
     ],
 )
 def test_ukjente_valg_viser_standardvalget(klient: TestClient, sti: str) -> None:
@@ -239,12 +237,48 @@ def test_fhi_nede_gir_melding_og_ett_kall_per_side(
     assert not fhi_mock.routes["data"].called
 
 
-def test_rsv_gir_melding_fra_tjeneste_uten_henting(
+def test_sars_cov_2_gir_melding_fra_tjeneste_uten_henting(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
-    html = klient.get("/?mal=1&virus=rsv&sesong=2025/2026").text
-    assert "Tall for RSV kan ikke vises i appen ennå. Velg influensa." in html
+    html = klient.get("/?mal=1&virus=sars-cov-2&sesong=2025/2026").text
+    assert (
+        "Tall for SARS-CoV-2 kan ikke vises i appen ennå. Velg influensa eller RSV."
+        in html
+    )
     assert not fhi_mock.routes["data"].called
+
+
+# --- RSV, tabell 729 (story 6.1) ---
+
+RSV_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/data"
+RSV_DIMENSJON_URL = (
+    "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/dimension"
+)
+
+
+def test_rsv_viser_tall_og_kilde_for_729(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    fhi_mock.get(RSV_DIMENSJON_URL, name="rsv-dimensjoner").respond(
+        json=_svar("fhi/729-dimensjoner.json")
+    )
+    fhi_mock.post(RSV_DATA_URL, name="rsv-data").respond(
+        json=_svar("fhi/729-rsv-2025-2026-alle-nonstl.json")
+    )
+    svar = klient.get("/?mal=1&virus=rsv&sesong=2025/2026")
+    html = svar.text
+    assert svar.status_code == 200
+    assert fhi_mock.routes["rsv-data"].call_count == 1
+    assert not fhi_mock.routes["data"].called
+    assert _valgt(html, "virus") == ["rsv"]
+    assert "<table" in html
+    assert (
+        "Kilde: MSIS-labdatabase og Referanselaboratoriet for RS-virus, "
+        "Folkehelseinstituttet (FHI). Tabell 729 «RESPIaggr RSV antall og andel»."
+    ) in html
+    assert "RS-virus (A+B)" not in html
+    for kode in (*FHI_KODER, "rsvtype"):
+        assert kode not in html
 
 
 # --- Innstillinger (AD-6) ---

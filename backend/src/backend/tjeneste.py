@@ -34,7 +34,9 @@ from backend.domene import (
 logger = logging.getLogger(__name__)
 
 SESONGTABELL = 724
-"""Tabellen sesonglisten lages fra. Alle tre virus har samme sesonger (AD-3)."""
+"""Tabellen sesonglisten lages fra. Alle tre virus har samme uker (sjekket
+25.11.2026), så én sesongliste holder. Siste publiserte uke for et utvalg kommer
+likevel fra dimensjonslisten for utvalgets egen tabell (AD-3)."""
 
 PAUSE_ETTER_FEIL = timedelta(seconds=60)
 """Så lenge dimensjonslisten ikke hentes på nytt etter at FHI ikke svarte.
@@ -50,9 +52,28 @@ KiFeil = ki.KiFeil
 (arkitektur §2)."""
 
 KLARE_VIRUS = tuple(n for n, v in VIRUS.items() if v.tabell in fhi.FASTE_FILTRE)
-"""Nøklene til virusene appen kan vise tall for. Bare influensa til epic 6 (FR-2)."""
+"""Nøklene til virusene appen kan vise tall for (FR-2)."""
 
-IKKE_KLART = "Tall for {virus} kan ikke vises i appen ennå. Velg influensa."
+
+def _i_setning(navn: str) -> str:
+    """«Influensa» → «influensa» midt i en setning. Forkortelser som «RSV» og
+    «SARS-CoV-2» beholdes."""
+    return navn[0].lower() + navn[1:] if navn[1:2].islower() else navn
+
+
+def _klare_virus_som_tekst() -> str:
+    """«influensa», «influensa eller RSV», «a, b eller c»."""
+    navn = [_i_setning(VIRUS[n].navn) for n in KLARE_VIRUS]
+    if len(navn) == 1:
+        return navn[0]
+    return ", ".join(navn[:-1]) + " eller " + navn[-1]
+
+
+IKKE_KLART = (
+    "Tall for {virus} kan ikke vises i appen ennå. Velg "
+    + _klare_virus_som_tekst()
+    + "."
+)
 FHI_NEDE_LAGRET = (
     "Tallene kunne ikke hentes fra FHI akkurat nå. Du ser de sist lagrede tallene."
 )
@@ -142,10 +163,12 @@ class Tjeneste:
 
     # --- Dimensjonslisten og sesonger ---
 
-    def _lagret_dimensjonsliste(self) -> mellomlager.Lagret | None:
-        """Den lagrede dimensjonslisten, eller `None` når den mangler eller ikke
-        kan brukes."""
-        lagret = mellomlager.les_dimensjoner(self._mappe, SESONGTABELL)
+    def _lagret_dimensjonsliste(
+        self, tabell: int = SESONGTABELL
+    ) -> mellomlager.Lagret | None:
+        """Den lagrede dimensjonslisten for tabellen, eller `None` når den mangler
+        eller ikke kan brukes."""
+        lagret = mellomlager.les_dimensjoner(self._mappe, tabell)
         if lagret is None:
             return None
         try:
@@ -156,8 +179,11 @@ class Tjeneste:
             return None
         return lagret
 
-    def _dimensjonsliste(self, nå: datetime, tving: bool = False) -> dict[str, Any]:
-        """Fersk lagret dimensjonsliste, ellers en ny fra FHI som lagres.
+    def _dimensjonsliste(
+        self, nå: datetime, tving: bool = False, tabell: int = SESONGTABELL
+    ) -> dict[str, Any]:
+        """Fersk lagret dimensjonsliste for tabellen, ellers en ny fra FHI som
+        lagres som `fhi/<tabell>-dimensjoner.json`.
 
         Gir `FhiUtilgjengelig` når den må hentes og FHI ikke svarer, og uten
         nytt kall i `PAUSE_ETTER_FEIL` etter at FHI ikke svarte. Cachen
@@ -171,20 +197,20 @@ class Tjeneste:
 
         def hent() -> dict[str, Any]:
             if not tving:
-                lagret = self._lagret_dimensjonsliste()
+                lagret = self._lagret_dimensjonsliste(tabell)
                 if lagret is not None and not sesong.er_utdatert(lagret.hentet, nå):
                     return lagret.svar
                 self._stopp_hvis_nylig_feil(nå)
             try:
-                svar = fhi.hent_dimensjoner(SESONGTABELL, klient=self._klient)
+                svar = fhi.hent_dimensjoner(tabell, klient=self._klient)
             except fhi.FhiUtilgjengelig:
                 self._feilet = nå
                 raise
             self._feilet = None
-            self._lagre(mellomlager.lagre_dimensjoner, SESONGTABELL, svar, nå)
+            self._lagre(mellomlager.lagre_dimensjoner, tabell, svar, nå)
             return svar
 
-        jobb = f"dimensjoner-{SESONGTABELL}" + ("-tving" if tving else "")
+        jobb = f"dimensjoner-{tabell}" + ("-tving" if tving else "")
         return self._én_gang(jobb, hent)
 
     def _stopp_hvis_nylig_feil(self, nå: datetime) -> None:
@@ -226,7 +252,7 @@ class Tjeneste:
         samme utvalg deler ett kall til FHI (AD-9).
         """
         if utvalg.tabell not in fhi.FASTE_FILTRE:
-            # RSV og SARS-CoV-2 kommer i epic 6.
+            # SARS-CoV-2 kommer i story 6.2.
             return Resultat(
                 utvalg, melding=IKKE_KLART.format(virus=VIRUS[utvalg.virus].navn)
             )
@@ -240,7 +266,9 @@ class Tjeneste:
         # Feiler dimensjonslisten, prøver vi ikke datakallet i tillegg. Da venter
         # brukeren høyst én tidsgrense (10 s) før de lagrede tallene vises (FR-8).
         try:
-            siste = fhi.siste_publiserte_uke(self._dimensjonsliste(nå, tving))
+            # Siste publiserte uke fra utvalgets egen tabell (AD-3).
+            dimensjoner = self._dimensjonsliste(nå, tving, utvalg.tabell)
+            siste = fhi.siste_publiserte_uke(dimensjoner)
             if not sesong.uker(utvalg.sesong, siste):
                 return Resultat(
                     utvalg, melding=IKKE_PUBLISERT.format(sesong=utvalg.sesong)

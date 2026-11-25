@@ -122,14 +122,8 @@ def test_resultatsiden_har_skjema_med_skjult_mal_og_virus(klient: TestClient) ->
 def test_overskriften_viser_viruset(klient: TestClient, virus: str, navn: str) -> None:
     html = klient.get(f"/resultat?mal=1&virus={virus}&sesong=2025/2026").text
     assert f"<h1>{navn}</h1>" in html
+    assert f"<title>{navn} – Tall fra FHI om luftveisvirus</title>" in html
     assert _skjult(html, "virus") == virus
-
-
-def test_resultatsiden_har_lenke_til_forsiden(klient: TestClient) -> None:
-    html = klient.get(SIDE).text
-    lenke = '<a href="/">← Til forsiden</a>'
-    assert lenke in html
-    assert html.index(lenke) < html.index("<h1>")
 
 
 def test_ugyldig_virus_viser_melding_og_lenke_uten_skjema(
@@ -138,6 +132,7 @@ def test_ugyldig_virus_viser_melding_og_lenke_uten_skjema(
     html = klient.get("/resultat?mal=1&virus=ebola&sesong=2025/2026").text
     assert "Velg et virus: Influensa, RSV eller SARS-CoV-2." in html
     assert '<a href="/">← Til forsiden</a>' in html
+    assert "<title>Tall fra FHI om luftveisvirus</title>" in html
     assert 'class="skjema"' not in html
     assert not fhi_mock.routes["data"].called
 

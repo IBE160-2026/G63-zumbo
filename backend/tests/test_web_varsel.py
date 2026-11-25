@@ -209,7 +209,12 @@ def test_ingen_varsel_uten_regelutslag(klient: TestClient, mappe: Path) -> None:
 
 
 def test_ingen_varsel_uten_utvalg(klient: TestClient) -> None:
-    assert _varsel(klient.get("/").text) is None
+    assert (
+        _varsel(
+            klient.get("/resultat?mal=1&virus=ebola&sesong=2025/2026&alder=alle").text
+        )
+        is None
+    )
 
 
 def test_ingen_varsel_ved_ugyldig_utvalg(klient: TestClient) -> None:

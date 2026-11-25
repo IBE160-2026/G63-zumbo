@@ -195,7 +195,11 @@ def test_siden_kaller_ikke_ki(
 
 
 @pytest.mark.parametrize(
-    "sti", ["/", "/resultat?mal=1&virus=influensa&sesong=1999/2000"]
+    "sti",
+    [
+        "/resultat?mal=1&virus=ebola&sesong=2025/2026&alder=alle",
+        "/resultat?mal=1&virus=influensa&sesong=1999/2000",
+    ],
 )
 def test_uten_tall_vises_ikke_området(klient: TestClient, sti: str) -> None:
     html = klient.get(sti).text

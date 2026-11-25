@@ -160,7 +160,11 @@ def test_knappen_sender_post_med_samme_utvalg(klient: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "sti", ["/", "/resultat?mal=1&virus=influensa&sesong=1999/2000"]
+    "sti",
+    [
+        "/resultat?mal=1&virus=ebola&sesong=2025/2026&alder=alle",
+        "/resultat?mal=1&virus=influensa&sesong=1999/2000",
+    ],
 )
 def test_uten_tall_vises_ikke_knappen(klient: TestClient, sti: str) -> None:
     assert "Hent nyeste tall nå" not in klient.get(sti).text

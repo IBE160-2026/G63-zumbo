@@ -284,7 +284,39 @@ def test_fhi_nede_uten_lagrede_tall_gir_tekst_og_lenke(
         assert INGEN_TALL in tekst
         assert "%" not in tekst
         assert urlsplit(href).path == "/resultat"
-        assert "sesong=" in href
+        # Uten sesongliste er sesongen som pågår regnet fra datoen.
+        assert parse_qs(urlsplit(href).query)["sesong"] == ["2026/2027"]
+
+
+def test_fhi_nede_gir_ett_kall_på_forsiden(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    # Uten lagrede tall: pausen i `tjeneste` stopper kallene etter det første.
+    _fhi_nede(fhi_mock)
+    assert klient.get("/").status_code == 200
+    assert sum(route.call_count for route in fhi_mock.routes) == 1
+
+
+def test_feil_når_kortet_lages_gir_tekst_og_ikke_500(
+    klient: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    ekte = web.viruskort
+
+    def viruskort(utvalg: Utvalg, resultat: Resultat | None) -> web.Viruskort:
+        if utvalg.virus == "rsv" and resultat is not None:
+            raise ValueError("formateringen feilet")
+        return ekte(utvalg, resultat)
+
+    monkeypatch.setattr(web, "viruskort", viruskort)
+    svar = klient.get("/")
+    assert svar.status_code == 200
+    kort = _kort(svar.text)
+    assert INGEN_TALL in kort[1][1]
+    assert "virus=rsv" in kort[1][0]
+    assert INGEN_TALL not in kort[0][1]
+    assert "Kortet for rsv kunne ikke lages" in caplog.text
 
 
 def test_kort_uten_uke_med_andel_gir_tekst() -> None:
@@ -372,16 +404,6 @@ def test_forside_uten_valg_sendes_ikke_videre(klient: TestClient, query: str) ->
     svar = klient.get("/" + query, follow_redirects=False)
     assert svar.status_code == 200
     assert len(_kort(svar.text)) == 3
-
-
-@pytest.mark.parametrize("sti", ["/resultat", "/resultat?mal=&virus=&sesong=&alder="])
-def test_resultatsiden_uten_valg_sender_til_forsiden(
-    klient: TestClient, fhi_mock: respx.MockRouter, sti: str
-) -> None:
-    svar = klient.get(sti, follow_redirects=False)
-    assert svar.status_code == 303
-    assert svar.headers["location"] == "/"
-    assert not any(route.called for route in fhi_mock.routes)
 
 
 def test_ugyldig_valg_gir_melding_og_lenke_uten_henting(

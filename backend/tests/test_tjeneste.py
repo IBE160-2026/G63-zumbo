@@ -49,6 +49,32 @@ def _dimensjoner_til(siste: str) -> dict[str, Any]:
     return kopi
 
 
+def _data_til(svar: dict[str, Any], siste: str) -> dict[str, Any]:
+    """Datasvaret med uker til og med `siste`, slik FHI svarer når de senere
+    ukene i sesongen ikke er publisert ennå. Dimensjonene før uka har én
+    kategori i fixturene, så ukene ligger i én sammenhengende blokk i `value`."""
+    kopi = copy.deepcopy(svar)
+    plass = kopi["id"].index("dateusedforstatistics")
+    kategori = kopi["dimension"]["dateusedforstatistics"]["category"]
+    uker = [u for u in kategori["index"] if u <= siste]
+    kategori["index"] = uker
+    kategori["label"] = {u: u for u in uker}
+    assert all(størrelse == 1 for størrelse in kopi["size"][:plass])
+    steg = 1
+    for størrelse in kopi["size"][plass + 1 :]:
+        steg *= størrelse
+    kopi["size"][plass] = len(uker)
+    kopi["value"] = kopi["value"][: len(uker) * steg]
+    return kopi
+
+
+def _uker_i_forespørselen(rute: respx.Route) -> list[str]:
+    kropp = json.loads(rute.calls.last.request.content)
+    return next(
+        d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
+    )
+
+
 @pytest.fixture
 def mappe(tmp_path: Path) -> Path:
     return tmp_path / "cache"
@@ -100,23 +126,36 @@ def test_utdaterte_tall_hentes_på_nytt_og_lagres(
     assert resultat.sist_lagrede is False and resultat.melding is None
     lagret = mellomlager.les_svar(mappe, UTVALG)
     assert lagret is not None and lagret.svar == DATA and lagret.hentet == NÅ
-    # Dimensjonslisten lagres også, så neste utvalg ikke trenger å hente den.
-    assert mellomlager.les_dimensjoner(mappe, 724) is not None
+    # Tallene trenger ikke dimensjonslisten (AD-3, datasvaret har ukene).
+    assert not fhi_mock.routes["dimensjoner"].called
 
 
 def test_uten_lagrede_tall_hentes_tall_frem_til_siste_publiserte_uke(
     tj: Tjeneste, fhi_mock: respx.MockRouter
 ) -> None:
     resultat = tj.svar(UTVALG, NÅ)
-    kropp = json.loads(fhi_mock.routes["data"].calls.last.request.content)
-    uker = next(
-        d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
-    )
+    uker = _uker_i_forespørselen(fhi_mock.routes["data"])
     assert uker[0] == "2025-w40" and uker[-1] == "2026-w20"
     assert resultat.serie is not None
     assert (
         resultat.serie.uker[-1].år == 2026 and resultat.serie.uker[-1].ukenummer == 20
     )
+
+
+def test_sesongen_som_pågår_slutter_ved_siste_uke_i_datasvaret(
+    tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    # Forespørselen har hele sesongen. FHI sender bare de publiserte ukene, og
+    # serien slutter ved den siste av dem, uten kall til dimensjonslisten.
+    mellomlager.lagre_dimensjoner(mappe, 724, DIMENSJONER, NÅ)
+    fhi_mock.routes["data"].respond(json=_data_til(DATA, "2026-w10"))
+    resultat = tj.svar(UTVALG, NÅ)
+    assert _uker_i_forespørselen(fhi_mock.routes["data"])[-1] == "2026-w20"
+    assert resultat.serie is not None
+    siste = resultat.serie.uker[-1]
+    assert (siste.år, siste.ukenummer) == (2026, 10)
+    assert len(resultat.serie.uker) == 23
+    assert not fhi_mock.routes["dimensjoner"].called
 
 
 def test_svaret_har_serie_regelutslag_og_kilde(
@@ -234,20 +273,18 @@ def rsv_mock(fhi_mock: respx.MockRouter) -> respx.MockRouter:
     return fhi_mock
 
 
-def test_rsv_hentes_fra_729_med_729_sin_dimensjonsliste(
+def test_rsv_hentes_fra_729_med_ett_kall(
     tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
 ) -> None:
     resultat = tj.svar(RSV_UTVALG, NÅ)
-    assert rsv_mock.routes["rsv-dimensjoner"].call_count == 1
     assert rsv_mock.routes["rsv-data"].call_count == 1
+    assert not rsv_mock.routes["rsv-dimensjoner"].called
     assert not rsv_mock.routes["dimensjoner"].called
     assert not rsv_mock.routes["data"].called
     assert resultat.serie is not None and len(resultat.serie.uker) == 33
     assert resultat.serie.uker[0].positive == 13
     assert resultat.melding is None
-    # Begge lagres under 729, ikke 724.
-    assert mellomlager.les_dimensjoner(mappe, 729) is not None
-    assert mellomlager.les_dimensjoner(mappe, 724) is None
+    assert mellomlager.les_dimensjoner(mappe, 729) is None
     lagret = mellomlager.les_svar(mappe, RSV_UTVALG)
     assert lagret is not None and lagret.svar == RSV_DATA
 
@@ -267,31 +304,15 @@ def test_rsv_kilde_er_tabell_729(tj: Tjeneste, rsv_mock: respx.MockRouter) -> No
 def test_siste_publiserte_uke_for_rsv_kommer_fra_729(
     tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
 ) -> None:
-    # 724 har uke 46 lagret, men 729 bare til uke 44. Forespørselen følger 729.
+    # 724 har uke 46 lagret, men 729 har bare publisert til uke 10. Serien
+    # følger 729-svaret (AD-3).
     mellomlager.lagre_dimensjoner(mappe, 724, DIMENSJONER, NÅ)
-    kopi = copy.deepcopy(RSV_DIMENSJONER)
-    for dimensjon in kopi["dimensions"]:
-        if dimensjon["code"] == "dateusedforstatistics":
-            dimensjon["categories"] = [
-                k for k in dimensjon["categories"] if k["value"] <= "2026-w44"
-            ]
-    rsv_mock.routes["rsv-dimensjoner"].respond(json=kopi)
-    # Bare forespørselen sjekkes. Svaret fra mocken er for 2025/2026 og avvises.
-    tj.svar(Utvalg(1, "rsv", "2026/2027", "80+"), NÅ)
-    kropp = json.loads(rsv_mock.routes["rsv-data"].calls.last.request.content)
-    uker = next(
-        d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
-    )
-    assert uker[-1] == "2026-w44"
-
-
-def test_lagret_729_liste_brukes_uten_kall(
-    tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
-) -> None:
-    mellomlager.lagre_dimensjoner(mappe, 729, RSV_DIMENSJONER, NÅ)
-    tj.svar(RSV_UTVALG, NÅ)
+    rsv_mock.routes["rsv-data"].respond(json=_data_til(RSV_DATA, "2026-w10"))
+    resultat = tj.svar(RSV_UTVALG, NÅ)
+    assert resultat.serie is not None
+    siste = resultat.serie.uker[-1]
+    assert (siste.år, siste.ukenummer) == (2026, 10)
     assert not rsv_mock.routes["rsv-dimensjoner"].called
-    assert rsv_mock.routes["rsv-data"].call_count == 1
 
 
 def test_sesonglisten_kommer_fortsatt_fra_724(
@@ -317,25 +338,26 @@ def test_rsv_fhi_nede_venter_ikke_på_729_rett_etter_feil_på_724(
 def test_tvungen_henting_for_rsv_henter_729_selv_om_alt_er_ferskt(
     tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
 ) -> None:
-    # «Hent nyeste tall nå» for RSV (FR-25): begge kallene går til 729.
+    # «Hent nyeste tall nå» for RSV (FR-25): tallene fra 729, og sesonglisten
+    # fra 724, slik at en ny sesong kommer med.
     før = NÅ - timedelta(hours=2)
-    mellomlager.lagre_dimensjoner(mappe, 729, RSV_DIMENSJONER, før)
+    mellomlager.lagre_dimensjoner(mappe, 724, DIMENSJONER, før)
     mellomlager.lagre_svar(mappe, RSV_UTVALG, RSV_DATA, før)
     resultat = tj.svar(RSV_UTVALG, NÅ, tving=True)
-    assert rsv_mock.routes["rsv-dimensjoner"].call_count == 1
     assert rsv_mock.routes["rsv-data"].call_count == 1
-    assert not rsv_mock.routes["dimensjoner"].called
+    assert rsv_mock.routes["dimensjoner"].call_count == 1
+    assert not rsv_mock.routes["rsv-dimensjoner"].called
     assert not rsv_mock.routes["data"].called
     assert resultat.kilde is not None and resultat.kilde.hentet == NÅ
-    lagret = mellomlager.les_dimensjoner(mappe, 729)
+    lagret = mellomlager.les_dimensjoner(mappe, 724)
     assert lagret is not None and lagret.hentet == NÅ
 
 
 def test_rsv_venter_ikke_på_724_listen_som_hentes_samtidig(
     tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
 ) -> None:
-    # Jobbnøkkelen for dimensjonslisten er per tabell (AD-3, AD-9). Mens
-    # sesonglisten (724) hentes, henter et RSV-kall sin egen 729-liste.
+    # Mens sesonglisten (724) hentes, henter et RSV-kall tallene sine uten å
+    # vente (AD-9).
     startet, slipp = threading.Event(), threading.Event()
 
     def treg(_: httpx.Request) -> httpx.Response:
@@ -355,8 +377,8 @@ def test_rsv_venter_ikke_på_724_listen_som_hentes_samtidig(
         tråd.join(5)
     assert not tråd.is_alive()
     assert resultat.serie is not None
-    assert rsv_mock.routes["rsv-dimensjoner"].call_count == 1
-    assert mellomlager.les_dimensjoner(mappe, 729) is not None
+    assert rsv_mock.routes["rsv-data"].call_count == 1
+    assert not rsv_mock.routes["rsv-dimensjoner"].called
     assert sesonger == [("2024/2025", "2025/2026", "2026/2027")]
 
 
@@ -370,16 +392,112 @@ def test_rsv_svar_fra_feil_tabell_gir_fhi_nede(
     assert mellomlager.les_svar(mappe, RSV_UTVALG) is None
 
 
-def test_sesong_uten_publiserte_uker_gir_melding_uten_datakall(
+IKKE_PUBLISERT_400 = {
+    "status": 400,
+    "detail": "No matching categories found for dimension 'dateusedforstatistics'",
+}
+"""Svaret FHI gir når ingen av ukene i forespørselen er publisert (26.11.2026)."""
+
+
+def test_sesong_uten_publiserte_uker_gir_melding_når_fhi_avviser_datakallet(
     tj: Tjeneste, fhi_mock: respx.MockRouter
 ) -> None:
+    fhi_mock.routes["data"].respond(400, json=IKKE_PUBLISERT_400)
     fhi_mock.routes["dimensjoner"].respond(json=_dimensjoner_til("2026-w20"))
     resultat = tj.svar(Utvalg(1, "influensa", "2026/2027"), NÅ)
     assert resultat.serie is None
     assert resultat.melding == (
         "FHI har ikke publisert tall for sesongen 2026/2027 ennå. Prøv igjen senere."
     )
-    assert fhi_mock.routes["data"].call_count == 0
+    assert fhi_mock.routes["data"].call_count == 1
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+    # Ikke en feil hos FHI, så neste kall venter ikke på pausen.
+    tj.svar(UTVALG, NÅ)
+    assert fhi_mock.routes["data"].call_count == 2
+
+
+def test_avvist_datakall_for_rsv_sjekkes_mot_729_listen(
+    tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
+) -> None:
+    # 724 har publisert uker i 2026/2027, men 729 ikke ennå (AD-3).
+    mellomlager.lagre_dimensjoner(mappe, 724, DIMENSJONER, NÅ)
+    kopi = copy.deepcopy(RSV_DIMENSJONER)
+    for dimensjon in kopi["dimensions"]:
+        if dimensjon["code"] == "dateusedforstatistics":
+            dimensjon["categories"] = [
+                k for k in dimensjon["categories"] if k["value"] <= "2026-w20"
+            ]
+    rsv_mock.routes["rsv-dimensjoner"].respond(json=kopi)
+    rsv_mock.routes["rsv-data"].respond(400, json=IKKE_PUBLISERT_400)
+    resultat = tj.svar(Utvalg(1, "rsv", "2026/2027"), NÅ)
+    assert resultat.melding == tjeneste.IKKE_PUBLISERT.format(sesong="2026/2027")
+    assert rsv_mock.routes["rsv-dimensjoner"].call_count == 1
+
+
+def test_fersk_lagret_liste_uten_uker_svarer_uten_kall(
+    tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
+) -> None:
+    # Etter et avvist datakall er 729-listen lagret. Neste visning av samme
+    # sesong gjør ingen kall, slik som før (AD-3).
+    kopi = copy.deepcopy(RSV_DIMENSJONER)
+    for dimensjon in kopi["dimensions"]:
+        if dimensjon["code"] == "dateusedforstatistics":
+            dimensjon["categories"] = [
+                k for k in dimensjon["categories"] if k["value"] <= "2026-w20"
+            ]
+    mellomlager.lagre_dimensjoner(mappe, 729, kopi, NÅ - timedelta(hours=1))
+    resultat = tj.svar(Utvalg(1, "rsv", "2026/2027"), NÅ)
+    assert resultat.melding == tjeneste.IKKE_PUBLISERT.format(sesong="2026/2027")
+    assert not rsv_mock.calls
+
+
+@pytest.mark.parametrize(
+    ("virus", "liste_for_tabellen"), [("influensa", None), ("rsv", "rsv-dimensjoner")]
+)
+def test_tvungen_henting_for_sesong_uten_publiserte_uker_gir_melding(
+    tj: Tjeneste,
+    rsv_mock: respx.MockRouter,
+    virus: str,
+    liste_for_tabellen: str | None,
+) -> None:
+    # «Hent nyeste tall nå» i en sesong som ikke er publisert: 724-listen hentes
+    # én gang, og for RSV hentes 729-listen i tillegg.
+    til_uke_20 = _dimensjoner_til("2026-w20")
+    rsv_mock.routes["dimensjoner"].respond(json=til_uke_20)
+    rsv_mock.routes["rsv-dimensjoner"].respond(json=til_uke_20)
+    for rute in ("data", "rsv-data"):
+        rsv_mock.routes[rute].respond(400, json=IKKE_PUBLISERT_400)
+    resultat = tj.svar(Utvalg(1, virus, "2026/2027"), NÅ, tving=True)
+    assert resultat.melding == tjeneste.IKKE_PUBLISERT.format(sesong="2026/2027")
+    assert rsv_mock.routes["dimensjoner"].call_count == 1
+    if liste_for_tabellen:
+        assert rsv_mock.routes[liste_for_tabellen].call_count == 1
+
+
+def test_avvist_datakall_for_publisert_sesong_gir_fhi_nede(
+    tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    # Har sesongen publiserte uker, er 400 en feil, og FR-8 gjelder. Influensa
+    # er i 724, så det er 724-listen som sjekkes.
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, NÅ - timedelta(days=2))
+    fhi_mock.routes["data"].respond(400, json={"status": 400})
+    resultat = tj.svar(UTVALG, NÅ)
+    assert resultat.sist_lagrede is True
+    assert resultat.melding == tjeneste.FHI_NEDE_LAGRET
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
+    # Pausen etter feil gjelder (FR-8).
+    tj.svar(Utvalg(1, "influensa", "2024/2025"), NÅ + timedelta(seconds=1))
+    assert fhi_mock.routes["data"].call_count == 1
+
+
+def test_avvist_datakall_når_listen_ikke_kan_hentes_gir_fhi_nede(
+    tj: Tjeneste, fhi_mock: respx.MockRouter
+) -> None:
+    fhi_mock.routes["data"].respond(400, json=IKKE_PUBLISERT_400)
+    fhi_mock.routes["dimensjoner"].mock(side_effect=httpx.ConnectError("nede"))
+    resultat = tj.svar(Utvalg(1, "influensa", "2026/2027"), NÅ)
+    assert resultat.serie is None
+    assert resultat.melding == tjeneste.FHI_NEDE_INGEN_TALL
 
 
 # --- Sesonglisten (FR-3, AD-3) ---
@@ -439,8 +557,7 @@ def test_lagret_liste_uten_uker_hentes_på_nytt(
     tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
 ) -> None:
     _skriv_dimensjonsfil(mappe, UTEN_UKER)
-    resultat = tj.svar(UTVALG, NÅ)
-    assert resultat.serie is not None and resultat.melding is None
+    assert tj.sesonger(NÅ) == ("2024/2025", "2025/2026", "2026/2027")
     assert fhi_mock.routes["dimensjoner"].call_count == 1
 
 
@@ -450,14 +567,8 @@ def test_gammel_dimensjonsliste_hentes_på_nytt_når_fhi_svarer(
     mellomlager.lagre_dimensjoner(
         mappe, 724, _dimensjoner_til("2026-w10"), NÅ - timedelta(hours=24)
     )
-    tj.svar(UTVALG, NÅ)
-    assert fhi_mock.routes["dimensjoner"].call_count == 1
-    kropp = json.loads(fhi_mock.routes["data"].calls.last.request.content)
-    uker = next(
-        d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
-    )
-    assert uker[-1] == "2026-w20"
     assert "2026/2027" in tj.sesonger(NÅ)
+    assert fhi_mock.routes["dimensjoner"].call_count == 1
 
 
 # --- Samtidige kall (AD-9) ---
@@ -527,7 +638,7 @@ def test_to_samtidige_kall_deler_ett_kall_til_fhi(
     assert isinstance(a, tjeneste.Resultat) and a.serie is not None
     assert a == b
     assert fhi_mock.routes["data"].call_count == 1
-    assert fhi_mock.routes["dimensjoner"].call_count == 1
+    assert not fhi_mock.routes["dimensjoner"].called
 
 
 def test_to_samtidige_kall_deler_ett_kall_også_når_fhi_er_nede(
@@ -628,11 +739,11 @@ def sars_mock(fhi_mock: respx.MockRouter) -> respx.MockRouter:
     return fhi_mock
 
 
-def test_sars_cov_2_hentes_fra_731_med_731_sin_dimensjonsliste(
+def test_sars_cov_2_hentes_fra_731_med_ett_kall(
     tj: Tjeneste, mappe: Path, sars_mock: respx.MockRouter
 ) -> None:
     resultat = tj.svar(SARS_UTVALG, NÅ)
-    assert sars_mock.routes["sars-dimensjoner"].call_count == 1
+    assert not sars_mock.routes["sars-dimensjoner"].called
     assert sars_mock.routes["sars-data"].call_count == 1
     assert not sars_mock.routes["dimensjoner"].called
     assert not sars_mock.routes["data"].called
@@ -640,8 +751,7 @@ def test_sars_cov_2_hentes_fra_731_med_731_sin_dimensjonsliste(
     første = resultat.serie.uker[0]
     assert (første.positive, første.tester) == (471, 7109)
     assert resultat.melding is None
-    assert mellomlager.les_dimensjoner(mappe, 731) is not None
-    assert mellomlager.les_dimensjoner(mappe, 724) is None
+    assert mellomlager.les_dimensjoner(mappe, 731) is None
     lagret = mellomlager.les_svar(mappe, SARS_UTVALG)
     assert lagret is not None and lagret.svar == SARS_DATA
 
@@ -663,23 +773,12 @@ def test_sars_cov_2_kilde_er_tabell_731(
 def test_siste_publiserte_uke_for_sars_cov_2_kommer_fra_731(
     tj: Tjeneste, mappe: Path, sars_mock: respx.MockRouter
 ) -> None:
-    # 724 har uke 46 lagret, men 731 bare til uke 44. Forespørselen følger 731.
+    # 724 har uke 46 lagret, men 731 har bare publisert til uke 10.
     mellomlager.lagre_dimensjoner(mappe, 724, DIMENSJONER, NÅ)
-    kopi = copy.deepcopy(SARS_DIMENSJONER)
-    for dimensjon in kopi["dimensions"]:
-        if dimensjon["code"] == "dateusedforstatistics":
-            dimensjon["categories"] = [
-                k for k in dimensjon["categories"] if k["value"] <= "2026-w44"
-            ]
-    sars_mock.routes["sars-dimensjoner"].respond(json=kopi)
-    # Bare forespørselen sjekkes. Svaret fra mocken er for 2025/2026 og avvises.
-    resultat = tj.svar(Utvalg(1, "sars-cov-2", "2026/2027", "alle"), NÅ)
-    kropp = json.loads(sars_mock.routes["sars-data"].calls.last.request.content)
-    uker = next(
-        d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
-    )
-    assert uker[-1] == "2026-w44"
+    sars_mock.routes["sars-data"].respond(json=_data_til(SARS_DATA, "2026-w10"))
+    resultat = tj.svar(SARS_UTVALG, NÅ)
+    assert resultat.serie is not None
+    siste = resultat.serie.uker[-1]
+    assert (siste.år, siste.ukenummer) == (2026, 10)
+    assert not sars_mock.routes["sars-dimensjoner"].called
     assert not sars_mock.routes["dimensjoner"].called
-    # Svaret gjelder en annen sesong, så det avvises som et ugyldig svar (FR-8).
-    assert resultat.serie is None
-    assert resultat.melding == tjeneste.FHI_NEDE_INGEN_TALL

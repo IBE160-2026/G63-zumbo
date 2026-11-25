@@ -125,3 +125,12 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-4-6-hente-nyeste-tall-na.md`
   summary: På Vercel kan GET / etter 303 treffe en annen instans enn POST, med en annen /tmp-cache.
   evidence: Mellomlageret er /tmp/fhi-helsedata-cache per instans. Den nye hentingen kan være lagret på én instans mens neste side vises fra en annen. Sjekkes i story 8.3.
+
+## Deferred from: code review of branch faerre-fhi-kall (2026-11-26)
+
+- source_spec: ingen (endring uten spec, PR «Færre kall til FHI når ingenting er lagret»)
+  summary: AD-3 i arkitekturen og akseptkriteriene i `epics.md` sier at siste publiserte uke kommer fra dimensjonslisten for tabellen. Etter endringen kommer den fra datasvaret, og dimensjonslisten for 729 og 731 hentes bare når FHI svarer 400.
+  evidence: Brukeren ba om at arkitekturen ikke endres i denne PR-en, men at endringen beskrives i PR-en. Oppdateres med `bmad-architecture` hvis PR-en merges.
+- source_spec: ingen (samme PR)
+  summary: At FHI bare sender de publiserte ukene når vi ber om hele sesongen, og svarer 400 når ingen er publisert, er sjekket manuelt mot API-et 26.11.2026. Testene mocker dette, så CI merker det ikke hvis FHI endrer oppførselen.
+  evidence: Uke 46–49 for 729 ga bare uke 46. Bare uke 48–49 ga 400 «No matching categories found for dimension 'dateusedforstatistics'». Bør sjekkes på nytt med en ekte henting før publisering (story 8.3) eller når testsettet lages (epic 7).

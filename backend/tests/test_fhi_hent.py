@@ -99,6 +99,20 @@ def test_valgt_aldersgruppe_og_ukene_frem_til_siste_publiserte_uke() -> None:
     assert filtre["dateusedforstatistics"] == [f"2026-w{u}" for u in range(40, 47)]
 
 
+@respx.mock
+def test_uten_siste_uke_bes_det_om_hele_sesongen() -> None:
+    # FHI sender bare de publiserte ukene (sjekket 26.11.2026), så tjenesten
+    # trenger ikke dimensjonslisten for å vite hvor sesongen slutter (AD-3).
+    rute = respx.post(DATA_URL).respond(json=DATA)
+    assert fhi.hent(UTVALG) == DATA
+    filtre = {
+        d["code"]: d["values"]
+        for d in json.loads(rute.calls.last.request.content)["dimensions"]
+    }
+    uker = filtre["dateusedforstatistics"]
+    assert uker[0] == "2025-w40" and uker[-1] == "2026-w20" and len(uker) == 33
+
+
 def test_ukekoden_har_to_sifre_og_liten_w() -> None:
     assert fhi.ukekode((2027, 1)) == "2027-w01"
     assert fhi.ukekode((2026, 53)) == "2026-w53"
@@ -179,6 +193,8 @@ def test_http_feil(status: int) -> None:
     with pytest.raises(fhi.FhiUtilgjengelig) as fanget:
         fhi.hent(UTVALG, SISTE)
     assert isinstance(fanget.value.__cause__, httpx.HTTPStatusError)
+    # Bare 400 er en avvist forespørsel, som `tjeneste` sjekker nærmere.
+    assert isinstance(fanget.value, fhi.ForespørselAvvist) == (status == 400)
 
 
 UGYLDIGE_SVAR = {

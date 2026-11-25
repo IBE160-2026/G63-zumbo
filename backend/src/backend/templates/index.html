@@ -1,4 +1,17 @@
 {% extends "base.html" %}
+
+{#- Knappen «Hent nyeste tall nå» med teksten om torsdag (FR-25, AD-9). -#}
+{% macro hent_nyeste(utvalg) %}
+  <form method="post" action="/hent-nyeste" class="hent-nyeste">
+    <p class="publisering">FHI publiserer nye tall hver torsdag.</p>
+    <input type="hidden" name="mal" value="{{ utvalg.mal }}">
+    <input type="hidden" name="virus" value="{{ utvalg.virus }}">
+    <input type="hidden" name="sesong" value="{{ utvalg.sesong }}">
+    <input type="hidden" name="alder" value="{{ utvalg.aldersgruppe }}">
+    <p><button type="submit" data-ventetekst="Henter nyeste tall …">Hent nyeste tall nå</button></p>
+  </form>
+{% endmacro %}
+
 {% block innhold %}
 <h1>Tall fra FHI om luftveisvirus</h1>
 
@@ -49,6 +62,11 @@
   <p>{{ resultat.melding }}</p>
   {% if resultat.sist_lagrede and resultat.kilde %}
   <p>Sist lagrede tall, hentet {{ resultat.kilde.hentet|tidspunkt }}.</p>
+  {% endif %}
+  {% if resultat.serie is none and resultat.utvalg.virus in klare_virus %}
+  {#- Uten tall kan brukeren prøve igjen, for eksempel når FHI har publisert
+      en ny sesong på torsdag. -#}
+  {{ hent_nyeste(resultat.utvalg) }}
   {% endif %}
 </div>
 {% endif %}
@@ -123,6 +141,7 @@
   {% if resultat.kilde %}
   <p class="kilde">{{ resultat.kilde|kildetekst }}</p>
   <p class="justering">Tallene for den siste uka kan bli justert når flere prøvesvar kommer inn.</p>
+  {{ hent_nyeste(resultat.utvalg) }}
   {% endif %}
 </section>
 {% endif %}

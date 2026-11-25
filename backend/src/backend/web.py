@@ -8,19 +8,22 @@ leses én gang, ved oppstart, og aldri ved import, slik at testene ikke laster
 `.env` (AD-6, AD-10).
 
 KI-forklaringen hentes for seg med `GET /forklaring`, etter at siden er vist,
-så `GET /` venter aldri på KI-en (FR-20, NFR-2, AD-9).
+så `GET /` venter aldri på KI-en (FR-20, NFR-2, AD-9). Knappen «Hent nyeste
+tall nå» sender `POST /hent-nyeste`, som henter uten mellomlager og svarer med
+`303` til `GET /` for samme utvalg (FR-25, AD-9).
 """
 
 import re
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 from urllib.parse import urlencode
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -47,6 +50,7 @@ from backend.formatering import (
     utvalgstekst,
 )
 from backend.tjeneste import (
+    FHI_NEDE_LAGRET,
     KLARE_VIRUS,
     Forklaring,
     ManglerNøkkel,
@@ -61,6 +65,28 @@ if TYPE_CHECKING:
 MAPPE = Path(__file__).parent
 PARAMETRE = ("mal", "virus", "sesong", "alder")
 """Query-parametrene for et utvalg (AD-9)."""
+
+NYESTE = "nyeste_feilet"
+"""Query-parameteret `POST /hent-nyeste` legger til når FHI ikke svarte. Verdien
+er tidspunktet for forsøket i sekunder (Unix-tid), så `GET /` kan si at de viste
+tallene er de sist lagrede (FR-8, FR-25)."""
+
+NYESTE_GJELDER = timedelta(minutes=5)
+"""Så lenge merket gjelder. Lastes adressen inn på nytt senere, eller er tallene
+hentet etter forsøket, vises ingen melding om at FHI ikke svarte."""
+
+
+def _mislykket_forsøk(verdi: str | None, nå: datetime) -> datetime | None:
+    """Tidspunktet for et mislykket «Hent nyeste tall nå» når det er nylig,
+    ellers `None` (også for en verdi som ikke er et tall)."""
+    try:
+        forsøk = datetime.fromtimestamp(int(verdi or ""), UTC)
+    except (ValueError, OverflowError, OSError):
+        return None
+    if timedelta(0) <= nå - forsøk <= NYESTE_GJELDER:
+        return forsøk
+    return None
+
 
 # --- Jinja2-filtre: formateringen står i `formatering` (arkitektur §4) ---
 
@@ -89,16 +115,19 @@ def avsnitt(tekst: str) -> list[str]:
     return [a.strip() for a in re.split(r"\n\s*\n", tekst) if a.strip()]
 
 
+def utvalgsparametre(utvalg: Utvalg) -> dict[str, str]:
+    """Query-parametrene for `utvalg`, de samme som skjemaet sender (AD-9)."""
+    return {
+        "mal": str(utvalg.mal),
+        "virus": utvalg.virus,
+        "sesong": utvalg.sesong,
+        "alder": utvalg.aldersgruppe,
+    }
+
+
 def forklaringsadresse(utvalg: Utvalg) -> str:
     """`/forklaring` med de samme parametrene som siden for `utvalg` (AD-9)."""
-    return "/forklaring?" + urlencode(
-        {
-            "mal": utvalg.mal,
-            "virus": utvalg.virus,
-            "sesong": utvalg.sesong,
-            "alder": utvalg.aldersgruppe,
-        }
-    )
+    return "/forklaring?" + urlencode(utvalgsparametre(utvalg))
 
 
 def har_andel(serie: Dataserie) -> bool:
@@ -211,6 +240,19 @@ def lag_app(
                 feilmelding = str(feil)
             else:
                 resultat = tjeneste.svar(utvalg, nå)
+                forsøk = _mislykket_forsøk(request.query_params.get(NYESTE), nå)
+                if (
+                    forsøk is not None
+                    and resultat.serie is not None
+                    and resultat.kilde is not None
+                    and resultat.kilde.hentet < forsøk
+                    and not resultat.sist_lagrede
+                ):
+                    # «Hent nyeste tall nå» fikk nettopp ikke svar fra FHI, og
+                    # tallene som vises, er eldre enn forsøket (FR-8, FR-25).
+                    resultat = replace(
+                        resultat, sist_lagrede=True, melding=FHI_NEDE_LAGRET
+                    )
 
         mal_valg = [(str(m.nummer), _spørsmål(m.spørsmål)) for m in MALER.values()]
         virus_valg = [(n, VIRUS[n].navn) for n in KLARE_VIRUS]
@@ -234,12 +276,41 @@ def lag_app(
                 "valgt": valgt,
                 "feilmelding": feilmelding,
                 "resultat": resultat,
+                "klare_virus": KLARE_VIRUS,
                 "begreper": BEGREPER,
                 "tynt_datagrunnlag": next(
                     b.html_id for b in BEGREPER if b.nøkkel == TYNT_DATAGRUNNLAG
                 ),
             },
         )
+
+    @app.post("/hent-nyeste")
+    def hent_nyeste(
+        request: Request,
+        mal: Annotated[str, Form()] = "",
+        virus: Annotated[str, Form()] = "",
+        sesong: Annotated[str, Form()] = "",
+        alder: Annotated[str, Form()] = "",
+    ) -> RedirectResponse:
+        """Henter tallene for utvalget fra FHI uten mellomlager (FR-25, AD-9).
+
+        Svarer alltid med `303` til `GET /` for samme utvalg, så en oppdatering
+        av siden ikke sender skjemaet på nytt. Når FHI ikke svarte, får adressen
+        `nyeste_feilet` med tidspunktet for forsøket. Et ugyldig utvalg sendes videre uten henting, og
+        `GET /` viser da feilmeldingen (FR-5).
+        """
+        tjeneste: Tjeneste = request.app.state.tjeneste
+        nå = klokke()
+        parametre = {"mal": mal, "virus": virus, "sesong": sesong, "alder": alder}
+        try:
+            utvalg = Utvalg.fra_parametre(parametre, tjeneste.sesonger(nå))
+        except UgyldigUtvalg:
+            return RedirectResponse("/?" + urlencode(parametre), status_code=303)
+        resultat = tjeneste.svar(utvalg, nå, tving=True)
+        adresse = utvalgsparametre(utvalg)
+        if resultat.sist_lagrede:
+            adresse[NYESTE] = str(int(nå.timestamp()))
+        return RedirectResponse("/?" + urlencode(adresse), status_code=303)
 
     @app.get("/forklaring", response_class=HTMLResponse)
     def forklaring(request: Request) -> Response:

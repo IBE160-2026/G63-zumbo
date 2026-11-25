@@ -13,7 +13,34 @@
 //    `aria-live="polite"`, så skjermlesere leser forklaringen når den kommer.
 //    Ved nettverksfeil eller annen status enn 200 settes teksten fra
 //    `data-feiltekst` inn (FR-22). Tekstene står i malene, ikke her.
+// 4. Deaktiverer «Hent nyeste tall nå» når skjemaet sendes, så et nytt trykk
+//    ikke starter en ny henting (FR-25, AD-9). Knappen viser da teksten fra
+//    `data-ventetekst`. Går brukeren tilbake til siden, virker knappen igjen.
 "use strict";
+
+(function () {
+  const skjemaer = [...document.querySelectorAll("form.hent-nyeste")];
+  skjemaer.forEach((skjema) => {
+    const knapp = skjema.querySelector('button[type="submit"]');
+    if (!knapp) {
+      return;
+    }
+    const tekst = knapp.textContent;
+    // En deaktivert knapp kan ikke sende skjemaet på nytt.
+    skjema.addEventListener("submit", () => {
+      knapp.disabled = true;
+      if (knapp.dataset.ventetekst) {
+        knapp.textContent = knapp.dataset.ventetekst;
+      }
+    });
+    // Siden kan komme tilbake fra nettleserens hurtigbuffer med knappen
+    // deaktivert, for eksempel med Tilbake-knappen.
+    window.addEventListener("pageshow", () => {
+      knapp.disabled = false;
+      knapp.textContent = tekst;
+    });
+  });
+})();
 
 (function () {
   const omraade = document.getElementById("forklaring");

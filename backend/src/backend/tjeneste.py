@@ -34,8 +34,14 @@ logger = logging.getLogger(__name__)
 
 SESONGTABELL = 724
 """Tabellen sesonglisten lages fra. Alle tre virus har samme uker (sjekket
-25.11.2026), så én sesongliste holder. Siste publiserte uke for et utvalg kommer
-likevel fra dimensjonslisten for utvalgets egen tabell (AD-3)."""
+25.11.2026), så én sesongliste holder.
+
+Siste publiserte uke for et utvalg kommer fra datasvaret for utvalgets egen
+tabell: datakallet ber om hele sesongen, og FHI sender bare de publiserte ukene
+(`fhi.forespørsel`). Slik trengs ikke dimensjonslisten for 729 og 731, og en
+side gjør ett kall færre når ingenting er lagret. Dimensjonslisten for
+utvalgets tabell hentes bare når FHI avviser datakallet, for å se om sesongen
+ikke er publisert ennå."""
 
 PAUSE_ETTER_FEIL = timedelta(seconds=60)
 """Så lenge dimensjonslisten ikke hentes på nytt etter at FHI ikke svarte.
@@ -234,22 +240,26 @@ class Tjeneste:
         lagret = self._lagret_svar(utvalg)
         if not tving and lagret is not None and not sesong.er_utdatert(lagret[0], nå):
             return self._resultat(utvalg, lagret[1], lagret[0])
-        # Feiler dimensjonslisten, prøver vi ikke datakallet i tillegg. Da venter
-        # brukeren høyst én tidsgrense (10 s) før de lagrede tallene vises (FR-8).
         try:
-            # Siste publiserte uke fra utvalgets egen tabell (AD-3).
-            dimensjoner = self._dimensjonsliste(nå, tving, utvalg.tabell)
-            siste = fhi.siste_publiserte_uke(dimensjoner)
-            if not sesong.uker(utvalg.sesong, siste):
-                return Resultat(
-                    utvalg, melding=IKKE_PUBLISERT.format(sesong=utvalg.sesong)
-                )
-            if not tving:
-                # Svarte ikke FHI på tallene nettopp, venter vi ikke på nytt
-                # (FR-8). Det gjelder også siden etter «Hent nyeste tall nå».
+            if tving:
+                # «Hent nyeste tall nå» henter også sesonglisten, så en ny sesong
+                # kommer med (FR-25). Feiler den, prøver vi ikke datakallet i
+                # tillegg. Da venter brukeren høyst én tidsgrense (10 s) (FR-8).
+                self._dimensjonsliste(nå, tving=True)
+            else:
+                # Svarte ikke FHI nettopp, venter vi ikke på nytt (FR-8). Det
+                # gjelder også siden etter «Hent nyeste tall nå».
                 self._stopp_hvis_nylig_feil(nå)
             try:
-                rått = fhi.hent(utvalg, siste, klient=self._klient)
+                # Hele sesongen. Svaret slutter ved siste publiserte uke (AD-3).
+                rått = fhi.hent(utvalg, klient=self._klient)
+            except fhi.ForespørselAvvist:
+                if self._ikke_publisert(utvalg, nå, tving):
+                    return Resultat(
+                        utvalg, melding=IKKE_PUBLISERT.format(sesong=utvalg.sesong)
+                    )
+                self._feilet = nå
+                raise
             except fhi.FhiUtilgjengelig:
                 self._feilet = nå
                 raise
@@ -261,7 +271,17 @@ class Tjeneste:
                 utvalg, lagret[1], lagret[0], sist_lagrede=True, melding=FHI_NEDE_LAGRET
             )
         self._lagre(mellomlager.lagre_svar, utvalg, rått, nå)
-        return self._resultat(utvalg, fhi.tolk(rått, utvalg, siste), nå)
+        return self._resultat(utvalg, fhi.tolk(rått, utvalg), nå)
+
+    def _ikke_publisert(self, utvalg: Utvalg, nå: datetime, tving: bool) -> bool:
+        """Sann når tabellen ikke har publisert noen uke i utvalgets sesong.
+
+        Spørres bare når FHI avviste datakallet. Dimensjonslisten for utvalgets
+        egen tabell avgjør, slik at meldingen «ikke publisert ennå» bare vises
+        når den stemmer (AD-3). Gir `FhiUtilgjengelig` når listen ikke kan hentes.
+        """
+        dimensjoner = self._dimensjonsliste(nå, tving, utvalg.tabell)
+        return not sesong.uker(utvalg.sesong, fhi.siste_publiserte_uke(dimensjoner))
 
     def _lagret_svar(self, utvalg: Utvalg) -> tuple[datetime, Dataserie] | None:
         """Det lagrede svaret tolket, eller `None` når det mangler eller ikke kan

@@ -303,6 +303,38 @@ def test_fhi_nede_gir_ett_kall_på_forsiden(
     assert sum(route.call_count for route in fhi_mock.routes) == 1
 
 
+def test_forsiden_uten_lagrede_tall_gjør_fire_kall_til_fhi(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    # Sesonglisten (724) og ett datakall per virus. Dimensjonslisten for 729 og
+    # 731 trengs ikke, fordi datasvaret har ukene (AD-3).
+    html = klient.get("/").text
+    assert INGEN_TALL not in html
+    kall = {route.name: route.call_count for route in fhi_mock.routes}
+    assert kall == {
+        "influensa-dim": 1,
+        "influensa": 1,
+        "rsv-dim": 0,
+        "rsv": 1,
+        "sars-cov-2-dim": 0,
+        "sars-cov-2": 1,
+    }
+    # Resultatsiden etterpå bruker de lagrede tallene.
+    klient.get(f"/resultat?mal=1&virus=rsv&sesong={SESONG}")
+    assert sum(route.call_count for route in fhi_mock.routes) == 4
+
+
+@pytest.mark.parametrize("virus", ["rsv", "sars-cov-2"])
+def test_resultatsiden_uten_lagrede_tall_gjør_to_kall_til_fhi(
+    klient: TestClient, fhi_mock: respx.MockRouter, virus: str
+) -> None:
+    svar = klient.get(f"/resultat?mal=1&virus={virus}&sesong={SESONG}")
+    assert svar.status_code == 200
+    assert "Tallene kunne ikke hentes" not in svar.text
+    kall = {r.name: r.call_count for r in fhi_mock.routes if r.call_count}
+    assert kall == {"influensa-dim": 1, virus: 1}
+
+
 def test_feil_når_kortet_lages_gir_tekst_og_ikke_500(
     klient: TestClient,
     monkeypatch: pytest.MonkeyPatch,

@@ -259,17 +259,32 @@ class FhiUtilgjengelig(Exception):
     """
 
 
+class ForespørselAvvist(FhiUtilgjengelig):
+    """FHI svarte 400 Bad Request på et kall.
+
+    Datakallet får 400 når ingen av ukene i forespørselen er publisert («No
+    matching categories found for dimension 'dateusedforstatistics'», sjekket
+    26.11.2026). `tjeneste` sjekker da dimensjonslisten for tabellen før svaret
+    regnes som en feil.
+    """
+
+
 def ukekode(uke: IsoUke) -> str:
     """`(2025, 40)` → `"2025-w40"`, slik FHI skriver uker."""
     år, ukenummer = sesong.sjekk_uke(uke)
     return f"{år}-w{ukenummer:02d}"
 
 
-def forespørsel(utvalg: Utvalg, siste_publiserte_uke: IsoUke) -> dict[str, Any]:
+def forespørsel(
+    utvalg: Utvalg, siste_publiserte_uke: IsoUke | None = None
+) -> dict[str, Any]:
     """Kroppen i `POST …/Table/<tabell>/data` for utvalget (FR-2, FR-6).
 
-    Ukene er sesongens uker frem til siste publiserte uke. Gir `ValueError` for
-    en tabell uten faste filtre, eller en sesong uten publiserte uker.
+    Ukene er sesongens uker frem til siste publiserte uke. Uten den er ukene hele
+    sesongen. FHI sender da bare de publiserte ukene og hopper over resten
+    (sjekket 26.11.2026), så svaret slutter ved siste publiserte uke uten at
+    dimensjonslisten må hentes først. Gir `ValueError` for en tabell uten faste
+    filtre, eller en sesong uten publiserte uker.
     """
     if utvalg.tabell not in FASTE_FILTRE:
         raise ValueError(f"tabell {utvalg.tabell} har ingen faste filtre")
@@ -328,6 +343,10 @@ def _kall_i_tråd(
             )
         svar.raise_for_status()
         innhold = svar.json()
+    except httpx.HTTPStatusError as feil:
+        if feil.response.status_code == 400:
+            raise ForespørselAvvist(f"{metode} {url}: {feil!r}") from feil
+        raise FhiUtilgjengelig(f"{metode} {url}: {feil!r}") from feil
     except (httpx.HTTPError, httpx.InvalidURL, ValueError, RuntimeError) as feil:
         # RuntimeError dekker RecursionError (dypt nøstet JSON),
         # httpx.StreamError og en klient som er lukket.
@@ -356,16 +375,19 @@ def hent_dimensjoner(
 
 def hent(
     utvalg: Utvalg,
-    siste_publiserte_uke: IsoUke,
+    siste_publiserte_uke: IsoUke | None = None,
     *,
     klient: httpx.Client | None = None,
 ) -> dict[str, Any]:
     """Henter tallene for utvalget fra FHI, rått (FR-6, FR-8, AD-3).
 
-    Svaret sjekkes med `tolk` før det returneres, slik at bare svar som kan
-    tolkes havner i cachen. Gir `FhiUtilgjengelig` ved tidsavbrudd etter
-    10 sekunder, nettverksfeil, HTTP-feil (også 3xx) og ugyldig svar.
-    Gir `ValueError` for et utvalg som ikke kan hentes (se `forespørsel`).
+    Uten `siste_publiserte_uke` bes det om hele sesongen, og svaret har ukene
+    FHI har publisert (se `forespørsel`). Svaret sjekkes med `tolk` før det
+    returneres, slik at bare svar som kan tolkes havner i cachen. Gir
+    `FhiUtilgjengelig` ved tidsavbrudd etter 10 sekunder, nettverksfeil,
+    HTTP-feil (også 3xx) og ugyldig svar, og `ForespørselAvvist` når FHI svarer
+    400, for eksempel fordi ingen av ukene er publisert. Gir `ValueError` for et
+    utvalg som ikke kan hentes (se `forespørsel`).
     """
     kropp = forespørsel(utvalg, siste_publiserte_uke)
     url = f"{BASE_URL}/Table/{utvalg.tabell}/data"

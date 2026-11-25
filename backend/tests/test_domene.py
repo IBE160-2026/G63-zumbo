@@ -298,7 +298,14 @@ def test_gyldige_sesonger_kan_være_en_hvilken_som_helst_iterable() -> None:
 @pytest.mark.parametrize(
     ("felt", "verdi", "starten_av_meldingen"),
     [
-        ("mal", None, "Velg en mal: «Andel positive tester uke for uke»."),
+        (
+            "mal",
+            None,
+            (
+                "Velg en mal: «Vis andel positive tester for influensa i sesongen "
+                "2025/2026»."
+            ),
+        ),
         ("mal", "", "Velg en mal:"),
         ("mal", "2", "Velg en mal:"),
         ("mal", "01", "Velg en mal:"),
@@ -328,6 +335,27 @@ def test_hvert_ugyldige_felt_gir_norsk_melding(
     assert melding.count("Velg") == 1
 
 
+@pytest.mark.parametrize(
+    ("virus", "sesong", "spørsmål"),
+    [
+        ("influensa", "2025/2026", "for influensa i sesongen 2025/2026"),
+        ("rsv", "2024/2025", "for RSV i sesongen 2024/2025"),
+        ("sars-cov-2", "2026/2027", "for SARS-CoV-2 i sesongen 2026/2027"),
+        ("ebola", "2025/2026", "for viruset du velger i sesongen 2025/2026"),
+        ("influensa", "1999/2000", "for influensa i sesongen du velger"),
+    ],
+)
+def test_meldingen_for_ukjent_mal_viser_spørsmålet_med_gyldige_valg(
+    virus: str, sesong: str, spørsmål: str
+) -> None:
+    """Meldingen viser malen som spørsmål, slik skjemaet gjorde (FR-1), og
+    gjentar aldri en ugyldig verdi fra adressen."""
+    melding = feilmelding({"mal": "9", "virus": virus, "sesong": sesong})
+    assert melding.startswith(f"Velg en mal: «Vis andel positive tester {spørsmål}».")
+    assert "ebola" not in melding
+    assert "1999/2000" not in melding
+
+
 def test_ukjent_alder_godtas_ikke() -> None:
     assert "ukjent" not in domene.ALDERSGRUPPER
     feilmelding({**GYLDIG, "alder": "ukjent"})
@@ -336,7 +364,8 @@ def test_ukjent_alder_godtas_ikke() -> None:
 def test_alle_feil_samles_i_én_melding_i_fast_rekkefølge() -> None:
     melding = feilmelding({"alder": "x"})
     assert melding == (
-        "Velg en mal: «Andel positive tester uke for uke». "
+        "Velg en mal: «Vis andel positive tester for viruset du velger i sesongen "
+        "du velger». "
         "Velg et virus: Influensa, RSV eller SARS-CoV-2. "
         "Velg en sesong: 2024/2025, 2025/2026 eller 2026/2027. "
         "Velg en aldersgruppe: Alle aldersgrupper, 0–4 år, 5–14 år, 15–29 år, "

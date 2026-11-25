@@ -65,6 +65,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-velge-mal-og-utvalg-pa-siden.md`
   summary: Meldingen for ukjent mal bruker malens tittel («Andel positive tester uke for uke»), mens skjemaet viser malen som spørsmål (FR-1).
   evidence: `fra_parametre` bygger `Velg en mal: «{m.tittel}»`. Gjelder bare en manipulert URL. Kan vurderes når mal 2 kommer (epic 8). Lav alvorlighet.
+  status: løst 2026-11-26 — meldingen viser spørsmålet med virus og sesong satt inn når de er gyldige («Vis andel positive tester for influensa i sesongen 2025/2026»), ellers «viruset du velger» og «du velger». Etter story 3.8 viser ikke skjemaet malvalget lenger, så meldingen følger spørsmålet slik skjemaet viste det før. Testet i `test_meldingen_for_ukjent_mal_viser_spørsmålet_med_gyldige_valg`.
 
 ## Deferred from: code review of spec-3-2-tabell-kildehenvisning-og-feilmelding.md (2026-11-24)
 

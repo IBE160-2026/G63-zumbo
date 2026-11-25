@@ -204,6 +204,22 @@ def _liste(navn: list[str]) -> str:
     return ", ".join(navn[:-1]) + " eller " + navn[-1]
 
 
+def _spørsmål(mal: Mal, virus: str, sesong: str, sesonger: list[str]) -> str:
+    """Malens spørsmål med valgene som er gyldige, slik skjemaet viste det (FR-1).
+
+    Et gyldig virus og en gyldig sesong settes inn. Ellers står «viruset du
+    velger» og «du velger», så meldingen aldri gjentar en ugyldig verdi fra
+    adressen. Virusnavn som er vanlige ord, får liten forbokstav («influensa»),
+    mens forkortelser som «RSV» og «SARS-CoV-2» står som de er.
+    """
+    virustekst = "viruset du velger"
+    if virus in VIRUS:
+        navn = VIRUS[virus].navn
+        virustekst = navn[0].lower() + navn[1:] if navn[1:2].islower() else navn
+    sesongtekst = sesong if sesong in sesonger else "du velger"
+    return mal.spørsmål.format(virus=virustekst, sesong=sesongtekst)
+
+
 @dataclass(frozen=True)
 class Utvalg:
     """Kombinasjonen brukeren har valgt (PRD kapittel 3).
@@ -248,8 +264,10 @@ class Utvalg:
         feil = []
         malnummer = {str(nr): nr for nr in MALER}.get(mal)
         if malnummer is None:
-            titler = _liste([f"«{m.tittel}»" for m in MALER.values()])
-            feil.append(f"Velg en mal: {titler}.")
+            spørsmål = _liste(
+                [f"«{_spørsmål(m, virus, sesong, sesonger)}»" for m in MALER.values()]
+            )
+            feil.append(f"Velg en mal: {spørsmål}.")
         if virus not in VIRUS:
             navn = _liste([v.navn for v in VIRUS.values()])
             feil.append(f"Velg et virus: {navn}.")

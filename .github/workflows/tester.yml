@@ -1,0 +1,26 @@
+# Kjører testene og ruff på hver PR og hver push til main (issue #74).
+# Samme tre kommandoer som README-en sier skal bestå før hver commit.
+name: Tester og ruff
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          working-directory: backend
+          enable-cache: true
+      # --locked feiler hvis uv.lock ikke stemmer med pyproject.toml.
+      - run: uv sync --locked
+      - run: uv run pytest
+      - run: uv run ruff check
+      - run: uv run ruff format --check

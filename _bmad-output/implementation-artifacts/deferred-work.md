@@ -115,3 +115,12 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-4-5-forklaringen-pa-siden.md`
   summary: Ingen automatisk test viser at app.js setter inn fragmentet fra /forklaring, eller at feilteksten vises ved 400 og nettverksfeil.
   evidence: test_app_js_henter_fragmentet_og_bruker_feilteksten leser bare kildeteksten. Prosjektet har ingen nettlesertest (samme hull som grafen, story 3.7). Sjekkes for hånd med scripts/vis_forklaring.py.
+
+## Deferred from: code review of spec-4-6-hente-nyeste-tall-na.md (2026-11-25)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-6-hente-nyeste-tall-na.md`
+  summary: POST /hent-nyeste har ingen grense for hvor ofte FHI kan kalles, og ingen sjekk av opprinnelse (CSRF).
+  evidence: tving hopper over cachen og PAUSE_ETTER_FEIL, og _én_gang slår bare sammen samtidige kall. Det gjelder først når appen er offentlig (story 8.3, Vercel). En minste avstand mellom tvungne hentinger per utvalg ville løst det.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-6-hente-nyeste-tall-na.md`
+  summary: På Vercel kan GET / etter 303 treffe en annen instans enn POST, med en annen /tmp-cache.
+  evidence: Mellomlageret er /tmp/fhi-helsedata-cache per instans. Den nye hentingen kan være lagret på én instans mens neste side vises fra en annen. Sjekkes i story 8.3.

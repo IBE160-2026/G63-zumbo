@@ -196,9 +196,18 @@ fhi-helsedata/
   .env.example              # ANTHROPIC_API_KEY=, ANTHROPIC_MODEL=
   .env                      # bare lokalt, i .gitignore (NFR-9)
   .cache/                   # mellomlagring lokalt, i .gitignore (AD-4)
+  .gitignore
+  .github/workflows/
+    tester.yml              # pytest og ruff på hver PR
+  README.md                 # installering, tester og oppstart
+  docs/                     # product brief, sjekkliste, KI-logg
   backend/
-    pyproject.toml          # avhengigheter, ruff, pytest, [tool.vercel]
+    .python-version
+    pyproject.toml          # avhengigheter, ruff, pytest ([tool.vercel] kommer når vi publiserer, AD-11)
     uv.lock
+    README.md               # viser til README i reporoten
+    scripts/
+      vis_forklaring.py     # demo av de tre KI-utfallene med falsk Claude
     src/backend/
       config.py             # miljøvariabler og cache-mappe
       domene.py             # Utvalg, Uke, Dataserie, Regelutslag, Kildehenvisning, faste lister
@@ -207,17 +216,20 @@ fhi-helsedata/
       mellomlager.py        # JSON-filer for FHI-svar og KI-tekster
       kontrollregler.py     # R1–R5, rene funksjoner
       begreper.py           # sju faste begrepsforklaringer
+      formatering.py        # tall, uker og kilder slik tabellen og prompten viser dem
       ki.py                 # Claude, tre utfall
       prompts/forklaring.md
       tjeneste.py           # setter sammen svaret for et utvalg, lås per utvalg
-      web.py                # FastAPI-app og ruter
-      templates/            # base.html, index.html, _forklaring.html
+      web.py                # FastAPI-app og ruter: /, /resultat, /hent-nyeste, /forklaring
+      templates/            # base.html, forside.html, resultat.html,
+                            # _forklaring.html, _ki_tekster.html
       static/               # app.js, style.css
+        fonts/              # Fraunces og Poppins (woff2) med lisensfiler
     tests/
-      fixtures/fhi/         # lagrede FHI-svar (SM-1, SM-2)
+      fixtures/fhi/         # lagrede FHI-svar for 724, 729 og 731 (SM-1, SM-2)
       fixtures/ki/          # lagrede KI-svar (SM-4)
-      fixtures/konstruert/  # grensetilfeller R1–R5 (SM-3)
-      fixtures/testsett/    # fasit for de 10 testspørsmålene (SM-1–SM-3)
+      fixtures/konstruert/  # grensetilfeller R1–R5 og skjulte verdier (SM-3)
+      fixtures/testsett/    # fasit for de 10 testspørsmålene (SM-1–SM-3), kommer i epic 7
       test_*.py
 ```
 

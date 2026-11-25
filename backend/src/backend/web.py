@@ -17,7 +17,7 @@ import re
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any
 from urllib.parse import urlencode
@@ -66,10 +66,27 @@ MAPPE = Path(__file__).parent
 PARAMETRE = ("mal", "virus", "sesong", "alder")
 """Query-parametrene for et utvalg (AD-9)."""
 
-NYESTE = "nyeste"
-"""Query-parameteret `POST /hent-nyeste` legger til når FHI ikke svarte
-(`nyeste=feilet`), så `GET /` kan si at de viste tallene er de sist lagrede
-(FR-8, FR-25)."""
+NYESTE = "nyeste_feilet"
+"""Query-parameteret `POST /hent-nyeste` legger til når FHI ikke svarte. Verdien
+er tidspunktet for forsøket i sekunder (Unix-tid), så `GET /` kan si at de viste
+tallene er de sist lagrede (FR-8, FR-25)."""
+
+NYESTE_GJELDER = timedelta(minutes=5)
+"""Så lenge merket gjelder. Lastes adressen inn på nytt senere, eller er tallene
+hentet etter forsøket, vises ingen melding om at FHI ikke svarte."""
+
+
+def _mislykket_forsøk(verdi: str | None, nå: datetime) -> datetime | None:
+    """Tidspunktet for et mislykket «Hent nyeste tall nå» når det er nylig,
+    ellers `None` (også for en verdi som ikke er et tall)."""
+    try:
+        forsøk = datetime.fromtimestamp(int(verdi or ""), UTC)
+    except (ValueError, OverflowError, OSError):
+        return None
+    if timedelta(0) <= nå - forsøk <= NYESTE_GJELDER:
+        return forsøk
+    return None
+
 
 # --- Jinja2-filtre: formateringen står i `formatering` (arkitektur §4) ---
 
@@ -223,13 +240,16 @@ def lag_app(
                 feilmelding = str(feil)
             else:
                 resultat = tjeneste.svar(utvalg, nå)
+                forsøk = _mislykket_forsøk(request.query_params.get(NYESTE), nå)
                 if (
-                    request.query_params.get(NYESTE) == "feilet"
+                    forsøk is not None
                     and resultat.serie is not None
+                    and resultat.kilde is not None
+                    and resultat.kilde.hentet < forsøk
                     and not resultat.sist_lagrede
                 ):
-                    # «Hent nyeste tall nå» fikk ikke svar fra FHI, så tallene
-                    # som vises, er de sist lagrede (FR-8, FR-25).
+                    # «Hent nyeste tall nå» fikk nettopp ikke svar fra FHI, og
+                    # tallene som vises, er eldre enn forsøket (FR-8, FR-25).
                     resultat = replace(
                         resultat, sist_lagrede=True, melding=FHI_NEDE_LAGRET
                     )
@@ -256,6 +276,7 @@ def lag_app(
                 "valgt": valgt,
                 "feilmelding": feilmelding,
                 "resultat": resultat,
+                "klare_virus": KLARE_VIRUS,
                 "begreper": BEGREPER,
                 "tynt_datagrunnlag": next(
                     b.html_id for b in BEGREPER if b.nøkkel == TYNT_DATAGRUNNLAG
@@ -275,7 +296,7 @@ def lag_app(
 
         Svarer alltid med `303` til `GET /` for samme utvalg, så en oppdatering
         av siden ikke sender skjemaet på nytt. Når FHI ikke svarte, får adressen
-        `nyeste=feilet`. Et ugyldig utvalg sendes videre uten henting, og
+        `nyeste_feilet` med tidspunktet for forsøket. Et ugyldig utvalg sendes videre uten henting, og
         `GET /` viser da feilmeldingen (FR-5).
         """
         tjeneste: Tjeneste = request.app.state.tjeneste
@@ -288,7 +309,7 @@ def lag_app(
         resultat = tjeneste.svar(utvalg, nå, tving=True)
         adresse = utvalgsparametre(utvalg)
         if resultat.sist_lagrede:
-            adresse[NYESTE] = "feilet"
+            adresse[NYESTE] = str(int(nå.timestamp()))
         return RedirectResponse("/?" + urlencode(adresse), status_code=303)
 
     @app.get("/forklaring", response_class=HTMLResponse)

@@ -221,7 +221,9 @@ def test_fhi_nede_gir_sist_lagrede_tall_med_dato(
     _fhi_nede(fhi_mock)
     svar = klient.post("/hent-nyeste", data=SKJEMA)
     assert svar.status_code == 303
-    assert _parametre(svar.headers["location"])["nyeste"] == ["feilet"]
+    assert _parametre(svar.headers["location"])[web.NYESTE] == [
+        str(int(START.timestamp()))
+    ]
 
     html = klient.get(svar.headers["location"]).text
     assert "Tallene kunne ikke hentes fra FHI akkurat nå." in html
@@ -241,9 +243,76 @@ def test_fhi_nede_uten_lagrede_tall_gir_meldingen_uten_tall(
     assert "<tbody>" not in svar.text
 
 
-def test_nyeste_feilet_endrer_ikke_en_side_uten_tall(klient: TestClient) -> None:
-    html = klient.get("/?nyeste=feilet").text
+def _merket(tidspunkt: datetime) -> str:
+    return f"{SIDE}&{web.NYESTE}={int(tidspunkt.timestamp())}"
+
+
+def test_merket_endrer_ikke_en_side_uten_tall(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    _fhi_nede(fhi_mock)
+    html = klient.get(_merket(START)).text
+    assert "det finnes ingen lagrede tall" in html
+    assert "Sist lagrede tall" not in html
+
+
+def test_merket_gjelder_ikke_når_adressen_lastes_inn_senere(
+    klient: TestClient, mappe: Path, klokke: Klokke
+) -> None:
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, START - timedelta(hours=1))
+    klokke.nå = START + web.NYESTE_GJELDER + timedelta(seconds=1)
+    html = klient.get(_merket(START)).text
+    assert "Sist lagrede tall" not in html
     assert 'role="status"' not in html
+
+
+def test_merket_gjelder_ikke_for_tall_hentet_etter_forsøket(
+    klient: TestClient, mappe: Path, klokke: Klokke, fhi_mock: respx.MockRouter
+) -> None:
+    # De lagrede tallene er utdaterte, og FHI svarer igjen når siden vises.
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, START - timedelta(hours=30))
+    klokke.nå = START + timedelta(minutes=2)
+    html = klient.get(_merket(START)).text
+    assert fhi_mock.routes["data"].call_count == 1
+    assert "Sist lagrede tall" not in html
+    assert "Hentet 24.11.2026 kl. 13:02." in html
+
+
+@pytest.mark.parametrize("verdi", ["feilet", "", "-1", "99999999999999999999"])
+def test_merket_med_ugyldig_verdi_ignoreres(
+    klient: TestClient, mappe: Path, verdi: str
+) -> None:
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, START - timedelta(hours=1))
+    html = klient.get(f"{SIDE}&{web.NYESTE}={verdi}").text
+    assert "Sist lagrede tall" not in html
+
+
+def test_data_nede_etter_dimensjonslisten_venter_ikke_på_fhi_to_ganger(
+    klient: TestClient, mappe: Path, fhi_mock: respx.MockRouter
+) -> None:
+    # Dimensjonslisten svarer, men tallene gjør det ikke, og de lagrede er
+    # utdaterte. Siden etter omdirigeringen prøver ikke FHI igjen (FR-8).
+    mellomlager.lagre_svar(mappe, UTVALG, DATA, START - timedelta(hours=30))
+    fhi_mock.routes["data"].mock(side_effect=httpx.ConnectError("nede"))
+    svar = klient.post("/hent-nyeste", data=SKJEMA, follow_redirects=True)
+    assert fhi_mock.routes["data"].call_count == 1
+    assert "Sist lagrede tall, hentet 23.11.2026 kl. 07:00." in svar.text
+
+
+def test_gyldig_utvalg_uten_tall_har_knappen_og_teksten_om_torsdag(
+    klient: TestClient, fhi_mock: respx.MockRouter
+) -> None:
+    # Brukeren kan prøve igjen, for eksempel når FHI har publisert på torsdag.
+    _fhi_nede(fhi_mock)
+    html = klient.get(SIDE).text
+    assert "det finnes ingen lagrede tall" in html
+    assert "FHI publiserer nye tall hver torsdag." in html
+    assert "Hent nyeste tall nå" in html
+
+
+def test_virus_som_ikke_er_klart_har_ikke_knappen(klient: TestClient) -> None:
+    html = klient.get("/?mal=1&virus=rsv&sesong=2025%2F2026&alder=alle").text
+    assert "Hent nyeste tall nå" not in html
 
 
 @pytest.mark.parametrize(
@@ -260,7 +329,7 @@ def test_ugyldig_utvalg_hentes_ikke_og_sendes_til_siden(
     svar = klient.post("/hent-nyeste", data=skjema)
     assert svar.status_code == 303
     assert urlsplit(svar.headers["location"]).path == "/"
-    assert "nyeste" not in _parametre(svar.headers["location"])
+    assert web.NYESTE not in _parametre(svar.headers["location"])
     assert fhi_mock.routes["data"].call_count == 0
 
 

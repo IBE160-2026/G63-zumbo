@@ -30,7 +30,7 @@ DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimen
 NÅ = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
 HENTET = datetime(2026, 11, 24, 10, 5, tzinfo=UTC)
 UTVALG = Utvalg(1, "influensa", "2025/2026", "alle")
-STI = "/?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
+STI = "/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
 CHART_JS = (
     '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js" '
     'integrity="sha384-Emf5ZVIUiarAdhkgtqK+5/Z5qIvM6QoVrS+qAVtfyZVuD5lIHrac0me485+Antp0" '
@@ -311,7 +311,10 @@ def test_bare_egen_javascript_i_app_js(klient: TestClient, mappe: Path) -> None:
 
 
 def test_bare_app_js_uten_tall(klient: TestClient) -> None:
-    skript = re.findall(r'<script src="([^"]+)"', klient.get("/").text)
+    skript = re.findall(
+        r'<script src="([^"]+)"',
+        klient.get("/resultat?mal=1&virus=influensa&sesong=1999/2000").text,
+    )
     assert len(skript) == 1
     assert skript[0].endswith("/static/app.js")
 
@@ -346,7 +349,7 @@ def test_app_js_kobler_graf_og_tabell() -> None:
     assert "diagram.tooltip.setActiveElements(" in kode
     # Radene kan nås med Tab bare når grafen finnes.
     assert "rad.tabIndex = 0" in kode
-    mal = (TEMPLATES / "index.html").read_text(encoding="utf-8")
+    mal = (TEMPLATES / "resultat.html").read_text(encoding="utf-8")
     assert "tabindex" not in mal[mal.index("<tbody>") :]
 
 

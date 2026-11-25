@@ -31,7 +31,7 @@ DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data"
 DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimension"
 NÅ = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
 PARAMETRE = "mal=1&virus=influensa&sesong=2025%2F2026&alder=alle"
-SIDE = "/?" + PARAMETRE
+SIDE = "/resultat?" + PARAMETRE
 FRAGMENT = "/forklaring?" + PARAMETRE
 FORKLARING = (
     (FIXTURES / "ki" / "forklaring-influensa-2025-2026-alle.txt")
@@ -161,12 +161,10 @@ def test_feilteksten_står_i_malen(klient: TestClient) -> None:
 def test_områdets_overskrift_og_plass_etter_begrepene(klient: TestClient) -> None:
     html = klient.get(SIDE).text
     assert '<h2 id="forklaringstittel">Forklaring</h2>' in html
-    # Boks 6 i skissen i PRD §6.0: etter begrepene, før «Hvorfor ikke …».
-    assert (
-        html.index('id="begrepstittel"')
-        < html.index('id="forklaring"')
-        < html.index('id="chatbottittel"')
-    )
+    # Boks 6 i skissen i PRD §6.0: etter begrepene. «Hvorfor ikke …» står på
+    # forsiden fra 25.11.2026 (FR-27), så området er siste del av siden.
+    assert html.index('id="begrepstittel"') < html.index('id="forklaring"')
+    assert 'id="chatbottittel"' not in html
 
 
 def test_uten_javascript_sier_siden_det(klient: TestClient) -> None:
@@ -196,7 +194,9 @@ def test_siden_kaller_ikke_ki(
     assert klient.get(SIDE).status_code == 200
 
 
-@pytest.mark.parametrize("sti", ["/", "/?mal=1&virus=influensa&sesong=1999/2000"])
+@pytest.mark.parametrize(
+    "sti", ["/", "/resultat?mal=1&virus=influensa&sesong=1999/2000"]
+)
 def test_uten_tall_vises_ikke_området(klient: TestClient, sti: str) -> None:
     html = klient.get(sti).text
     assert 'id="forklaring"' not in html

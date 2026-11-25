@@ -27,7 +27,7 @@ DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimen
 NÅ = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
 HENTET = datetime(2026, 11, 24, 10, 5, tzinfo=UTC)  # kl. 11:05 norsk tid
 UTVALG = Utvalg(1, "influensa", "2025/2026", "alle")
-STI = "/?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
+STI = "/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
 NB = " "
 FOTNOTE_FLERE_POSITIVE = (
     "Flere positive prøver enn tester denne uka. Det kan skyldes hvordan prøvene "
@@ -323,7 +323,9 @@ def test_bare_stjerne_uten_kors_når_ingen_uke_har_flere_positive(
 ) -> None:
     utvalg = Utvalg(1, "influensa", "2026/2027", "80+")
     mellomlager.lagre_svar(mappe, utvalg, SKJULTE, HENTET)
-    html = klient.get("/?mal=1&virus=influensa&sesong=2026/2027&alder=80%2B").text
+    html = klient.get(
+        "/resultat?mal=1&virus=influensa&sesong=2026/2027&alder=80%2B"
+    ).text
     assert "* Usikker uke:" in html
     assert "†" not in html
     assert FOTNOTE_FLERE_POSITIVE not in html
@@ -415,7 +417,7 @@ def test_prompten_har_de_samme_tallene_som_tabellen(
     mellomlager.lagre_svar(mappe, utvalg, svar, HENTET)
     alder = utvalg.aldersgruppe.replace("+", "%2B")
     html = klient.get(
-        f"/?mal=1&virus=influensa&sesong={utvalg.sesong}&alder={alder}"
+        f"/resultat?mal=1&virus=influensa&sesong={utvalg.sesong}&alder={alder}"
     ).text
     serie = fhi.tolk(svar, utvalg)
     prompt = ki.lag_prompt(serie, (), kildehenvisning(724, HENTET))

@@ -29,8 +29,8 @@ NÅ = datetime(2026, 11, 24, 12, 0, tzinfo=UTC)
 HENTET = datetime(2026, 11, 24, 10, 5, tzinfo=UTC)
 UTVALG = Utvalg(1, "influensa", "2025/2026", "alle")
 UTVALG_2024 = Utvalg(1, "influensa", "2024/2025", "alle")
-STI = "/?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
-STI_2024 = "/?mal=1&virus=influensa&sesong=2024/2025&alder=alle"
+STI = "/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
+STI_2024 = "/resultat?mal=1&virus=influensa&sesong=2024/2025&alder=alle"
 TEKST_R5 = (
     "Perioden går over 1. mars 2025. Fra den datoen er alle norske laboratorier "
     "med i tallene, så tall før og etter kan ikke sammenlignes direkte."
@@ -213,7 +213,7 @@ def test_ingen_varsel_uten_utvalg(klient: TestClient) -> None:
 
 
 def test_ingen_varsel_ved_ugyldig_utvalg(klient: TestClient) -> None:
-    assert _varsel(klient.get("/?alder=ukjent").text) is None
+    assert _varsel(klient.get("/resultat?alder=ukjent").text) is None
 
 
 def test_ingen_varsel_når_det_ikke_finnes_tall(klient: TestClient) -> None:

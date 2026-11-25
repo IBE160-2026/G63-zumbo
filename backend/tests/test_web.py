@@ -21,8 +21,13 @@ from backend.config import Innstillinger
 from backend.domene import ALDERSGRUPPER, MALER
 
 FIXTURES = Path(__file__).parent / "fixtures"
-DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data"
-DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimension"
+TABELL_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/{}"
+DATA_URL = TABELL_URL.format("724/data")
+DIMENSJON_URL = TABELL_URL.format("724/dimension")
+RSV_DATA_URL = TABELL_URL.format("729/data")
+RSV_DIMENSJON_URL = TABELL_URL.format("729/dimension")
+SARS_DATA_URL = TABELL_URL.format("731/data")
+SARS_DIMENSJON_URL = TABELL_URL.format("731/dimension")
 
 
 def _svar(navn: str) -> dict[str, Any]:
@@ -39,6 +44,19 @@ def fhi_mock() -> Iterator[respx.MockRouter]:
     with respx.mock(assert_all_called=False) as router:
         router.get(DIMENSJON_URL, name="dimensjoner").respond(json=DIMENSJONER)
         router.post(DATA_URL, name="data").respond(json=DATA)
+        # RSV og SARS-CoV-2 (story 6.1, 6.2), som forsiden også viser (FR-27).
+        router.get(RSV_DIMENSJON_URL, name="rsv-dimensjoner").respond(
+            json=_svar("fhi/729-dimensjoner.json")
+        )
+        router.post(RSV_DATA_URL, name="rsv-data").respond(
+            json=_svar("fhi/729-rsv-2025-2026-alle-nonstl.json")
+        )
+        router.get(SARS_DIMENSJON_URL, name="sars-dimensjoner").respond(
+            json=_svar("fhi/731-dimensjoner.json")
+        )
+        router.post(SARS_DATA_URL, name="sars-data").respond(
+            json=_svar("fhi/731-sars-cov-2-2025-2026-alle-nonstl.json")
+        )
         yield router
 
 
@@ -75,53 +93,63 @@ def _verdier(html: str, felt: str) -> list[str]:
     return re.findall(r'<option value="([^"]*)"', liste[0])
 
 
-# --- Skjemaet uten parametre (FR-1–FR-4) ---
+def _skjult(html: str, felt: str) -> str | None:
+    """Verdien i det skjulte feltet `felt` i skjemaet, eller `None`."""
+    treff = re.search(rf'<input type="hidden" name="{felt}" value="([^"]*)">', html)
+    return treff[1] if treff else None
 
 
-def test_uten_parametre_vises_bare_skjemaet(
-    klient: TestClient, fhi_mock: respx.MockRouter
-) -> None:
-    svar = klient.get("/")
-    assert svar.status_code == 200
-    assert '<form method="get" action="/"' in svar.text
-    assert "Vis tallene" in svar.text
-    assert 'role="alert"' not in svar.text
-    assert 'role="status"' not in svar.text
-    assert not fhi_mock.routes["data"].called
+# --- Skjemaet på resultatsiden (FR-1–FR-4, FR-27) ---
+
+SIDE = "/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=alle"
 
 
-def test_mal_1_vises_som_spørsmål(klient: TestClient) -> None:
-    html = klient.get("/").text
-    assert _verdier(html, "mal") == [str(nr) for nr in MALER]
-    assert "Vis andel positive tester for [virus] i sesongen [sesong]" in html
+def test_resultatsiden_har_skjema_med_skjult_mal_og_virus(klient: TestClient) -> None:
+    html = klient.get(SIDE).text
+    assert '<form method="get" action="/resultat" class="skjema">' in html
+    assert "Vis tallene" in html
+    assert _skjult(html, "mal") == "1"
+    assert _skjult(html, "virus") == "influensa"
+    assert '<select id="mal"' not in html
+    assert '<select id="virus"' not in html
     assert MALER[1].tittel not in html
 
 
-def test_influensa_rsv_og_sars_cov_2_kan_velges(klient: TestClient) -> None:
-    html = klient.get("/").text
-    assert _verdier(html, "virus") == ["influensa", "rsv", "sars-cov-2"]
-    assert _etiketter(html, "virus") == ["Influensa", "RSV", "SARS-CoV-2"]
+@pytest.mark.parametrize(
+    ("virus", "navn"),
+    [("influensa", "Influensa"), ("rsv", "RSV"), ("sars-cov-2", "SARS-CoV-2")],
+)
+def test_overskriften_viser_viruset(klient: TestClient, virus: str, navn: str) -> None:
+    html = klient.get(f"/resultat?mal=1&virus={virus}&sesong=2025/2026").text
+    assert f"<h1>{navn}</h1>" in html
+    assert _skjult(html, "virus") == virus
 
 
-def test_ugyldig_virus_nevner_nøyaktig_valgene_i_skjemaet(
+def test_resultatsiden_har_lenke_til_forsiden(klient: TestClient) -> None:
+    html = klient.get(SIDE).text
+    lenke = '<a href="/">← Til forsiden</a>'
+    assert lenke in html
+    assert html.index(lenke) < html.index("<h1>")
+
+
+def test_ugyldig_virus_viser_melding_og_lenke_uten_skjema(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
-    html = klient.get("/?mal=1&virus=ebola&sesong=2025/2026").text
-    navn = _etiketter(html, "virus")
-    forventet = ", ".join(navn[:-1]) + " eller " + navn[-1]
-    assert f"Velg et virus: {forventet}." in html
+    html = klient.get("/resultat?mal=1&virus=ebola&sesong=2025/2026").text
     assert "Velg et virus: Influensa, RSV eller SARS-CoV-2." in html
+    assert '<a href="/">← Til forsiden</a>' in html
+    assert 'class="skjema"' not in html
     assert not fhi_mock.routes["data"].called
 
 
 def test_sesongene_med_siste_som_standard(klient: TestClient) -> None:
-    html = klient.get("/").text
+    html = klient.get("/resultat?mal=1&virus=influensa&sesong=1999/2000").text
     assert _verdier(html, "sesong") == ["2024/2025", "2025/2026", "2026/2027"]
     assert _valgt(html, "sesong") == ["2026/2027"]
 
 
 def test_alle_aldersgrupper_er_standard(klient: TestClient) -> None:
-    html = klient.get("/").text
+    html = klient.get("/resultat?mal=1&virus=influensa&sesong=2025/2026").text
     assert _verdier(html, "alder") == list(ALDERSGRUPPER)
     assert _valgt(html, "alder") == ["alle"]
     for gruppe in ALDERSGRUPPER.values():
@@ -129,9 +157,9 @@ def test_alle_aldersgrupper_er_standard(klient: TestClient) -> None:
     assert "Ukjent" not in html
 
 
-def test_alle_felt_har_label(klient: TestClient) -> None:
-    html = klient.get("/").text
-    for felt in web.PARAMETRE:
+def test_synlige_felt_har_label(klient: TestClient) -> None:
+    html = klient.get(SIDE).text
+    for felt in ("sesong", "alder"):
         assert f'<label for="{felt}">' in html
         assert f'<select id="{felt}" name="{felt}">' in html
 
@@ -140,7 +168,8 @@ def test_alle_felt_har_label(klient: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    "sti", ["/", "/?mal=1&virus=influensa&sesong=1999/2000&alder=ukjent"]
+    "sti",
+    ["/", "/resultat?mal=1&virus=influensa&sesong=1999/2000&alder=ukjent"],
 )
 def test_siden_er_norsk_uten_fhi_koder(klient: TestClient, sti: str) -> None:
     html = klient.get(sti).text
@@ -155,11 +184,14 @@ def test_siden_er_norsk_uten_fhi_koder(klient: TestClient, sti: str) -> None:
 @pytest.mark.parametrize(
     ("sti", "melding"),
     [
-        ("/?mal=9&virus=influensa&sesong=2025/2026", "Velg en mal:"),
-        ("/?mal=1&virus=ebola&sesong=2025/2026", "Velg et virus:"),
-        ("/?mal=1&virus=influensa&sesong=1999/2000", "Velg en sesong:"),
-        ("/?mal=1&virus=influensa&sesong=2025/2026&alder=99", "Velg en aldersgruppe:"),
-        ("/?virus=influensa", "Velg en mal:"),
+        ("/resultat?mal=9&virus=influensa&sesong=2025/2026", "Velg en mal:"),
+        ("/resultat?mal=1&virus=ebola&sesong=2025/2026", "Velg et virus:"),
+        ("/resultat?mal=1&virus=influensa&sesong=1999/2000", "Velg en sesong:"),
+        (
+            "/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=99",
+            "Velg en aldersgruppe:",
+        ),
+        ("/resultat?virus=influensa", "Velg en mal:"),
     ],
 )
 def test_ugyldig_utvalg_gir_melding_og_ingen_henting(
@@ -173,7 +205,7 @@ def test_ugyldig_utvalg_gir_melding_og_ingen_henting(
 
 
 def test_melding_viser_ikke_verdien_brukeren_sendte(klient: TestClient) -> None:
-    html = klient.get("/?mal=1&virus=%3Cscript%3Eondt&sesong=2025/2026").text
+    html = klient.get("/resultat?mal=1&virus=%3Cscript%3Eondt&sesong=2025/2026").text
     assert "Velg et virus:" in html
     assert "ondt" not in html
     assert "<script>" not in html
@@ -182,50 +214,70 @@ def test_melding_viser_ikke_verdien_brukeren_sendte(klient: TestClient) -> None:
 def test_gyldig_utvalg_henter_tall(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
-    svar = klient.get("/?mal=1&virus=influensa&sesong=2025/2026&alder=alle")
+    svar = klient.get("/resultat?mal=1&virus=influensa&sesong=2025/2026&alder=alle")
     assert svar.status_code == 200
     assert 'role="alert"' not in svar.text
     assert fhi_mock.routes["data"].call_count == 1
     assert _valgt(svar.text, "sesong") == ["2025/2026"]
 
 
-@pytest.mark.parametrize("sti", ["/?mal=&virus=&sesong=&alder=", "/?mal=%20&alder="])
-def test_tomme_parametre_gir_bare_skjemaet(
+@pytest.mark.parametrize(
+    "sti",
+    ["/resultat", "/resultat?mal=&virus=&sesong=&alder=", "/resultat?mal=%20&alder="],
+)
+def test_resultatsiden_uten_valg_sender_til_forsiden(
     klient: TestClient, fhi_mock: respx.MockRouter, sti: str
 ) -> None:
-    svar = klient.get(sti)
-    assert svar.status_code == 200
-    assert 'role="alert"' not in svar.text
+    svar = klient.get(sti, follow_redirects=False)
+    assert svar.status_code == 303
+    assert svar.headers["location"] == "/"
     assert not fhi_mock.routes["data"].called
 
 
 def test_parametre_med_mellomrom_avvises_av_domene(klient: TestClient) -> None:
-    html = klient.get("/?mal=1&virus=influensa%20&sesong=2025/2026").text
+    html = klient.get("/resultat?mal=1&virus=influensa%20&sesong=2025/2026").text
     assert "Velg et virus:" in html
 
 
 def test_valgene_er_forhåndsvalgt_etter_innsending(klient: TestClient) -> None:
-    html = klient.get("/?mal=1&virus=influensa&sesong=2024/2025&alder=0-4").text
-    assert _valgt(html, "mal") == ["1"]
-    assert _valgt(html, "virus") == ["influensa"]
+    html = klient.get("/resultat?mal=1&virus=rsv&sesong=2024/2025&alder=0-4").text
+    assert _skjult(html, "mal") == "1"
+    assert _skjult(html, "virus") == "rsv"
     assert _valgt(html, "sesong") == ["2024/2025"]
     assert _valgt(html, "alder") == ["0-4"]
 
 
-@pytest.mark.parametrize(
-    "sti",
-    [
-        "/?mal=9&virus=ebola&sesong=1999/2000&alder=99",
-        "/?mal=1&virus=ebola&sesong=2025/2026",
-    ],
-)
-def test_ukjente_valg_viser_standardvalget(klient: TestClient, sti: str) -> None:
-    html = klient.get(sti).text
-    assert _valgt(html, "mal") == ["1"]
-    assert _valgt(html, "virus") == ["influensa"]
+def test_ukjente_valg_viser_standardvalget(klient: TestClient) -> None:
+    html = klient.get("/resultat?mal=9&virus=influensa&sesong=1999/2000&alder=99").text
+    assert "Velg en mal:" in html
+    assert _skjult(html, "mal") == "1"
+    assert _skjult(html, "virus") == "influensa"
     assert _valgt(html, "alder") == ["alle"]
-    if "1999" in sti:
-        assert _valgt(html, "sesong") == ["2026/2027"]
+    assert _valgt(html, "sesong") == ["2026/2027"]
+
+
+def test_nytt_utvalg_fra_skjemaet_gjelder_samme_virus(klient: TestClient) -> None:
+    """Skjemaet sender mal, virus, sesong og alder til `/resultat` (FR-27)."""
+    html = klient.get(SIDE).text
+    skjema = re.search(
+        r'<form method="get" action="/resultat".*?</form>', html, re.DOTALL
+    )
+    assert skjema
+    navn = re.findall(r'name="([^"]+)"', skjema[0])
+    assert navn == ["mal", "virus", "sesong", "alder"]
+    svar = klient.get(
+        "/resultat",
+        params={
+            "mal": "1",
+            "virus": "influensa",
+            "sesong": "2024/2025",
+            "alder": "0-4",
+        },
+    )
+    assert svar.status_code == 200
+    assert "<h1>Influensa</h1>" in svar.text
+    assert _valgt(svar.text, "sesong") == ["2024/2025"]
+    assert _valgt(svar.text, "alder") == ["0-4"]
 
 
 # --- FHI nede (FR-8) ---
@@ -235,17 +287,16 @@ def test_skjemaet_vises_når_fhi_er_nede(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
     fhi_mock.routes["dimensjoner"].mock(side_effect=httpx.ConnectError("nede"))
-    svar = klient.get("/")
+    svar = klient.get("/resultat?mal=1&virus=influensa&sesong=1999/2000")
     assert svar.status_code == 200
     assert _verdier(svar.text, "sesong")
-    assert 'role="alert"' not in svar.text
 
 
 def test_fhi_nede_gir_melding_og_ett_kall_per_side(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
     fhi_mock.routes["dimensjoner"].mock(side_effect=httpx.ConnectError("nede"))
-    svar = klient.get("/?mal=1&virus=influensa&sesong=2025/2026")
+    svar = klient.get("/resultat?mal=1&virus=influensa&sesong=2025/2026")
     assert svar.status_code == 200
     assert tjeneste.FHI_NEDE_INGEN_TALL in svar.text
     # Sesonglisten og tallene venter ikke hver sin tidsgrense.
@@ -255,27 +306,16 @@ def test_fhi_nede_gir_melding_og_ett_kall_per_side(
 
 # --- RSV, tabell 729 (story 6.1) ---
 
-RSV_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/data"
-RSV_DIMENSJON_URL = (
-    "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/dimension"
-)
-
 
 def test_rsv_viser_tall_og_kilde_for_729(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
-    fhi_mock.get(RSV_DIMENSJON_URL, name="rsv-dimensjoner").respond(
-        json=_svar("fhi/729-dimensjoner.json")
-    )
-    fhi_mock.post(RSV_DATA_URL, name="rsv-data").respond(
-        json=_svar("fhi/729-rsv-2025-2026-alle-nonstl.json")
-    )
-    svar = klient.get("/?mal=1&virus=rsv&sesong=2025/2026")
+    svar = klient.get("/resultat?mal=1&virus=rsv&sesong=2025/2026")
     html = svar.text
     assert svar.status_code == 200
     assert fhi_mock.routes["rsv-data"].call_count == 1
     assert not fhi_mock.routes["data"].called
-    assert _valgt(html, "virus") == ["rsv"]
+    assert _skjult(html, "virus") == "rsv"
     assert "<table" in html
     assert (
         "Kilde: MSIS-labdatabase og Referanselaboratoriet for RS-virus, "
@@ -288,27 +328,16 @@ def test_rsv_viser_tall_og_kilde_for_729(
 
 # --- SARS-CoV-2, tabell 731 (story 6.2) ---
 
-SARS_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/data"
-SARS_DIMENSJON_URL = (
-    "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/dimension"
-)
-
 
 def test_sars_cov_2_viser_tall_og_kilde_for_731(
     klient: TestClient, fhi_mock: respx.MockRouter
 ) -> None:
-    fhi_mock.get(SARS_DIMENSJON_URL, name="sars-dimensjoner").respond(
-        json=_svar("fhi/731-dimensjoner.json")
-    )
-    fhi_mock.post(SARS_DATA_URL, name="sars-data").respond(
-        json=_svar("fhi/731-sars-cov-2-2025-2026-alle-nonstl.json")
-    )
-    svar = klient.get("/?mal=1&virus=sars-cov-2&sesong=2025/2026")
+    svar = klient.get("/resultat?mal=1&virus=sars-cov-2&sesong=2025/2026")
     html = svar.text
     assert svar.status_code == 200
     assert fhi_mock.routes["sars-data"].call_count == 1
     assert not fhi_mock.routes["data"].called
-    assert _valgt(html, "virus") == ["sars-cov-2"]
+    assert _skjult(html, "virus") == "sars-cov-2"
     assert "<table" in html
     assert "kan ikke vises i appen ennå" not in html
     assert (
@@ -337,7 +366,7 @@ def test_innstillingene_leses_en_gang_ved_oppstart(
     with TestClient(app) as testklient:
         assert kall == [1]
         testklient.get("/")
-        testklient.get("/?mal=1&virus=influensa&sesong=2025/2026")
+        testklient.get("/resultat?mal=1&virus=influensa&sesong=2025/2026")
     assert kall == [1]
 
 

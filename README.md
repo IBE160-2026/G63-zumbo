@@ -42,7 +42,7 @@ Fra `backend/`:
 
     uv run uvicorn backend.web:app --reload
 
-Åpne så http://127.0.0.1:8000 i nettleseren. Forsiden på `/` viser ett kort per virus med andelen positive i siste uke med tall. Trykk på et kort for å åpne resultatsiden på `/resultat`, der du kan endre sesong og aldersgruppe. Appen starter uten `.env`. `--reload` starter appen på nytt når koden endres. Stopp den med Ctrl+C.
+Åpne så http://127.0.0.1:8000 i nettleseren. Forsiden på `/` viser ett kort per virus med andelen positive i siste uke med tall. Trykk på et kort for å åpne resultatsiden på `/resultat`, der du kan endre sesong og aldersgruppe. Gamle adresser med valg (`/?mal=…`) sendes videre til `/resultat`. Appen starter uten `.env`. `--reload` starter appen på nytt når koden endres. Stopp den med Ctrl+C.
 
 ### KI-nøkkel er valgfri
 

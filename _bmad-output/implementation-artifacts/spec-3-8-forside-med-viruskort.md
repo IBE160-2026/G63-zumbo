@@ -101,6 +101,8 @@ Hvert kort er en lenke til resultatsiden for viruset, med sesongen som pågår o
 
 ## Implementation Notes
 
+- Ikke commit; hovedøkten committer.
+
 ## Spec Change Log
 
 ## Review Triage Log

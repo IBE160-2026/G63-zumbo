@@ -12,26 +12,18 @@
   </form>
 {% endmacro %}
 
-{% block innhold %}
-<h1>Tall fra FHI om luftveisvirus</h1>
+{% block tittel %}{% if virusnavn %}{{ virusnavn }} – {% endif %}Tall fra FHI om luftveisvirus{% endblock %}
 
-<form method="get" action="/" class="skjema">
-  <p>
-    <label for="mal">Spørsmål</label>
-    <select id="mal" name="mal">
-      {% for verdi, tekst in maler %}
-      <option value="{{ verdi }}"{% if verdi == valgt.mal %} selected{% endif %}>{{ tekst }}</option>
-      {% endfor %}
-    </select>
-  </p>
-  <p>
-    <label for="virus">Virus</label>
-    <select id="virus" name="virus">
-      {% for verdi, tekst in virus %}
-      <option value="{{ verdi }}"{% if verdi == valgt.virus %} selected{% endif %}>{{ tekst }}</option>
-      {% endfor %}
-    </select>
-  </p>
+{% block innhold %}
+<p class="tilbake"><a href="/">← Til forsiden</a></p>
+<h1>{{ virusnavn or "Tall fra FHI om luftveisvirus" }}</h1>
+
+{% if virusnavn %}
+{#- Mal og virus følger med som skjulte felt. Sesong og aldersgruppe kan
+    endres (FR-27, AD-9). -#}
+<form method="get" action="/resultat" class="skjema">
+  <input type="hidden" name="mal" value="{{ valgt.mal }}">
+  <input type="hidden" name="virus" value="{{ valgt.virus }}">
   <p>
     <label for="sesong">Sesong</label>
     <select id="sesong" name="sesong">
@@ -50,6 +42,7 @@
   </p>
   <p><button type="submit">Vis tallene</button></p>
 </form>
+{% endif %}
 
 {% if feilmelding %}
 <div class="feilmelding" role="alert">
@@ -166,11 +159,6 @@
   <noscript><p>{{ uten_javascript }}</p></noscript>
 </section>
 {% endif %}
-
-<section class="om-appen" aria-labelledby="chatbottittel">
-  <h2 id="chatbottittel">Hvorfor ikke bare spørre en chatbot?</h2>
-  <p>En chatbot kan finne på tall eller bruke gamle tall, og den sier sjelden hvor tallene kommer fra. Denne appen henter tallene direkte fra Folkehelseinstituttet, viser når de ble hentet, og sier fra når det er for lite data til å konkludere. KI brukes bare til å forklare tallene med enkle ord, aldri til å lage dem.</p>
-</section>
 {% endblock %}
 
 {% block skript %}

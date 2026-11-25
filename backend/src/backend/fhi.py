@@ -32,11 +32,13 @@ ALDERSDIMENSJON = "aldersgruppe"
 FASTE_FILTRE: Mapping[int, Mapping[str, str]] = {
     724: {"influenzatypeandsubtype": "A+B", "surveillancetype": "NONSTL"},
     729: {"rsvtype": "A+B", "surveillancetype": "NONSTL"},
+    731: {"surveillancetype": "NONSTL"},
 }
 """Faste valg per tabell: totalen for virustypen og vanlig klinisk praksis.
 
 For 729 (RSV) er `rsvtype` `A+B` totalen, også prøver med ukjent type. FHIs
-etikett for den vises aldri (PRD-ens addendum, «Sjekk av RSV-totalen»).
+etikett for den vises aldri (PRD-ens addendum, «Sjekk av RSV-totalen»). 731
+(SARS-CoV-2) har ingen typedimensjon, så der er bare overvåkingstypen fast.
 """
 
 SKJULTE_VERDIER = frozenset({"..", ".", ":", ""})
@@ -137,17 +139,21 @@ def _sjekk_filtre(svar: Mapping[str, Any], utvalg: Utvalg, ider: list[str]) -> N
     }
     if utvalg.tabell not in FASTE_FILTRE:
         raise ValueError(f"tabell {utvalg.tabell} kan ikke tolkes ennå")
-    for dimensjon in ider:
-        if dimensjon in (UKEDIMENSJON, MÅLTALL):
-            continue
-        koder = _kategorier(svar, dimensjon)
-        if len(koder) != 1:
-            raise ValueError(f"{dimensjon} har {len(koder)} kategorier, ikke 1")
-        if dimensjon in forventet and koder[0] != forventet[dimensjon]:
-            raise ValueError(f"{dimensjon} er {koder[0]!r}, ikke det som ble valgt")
     mangler = set(forventet) - set(ider)
     if mangler:
         raise ValueError(f"svaret mangler {sorted(mangler)}")
+    for dimensjon in ider:
+        if dimensjon in (UKEDIMENSJON, MÅLTALL):
+            continue
+        if dimensjon not in forventet:
+            # For eksempel en typedimensjon i et svar fra 724 eller 729 som
+            # tolkes som SARS-CoV-2.
+            raise ValueError(f"svaret har {dimensjon!r}, som utvalget ikke har")
+        koder = _kategorier(svar, dimensjon)
+        if len(koder) != 1:
+            raise ValueError(f"{dimensjon} har {len(koder)} kategorier, ikke 1")
+        if koder[0] != forventet[dimensjon]:
+            raise ValueError(f"{dimensjon} er {koder[0]!r}, ikke det som ble valgt")
 
 
 def tolk(

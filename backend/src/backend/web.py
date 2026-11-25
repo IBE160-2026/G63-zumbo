@@ -150,6 +150,11 @@ def siste_uke_med_andel(serie: Dataserie | None) -> Uke | None:
     return next((u for u in reversed(serie.uker) if u.andel is not None), None)
 
 
+KORTNAVN = {"sars-cov-2": "Koronavirus (SARS-CoV-2)"}
+"""Navn på forsiden som avviker fra `Virus.navn`. Brukerne kjenner ordet korona,
+så kortet sier det. Resten av appen bruker «SARS-CoV-2»."""
+
+
 @dataclass(frozen=True)
 class Viruskort:
     """Det ett kort på forsiden viser (FR-27).
@@ -173,7 +178,7 @@ def viruskort(utvalg: Utvalg, resultat: Resultat | None) -> Viruskort:
     Uten svar, uten tall eller uten noen uke med andel viser kortet bare navnet
     og lenken. Formateringen er den samme som på resultatsiden (`formatering`).
     """
-    navn = VIRUS[utvalg.virus].navn
+    navn = KORTNAVN.get(utvalg.virus, VIRUS[utvalg.virus].navn)
     adresse = resultatadresse(utvalg)
     siste = siste_uke_med_andel(resultat.serie if resultat else None)
     if resultat is None or siste is None:

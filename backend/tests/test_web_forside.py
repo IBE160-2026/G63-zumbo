@@ -141,8 +141,14 @@ def test_forsiden_har_overskrift_intro_og_tre_kort(klient: TestClient) -> None:
 def test_kortene_står_i_rekkefølge_med_lenke_til_sesongen_som_pågår(
     klient: TestClient,
 ) -> None:
-    kort = _kort(klient.get("/").text)
-    assert [k[1].split()[0] for k in kort] == ["Influensa", "RSV", "SARS-CoV-2"]
+    html = klient.get("/").text
+    kort = _kort(html)
+    # Kortet sier «Koronavirus», resten av appen «SARS-CoV-2».
+    assert re.findall(r'<h2 class="kortnavn">(.*?)</h2>', html) == [
+        "Influensa",
+        "RSV",
+        "Koronavirus (SARS-CoV-2)",
+    ]
     for (href, _), virus in zip(kort, TABELLER, strict=True):
         del_ = urlsplit(href)
         assert del_.path == "/resultat"

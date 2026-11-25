@@ -34,7 +34,7 @@ Fra `backend/`:
     uv run ruff check
     uv run ruff format --check
 
-Alle tre kommandoene skal bestå før hver commit. Testene kjører uten nett: `pytest-socket` stopper alle nettverkskall, så ingen test kan kalle FHI eller Claude ved et uhell. Testene trenger heller ingen KI-nøkkel og leser aldri `.env`. De bruker lagrede svar i `backend/tests/fixtures/`. Ekte svar fra FHI for tabell 724 (influensa) og 729 (RSV) ligger i `backend/tests/fixtures/fhi/`, og README-en der forklarer formatet og hvordan de ble hentet.
+Alle tre kommandoene skal bestå før hver commit. Testene kjører uten nett: `pytest-socket` stopper alle nettverkskall, så ingen test kan kalle FHI eller Claude ved et uhell. Testene trenger heller ingen KI-nøkkel og leser aldri `.env`. De bruker lagrede svar i `backend/tests/fixtures/`. Ekte svar fra FHI for tabell 724 (influensa), 729 (RSV) og 731 (SARS-CoV-2) ligger i `backend/tests/fixtures/fhi/`, og README-en der forklarer formatet og hvordan de ble hentet.
 
 ### Starte appen
 

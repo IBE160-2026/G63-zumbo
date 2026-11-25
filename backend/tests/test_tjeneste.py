@@ -19,7 +19,7 @@ import respx
 
 from backend import kontrollregler, mellomlager, sesong, tjeneste
 from backend.config import Innstillinger
-from backend.domene import VIRUS, Utvalg
+from backend.domene import Utvalg
 from backend.tjeneste import Tjeneste
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -195,7 +195,6 @@ def test_lagret_fil_som_ikke_kan_tolkes_regnes_som_manglende(
 
 def test_meldingene_har_ingen_fhi_koder() -> None:
     tekster = [
-        *(tjeneste.IKKE_KLART.format(virus=v.navn) for v in VIRUS.values()),
         tjeneste.FHI_NEDE_LAGRET,
         tjeneste.FHI_NEDE_INGEN_TALL,
         tjeneste.IKKE_PUBLISERT.format(sesong="2026/2027"),
@@ -213,25 +212,6 @@ def test_lagring_som_feiler_gir_likevel_tall(
         resultat = Tjeneste(Innstillinger(None, "modell", fil)).svar(UTVALG, NÅ)
     assert resultat.serie is not None and resultat.melding is None
     assert "Kunne ikke lagre i cachen" in caplog.text
-
-
-# --- Utvalg som ikke kan hentes ennå (åpne punkter fra 2.3 og 2.5) ---
-
-
-def test_sars_cov_2_gir_norsk_melding_uten_kall(
-    tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
-) -> None:
-    resultat = tj.svar(Utvalg(1, "sars-cov-2", "2025/2026"), NÅ)
-    assert resultat.serie is None
-    assert resultat.melding == (
-        "Tall for SARS-CoV-2 kan ikke vises i appen ennå. Velg influensa eller RSV."
-    )
-    assert not fhi_mock.calls
-    assert not mappe.exists()
-
-
-def test_influensa_og_rsv_er_klare() -> None:
-    assert tjeneste.KLARE_VIRUS == ("influensa", "rsv")
 
 
 # --- RSV, tabell 729 (story 6.1, AD-3) ---
@@ -626,3 +606,76 @@ def test_dimensjonslisten_prøves_igjen_etter_pausen(
     assert fhi_mock.routes["dimensjoner"].call_count == 1
     tj.sesonger(NÅ + tjeneste.PAUSE_ETTER_FEIL)
     assert fhi_mock.routes["dimensjoner"].call_count == 2
+
+
+# --- SARS-CoV-2, tabell 731 (story 6.2, AD-3) ---
+
+SARS_DATA = _svar("fhi/731-sars-cov-2-2025-2026-alle-nonstl.json")
+SARS_DIMENSJONER = _svar("fhi/731-dimensjoner.json")
+SARS_UTVALG = Utvalg(1, "sars-cov-2", "2025/2026", "alle")
+SARS_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/data"
+SARS_DIMENSJON_URL = (
+    "https://statistikk-data.fhi.no/api/open/v1/msis/Table/731/dimension"
+)
+
+
+@pytest.fixture
+def sars_mock(fhi_mock: respx.MockRouter) -> respx.MockRouter:
+    fhi_mock.get(SARS_DIMENSJON_URL, name="sars-dimensjoner").respond(
+        json=SARS_DIMENSJONER
+    )
+    fhi_mock.post(SARS_DATA_URL, name="sars-data").respond(json=SARS_DATA)
+    return fhi_mock
+
+
+def test_sars_cov_2_hentes_fra_731_med_731_sin_dimensjonsliste(
+    tj: Tjeneste, mappe: Path, sars_mock: respx.MockRouter
+) -> None:
+    resultat = tj.svar(SARS_UTVALG, NÅ)
+    assert sars_mock.routes["sars-dimensjoner"].call_count == 1
+    assert sars_mock.routes["sars-data"].call_count == 1
+    assert not sars_mock.routes["dimensjoner"].called
+    assert not sars_mock.routes["data"].called
+    assert resultat.serie is not None and len(resultat.serie.uker) == 33
+    første = resultat.serie.uker[0]
+    assert (første.positive, første.tester) == (471, 7109)
+    assert resultat.melding is None
+    assert mellomlager.les_dimensjoner(mappe, 731) is not None
+    assert mellomlager.les_dimensjoner(mappe, 724) is None
+    lagret = mellomlager.les_svar(mappe, SARS_UTVALG)
+    assert lagret is not None and lagret.svar == SARS_DATA
+
+
+def test_sars_cov_2_kilde_er_tabell_731(
+    tj: Tjeneste, sars_mock: respx.MockRouter
+) -> None:
+    kilde = tj.svar(SARS_UTVALG, NÅ).kilde
+    assert kilde is not None
+    assert kilde.tabell == 731
+    assert kilde.tabellnavn == "RESPIaggr SARS-CoV-2 antall og andel"
+    assert kilde.kildetekst == (
+        "Kilde: MSIS-labdatabase og Referanselaboratoriet for koronavirus med "
+        "utbruddspotensiale, Folkehelseinstituttet (FHI)."
+    )
+    assert kilde.hentet == NÅ
+
+
+def test_siste_publiserte_uke_for_sars_cov_2_kommer_fra_731(
+    tj: Tjeneste, mappe: Path, sars_mock: respx.MockRouter
+) -> None:
+    # 724 har uke 46 lagret, men 731 bare til uke 44. Forespørselen følger 731.
+    mellomlager.lagre_dimensjoner(mappe, 724, DIMENSJONER, NÅ)
+    kopi = copy.deepcopy(SARS_DIMENSJONER)
+    for dimensjon in kopi["dimensions"]:
+        if dimensjon["code"] == "dateusedforstatistics":
+            dimensjon["categories"] = [
+                k for k in dimensjon["categories"] if k["value"] <= "2026-w44"
+            ]
+    sars_mock.routes["sars-dimensjoner"].respond(json=kopi)
+    # Bare forespørselen sjekkes. Svaret fra mocken er for 2025/2026 og avvises.
+    tj.svar(Utvalg(1, "sars-cov-2", "2026/2027", "alle"), NÅ)
+    kropp = json.loads(sars_mock.routes["sars-data"].calls.last.request.content)
+    uker = next(
+        d["values"] for d in kropp["dimensions"] if d["code"] == "dateusedforstatistics"
+    )
+    assert uker[-1] == "2026-w44"

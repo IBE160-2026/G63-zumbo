@@ -174,7 +174,8 @@ class Tjeneste:
 
         Med `tving` hentes listen fra FHI selv om den lagrede er fersk, og også
         rett etter en feil, fordi brukeren har bedt om nye tall (FR-25). Slik
-        kommer en ny uke med, selv om listen ble lagret før FHI publiserte.
+        kommer en ny sesong med i sesonglisten, selv om listen ble lagret før
+        FHI publiserte.
         """
 
         def hent() -> dict[str, Any]:
@@ -228,7 +229,7 @@ class Tjeneste:
         så gir svaret en melding om at det ikke finnes tall. Kontrollreglene
         gjelder alltid, også for lagrede tall.
 
-        Med `tving` hentes tallene og dimensjonslisten fra FHI selv om de lagrede
+        Med `tving` hentes tallene og sesonglisten (724) fra FHI selv om de lagrede
         er ferske, og lagres med `nå` som nytt hentetidspunkt (FR-25). Når FHI
         ikke svarer, gjelder FR-8 som ellers. Samtidige tvungne hentinger for
         samme utvalg deler ett kall til FHI (AD-9).
@@ -240,6 +241,9 @@ class Tjeneste:
         lagret = self._lagret_svar(utvalg)
         if not tving and lagret is not None and not sesong.er_utdatert(lagret[0], nå):
             return self._resultat(utvalg, lagret[1], lagret[0])
+        if not tving and self._lagret_liste_sier_ikke_publisert(utvalg, nå):
+            # Som før: en fersk lagret liste for tabellen svarer uten kall (AD-3).
+            return Resultat(utvalg, melding=IKKE_PUBLISERT.format(sesong=utvalg.sesong))
         try:
             if tving:
                 # «Hent nyeste tall nå» henter også sesonglisten, så en ny sesong
@@ -253,8 +257,11 @@ class Tjeneste:
             try:
                 # Hele sesongen. Svaret slutter ved siste publiserte uke (AD-3).
                 rått = fhi.hent(utvalg, klient=self._klient)
-            except fhi.ForespørselAvvist:
+            except fhi.ForespørselAvvist as avvist:
                 if self._ikke_publisert(utvalg, nå, tving):
+                    logger.info(
+                        "FHI har ikke publisert %s ennå: %r", utvalg.nøkkel, avvist
+                    )
                     return Resultat(
                         utvalg, melding=IKKE_PUBLISERT.format(sesong=utvalg.sesong)
                     )
@@ -279,13 +286,25 @@ class Tjeneste:
         Spørres bare når FHI avviste datakallet. Dimensjonslisten for utvalgets
         egen tabell avgjør, slik at meldingen «ikke publisert ennå» bare vises
         når den stemmer (AD-3). Gir `FhiUtilgjengelig` når listen ikke kan hentes.
+        Med `tving` er 724-listen alt hentet i samme forespørsel, så den hentes
+        ikke på nytt.
         """
+        tving = tving and utvalg.tabell != SESONGTABELL
         dimensjoner = self._dimensjonsliste(nå, tving, utvalg.tabell)
         return not sesong.uker(utvalg.sesong, fhi.siste_publiserte_uke(dimensjoner))
 
+    def _lagret_liste_sier_ikke_publisert(self, utvalg: Utvalg, nå: datetime) -> bool:
+        """Sann når en fersk lagret dimensjonsliste for utvalgets tabell viser at
+        sesongen ikke har noen publiserte uker. Da trengs ikke noe kall til FHI.
+        Listen for 729 og 731 er lagret bare etter et avvist datakall."""
+        lagret = self._lagret_dimensjonsliste(utvalg.tabell)
+        if lagret is None or sesong.er_utdatert(lagret.hentet, nå):
+            return False
+        return not sesong.uker(utvalg.sesong, fhi.siste_publiserte_uke(lagret.svar))
+
     def _lagret_svar(self, utvalg: Utvalg) -> tuple[datetime, Dataserie] | None:
         """Det lagrede svaret tolket, eller `None` når det mangler eller ikke kan
-        tolkes. Svaret har ukene som ble bedt om, så siste uke trengs ikke."""
+        tolkes. Svaret har de publiserte ukene, så siste uke trengs ikke."""
         lagret = mellomlager.les_svar(self._mappe, utvalg)
         if lagret is None:
             return None

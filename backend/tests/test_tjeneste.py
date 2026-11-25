@@ -59,6 +59,7 @@ def _data_til(svar: dict[str, Any], siste: str) -> dict[str, Any]:
     uker = [u for u in kategori["index"] if u <= siste]
     kategori["index"] = uker
     kategori["label"] = {u: u for u in uker}
+    assert all(størrelse == 1 for størrelse in kopi["size"][:plass])
     steg = 1
     for størrelse in kopi["size"][plass + 1 :]:
         steg *= størrelse
@@ -433,10 +434,51 @@ def test_avvist_datakall_for_rsv_sjekkes_mot_729_listen(
     assert rsv_mock.routes["rsv-dimensjoner"].call_count == 1
 
 
+def test_fersk_lagret_liste_uten_uker_svarer_uten_kall(
+    tj: Tjeneste, mappe: Path, rsv_mock: respx.MockRouter
+) -> None:
+    # Etter et avvist datakall er 729-listen lagret. Neste visning av samme
+    # sesong gjør ingen kall, slik som før (AD-3).
+    kopi = copy.deepcopy(RSV_DIMENSJONER)
+    for dimensjon in kopi["dimensions"]:
+        if dimensjon["code"] == "dateusedforstatistics":
+            dimensjon["categories"] = [
+                k for k in dimensjon["categories"] if k["value"] <= "2026-w20"
+            ]
+    mellomlager.lagre_dimensjoner(mappe, 729, kopi, NÅ - timedelta(hours=1))
+    resultat = tj.svar(Utvalg(1, "rsv", "2026/2027"), NÅ)
+    assert resultat.melding == tjeneste.IKKE_PUBLISERT.format(sesong="2026/2027")
+    assert not rsv_mock.calls
+
+
+@pytest.mark.parametrize(
+    ("virus", "liste_for_tabellen"), [("influensa", None), ("rsv", "rsv-dimensjoner")]
+)
+def test_tvungen_henting_for_sesong_uten_publiserte_uker_gir_melding(
+    tj: Tjeneste,
+    rsv_mock: respx.MockRouter,
+    virus: str,
+    liste_for_tabellen: str | None,
+) -> None:
+    # «Hent nyeste tall nå» i en sesong som ikke er publisert: 724-listen hentes
+    # én gang, og for RSV hentes 729-listen i tillegg.
+    til_uke_20 = _dimensjoner_til("2026-w20")
+    rsv_mock.routes["dimensjoner"].respond(json=til_uke_20)
+    rsv_mock.routes["rsv-dimensjoner"].respond(json=til_uke_20)
+    for rute in ("data", "rsv-data"):
+        rsv_mock.routes[rute].respond(400, json=IKKE_PUBLISERT_400)
+    resultat = tj.svar(Utvalg(1, virus, "2026/2027"), NÅ, tving=True)
+    assert resultat.melding == tjeneste.IKKE_PUBLISERT.format(sesong="2026/2027")
+    assert rsv_mock.routes["dimensjoner"].call_count == 1
+    if liste_for_tabellen:
+        assert rsv_mock.routes[liste_for_tabellen].call_count == 1
+
+
 def test_avvist_datakall_for_publisert_sesong_gir_fhi_nede(
     tj: Tjeneste, mappe: Path, fhi_mock: respx.MockRouter
 ) -> None:
-    # Har sesongen publiserte uker, er 400 en feil, og FR-8 gjelder.
+    # Har sesongen publiserte uker, er 400 en feil, og FR-8 gjelder. Influensa
+    # er i 724, så det er 724-listen som sjekkes.
     mellomlager.lagre_svar(mappe, UTVALG, DATA, NÅ - timedelta(days=2))
     fhi_mock.routes["data"].respond(400, json={"status": 400})
     resultat = tj.svar(UTVALG, NÅ)

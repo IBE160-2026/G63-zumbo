@@ -284,7 +284,7 @@ def forespørsel(
     sesongen. FHI sender da bare de publiserte ukene og hopper over resten
     (sjekket 26.11.2026), så svaret slutter ved siste publiserte uke uten at
     dimensjonslisten må hentes først. Gir `ValueError` for en tabell uten faste
-    filtre, eller en sesong uten publiserte uker.
+    filtre, eller når `siste_publiserte_uke` ligger før sesongstart.
     """
     if utvalg.tabell not in FASTE_FILTRE:
         raise ValueError(f"tabell {utvalg.tabell} har ingen faste filtre")

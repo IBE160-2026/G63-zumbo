@@ -71,3 +71,5 @@
 - [ ] 2026-11-26 [ny-klone-ukjent-mal-fhi-kall-og-status](962-2026-11-26-00-05-26-ny-klone-ukjent-mal-fhi-kall-og-status.md) — `docs/ki-logg.md` har bare to oppføringer (kriterium 1, 30 %); Irene bestemmer om den fylles ut eller lenker til `.logs/`
 - [ ] 2026-11-26 [ny-klone-ukjent-mal-fhi-kall-og-status](962-2026-11-26-00-05-26-ny-klone-ukjent-mal-fhi-kall-og-status.md) — arkitektur §6 (mappestruktur) er utdatert: maler, `formatering.py`, `scripts/`, `[tool.vercel]`
 - [ ] 2026-11-26 [ny-klone-ukjent-mal-fhi-kall-og-status](962-2026-11-26-00-05-26-ny-klone-ukjent-mal-fhi-kall-og-status.md) — story 7.6 (#37): automatisk test av kommandoene i README-en, og notat i #37 om testen fra en ny klone
+- [ ] 2026-11-26 [mulighetsstudie-flere-registre](961-2026-11-26-00-11-48-mulighetsstudie-flere-registre.md) — Irene: lese og vurdere mulighetsstudien i PR #81 (ikke merget)
+- [ ] 2026-11-26 [mulighetsstudie-flere-registre](961-2026-11-26-00-11-48-mulighetsstudie-flere-registre.md) — spørre FHI om lav dekning i SYSVAK før ca. 2020 skyldes registreringen, og om det finnes en stabil måte å finne NGS-tabellene for hver sesong på

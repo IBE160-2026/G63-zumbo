@@ -34,6 +34,15 @@ DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/data"
 DIMENSJON_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/724/dimension"
 
 
+RSV_DATA = _svar("fhi/729-rsv-2025-2026-alle-nonstl.json")
+RSV_DIMENSJONER = _svar("fhi/729-dimensjoner.json")
+RSV_UTVALG = Utvalg(1, "rsv", "2025/2026", "alle")
+RSV_DATA_URL = "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/data"
+RSV_DIMENSJON_URL = (
+    "https://statistikk-data.fhi.no/api/open/v1/msis/Table/729/dimension"
+)
+
+
 # --- Vellykket svar ---
 
 
@@ -90,7 +99,7 @@ def test_ukekoden_har_to_sifre_og_liten_w() -> None:
 @pytest.mark.parametrize(
     ("utvalg", "siste"),
     [
-        (Utvalg(1, "rsv", "2025/2026", "alle"), SISTE),
+        (Utvalg(1, "sars-cov-2", "2025/2026", "alle"), SISTE),
         (Utvalg(1, "influensa", "2027/2028", "alle"), SISTE),
     ],
 )
@@ -289,3 +298,50 @@ def test_bare_fhi_py_importerer_httpx() -> None:
         str(fil.relative_to(SRC)) for fil in SRC.rglob("*.py") if _importerer_httpx(fil)
     ]
     assert treff == ["fhi.py"]
+
+
+# --- RSV, tabell 729 (story 6.1, FR-2, FR-6) ---
+
+
+@respx.mock
+def test_rsv_hentes_fra_tabell_729_med_rsvtype_og_nonstl() -> None:
+    rute = respx.post(RSV_DATA_URL).respond(json=RSV_DATA)
+    assert fhi.hent(RSV_UTVALG, SISTE) == RSV_DATA
+    kropp = json.loads(rute.calls.last.request.content)
+    filtre = {d["code"]: d["values"] for d in kropp["dimensions"]}
+    assert all(d["filter"] == "item" for d in kropp["dimensions"])
+    assert kropp["response"] == {"format": "json-stat2"}
+    assert list(filtre) == [
+        "dateusedforstatistics",
+        "aldersgruppe",
+        "rsvtype",
+        "surveillancetype",
+        "MEASURE_TYPE",
+    ]
+    assert filtre["aldersgruppe"] == ["Alle"]
+    assert filtre["rsvtype"] == ["A+B"]
+    assert filtre["surveillancetype"] == ["NONSTL"]
+    assert filtre["MEASURE_TYPE"] == ["Detections", "Tests", "pos_rate"]
+    # Samme uker som i forespørselen bak fixturen (README-en).
+    assert filtre["dateusedforstatistics"] == list(
+        RSV_DATA["dimension"]["dateusedforstatistics"]["category"]["index"]
+    )
+
+
+@respx.mock
+def test_rsv_svar_fra_feil_tabell_gir_fhiutilgjengelig() -> None:
+    # Et svar fra 724 mangler `rsvtype` og kan ikke gjelde et RSV-utvalg.
+    respx.post(RSV_DATA_URL).respond(json=DATA)
+    with pytest.raises(fhi.FhiUtilgjengelig) as feil:
+        fhi.hent(RSV_UTVALG, SISTE)
+    assert isinstance(feil.value.__cause__, ValueError)
+
+
+@respx.mock
+def test_dimensjonslisten_for_729() -> None:
+    rute = respx.get(RSV_DIMENSJON_URL).respond(json=RSV_DIMENSJONER)
+    svar = fhi.hent_dimensjoner(729)
+    assert svar == RSV_DIMENSJONER
+    assert rute.call_count == 1
+    assert fhi.siste_publiserte_uke(svar) == SISTE
+    assert fhi.sesonger(svar) == ("2024/2025", "2025/2026", "2026/2027")

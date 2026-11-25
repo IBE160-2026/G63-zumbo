@@ -31,8 +31,13 @@ ALDERSDIMENSJON = "aldersgruppe"
 
 FASTE_FILTRE: Mapping[int, Mapping[str, str]] = {
     724: {"influenzatypeandsubtype": "A+B", "surveillancetype": "NONSTL"},
+    729: {"rsvtype": "A+B", "surveillancetype": "NONSTL"},
 }
-"""Faste valg per tabell: totalen for virustypen og vanlig klinisk praksis."""
+"""Faste valg per tabell: totalen for virustypen og vanlig klinisk praksis.
+
+For 729 (RSV) er `rsvtype` `A+B` totalen, også prøver med ukjent type. FHIs
+etikett for den vises aldri (se `tests/fixtures/fhi/README.md`).
+"""
 
 SKJULTE_VERDIER = frozenset({"..", ".", ":", ""})
 """Tekster FHI bruker for en skjult verdi (PRD kapittel 3). `null` er også skjult."""

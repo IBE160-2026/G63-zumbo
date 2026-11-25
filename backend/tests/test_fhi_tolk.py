@@ -402,3 +402,59 @@ def test_alle_andre_funksjoner_enn_skallet_er_rene() -> None:
         assert not any(
             isinstance(n, ast.Import | ast.ImportFrom) for n in ast.walk(funksjon)
         ), navn
+
+
+# --- Fixturen for tabell 729, RSV (story 6.1) ---
+
+RSV_DATA = _svar("fhi/729-rsv-2025-2026-alle-nonstl.json")
+RSV_DIMENSJONER = _svar("fhi/729-dimensjoner.json")
+RSV_UTVALG = Utvalg(1, "rsv", "2025/2026", "alle")
+
+
+def test_rsv_fixturen_gir_én_uke_per_uke_i_sesongen() -> None:
+    serie = fhi.tolk(RSV_DATA, RSV_UTVALG, fhi.siste_publiserte_uke(RSV_DIMENSJONER))
+    assert serie.utvalg == RSV_UTVALG
+    assert [(u.år, u.ukenummer) for u in serie.uker] == list(sesong.uker("2025/2026"))
+    assert not any(u.manglende or u.usikker for u in serie.uker)
+
+
+@pytest.mark.parametrize(
+    ("uke", "tester", "positive", "andel"),
+    [
+        ((2025, 40), 6487, 13, 0.2004008),
+        ((2025, 52), 4951, 165, 3.33266),
+        ((2026, 20), 4461, 104, 2.331316),
+    ],
+)
+def test_rsv_tre_uker_stemmer_med_fixturen(
+    uke: tuple[int, int], tester: int, positive: int, andel: float
+) -> None:
+    serie = fhi.tolk(RSV_DATA, RSV_UTVALG)
+    (funnet,) = [u for u in serie.uker if (u.år, u.ukenummer) == uke]
+    assert (funnet.tester, funnet.positive) == (tester, positive)
+    assert funnet.andel == pytest.approx(andel, abs=1e-4)
+
+
+def test_rsv_dimensjonslisten_har_samme_uker_som_724() -> None:
+    assert fhi.siste_publiserte_uke(RSV_DIMENSJONER) == fhi.siste_publiserte_uke(
+        DIMENSJONER
+    )
+    assert fhi.sesonger(RSV_DIMENSJONER) == fhi.sesonger(DIMENSJONER)
+
+
+def test_svar_fra_724_tolket_som_rsv_gir_valueerror() -> None:
+    with pytest.raises(ValueError, match="rsvtype"):
+        fhi.tolk(DATA, RSV_UTVALG)
+
+
+def test_svar_fra_729_tolket_som_influensa_gir_valueerror() -> None:
+    with pytest.raises(ValueError):
+        fhi.tolk(RSV_DATA, UTVALG)
+
+
+def test_rsv_svar_med_annen_rsvtype_gir_valueerror() -> None:
+    svar = copy.deepcopy(RSV_DATA)
+    svar["dimension"]["rsvtype"]["category"]["index"] = ["A"]
+    svar["dimension"]["rsvtype"]["category"]["label"] = {"A": "RS-virus A"}
+    with pytest.raises(ValueError, match="rsvtype"):
+        fhi.tolk(svar, RSV_UTVALG)
